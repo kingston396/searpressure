@@ -1,0 +1,24 @@
+# Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+*.csproj
+*.sln
+*.slnx
+*.suo
+*.user
+*.pidb
+*.booproj
+.vs/
+.idea/
+.DS_Store
+# Test harness build output
+Tools/**/bin/
+Tools/**/obj/
+!Tools/Harness/Harness.csproj
+Server/node_modules/
