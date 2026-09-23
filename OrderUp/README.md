@@ -74,14 +74,14 @@ The campaign is a food truck road trip (see `ROADMAP.md`). Kitchens are grouped 
 
 ### The Judge's Table (bonus boss)
 
-Unlocked by earning a star on The Big Feast. A panel of three parody celebrity-chef judges inspects every plate, each calling out their specialty with their own pixel portrait and name on the speech bubble:
+Unlocked by earning a star on The Big Feast. A panel of three original TV-chef-style judges inspects every plate, each calling out their specialty with their own pixel portrait and name on the speech bubble:
 
 - **Yourdone Ramsey** (head judge): wrong dishes, walk-outs, the opening and the final verdict.
-- **Richie Blaze** (heat): overcooked and burnt food.
-- **Yesha Narrington** (temperature): cold food.
+- **Nitro Spark** (the food scientist): overcooked and burnt food.
+- **Ember Sterling** (the perfectionist): cold food.
 - Any of them may praise a perfect plate.
 
-The names are playful takes on real TV chefs. Get legal advice before an app store release, since sound-alike celebrity names can raise right-of-publicity issues. The names live in `JUDGES` if you need to change them.
+Nitro Spark and Ember Sterling are original characters, named after the chef styles they play rather than real people. Yourdone Ramsey is still a play on a real chef's name, so get legal advice before an app store release: sound-alike celebrity names can raise right-of-publicity issues. The names live in `JUDGES`.
  You get a **strike** for a wrong dish, **cold** food (a cooked part more than 15 seconds off the heat; a frost icon shows it), **overcooked** food (taken off during the burn warning), anything **burning**, or a customer who **walks out**. Three strikes ends the service on the spot with no stars. Tickets are 30% shorter than normal. It's tuned to be brutal, so tell me after you've played it if it's too easy or too hard.
 
 **AI helper (solo only):** when you play the Judge's Table on your own, not in co-op, the intro card offers three random helpers drawn from the stations in that kitchen. You can hire **one helper per star you earned on The Big Feast, up to three** (so a 3-star Feast lets you take all three). Picking past your limit lets go of your earliest pick. Hired helpers join your two chefs, marked by a purple neckerchief and a badge. Each does exactly one job:

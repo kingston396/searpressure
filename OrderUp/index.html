@@ -760,7 +760,7 @@ const LEVELS = [
   {
     stop: 10, judge: true, name: "The Judge's Table", time: 240, stars: [400, 520, 650], maxOrders: 5, interval: [7, 11], timeScale: 0.7, plates: 5, fire: true, dishes: true,
     recipes: ['deluxe', 'tsoup', 'fishchips', 'sshake'],
-    tip: 'Judges Yesha Narrington, Richie Blaze and Yourdone Ramsey taste everything. Three strikes and you are out: a wrong dish, cold food (more than 15 seconds off the heat), overcooked food, anything burning, or a customer who gives up waiting. Tickets are shorter here. Plate it hot, and plate it right.',
+    tip: 'Judges Ember Sterling, Nitro Spark and Yourdone Ramsey taste everything. Three strikes and you are out: a wrong dish, cold food (more than 15 seconds off the heat), overcooked food, anything burning, or a customer who gives up waiting. Tickets are shorter here. Plate it hot, and plate it right.',
     map: [
       '#XZPK#H#fY#',
       'M....#....G',
@@ -2102,11 +2102,11 @@ const SPR = {
     'kwwwwkkkkkwwwwk.',
     'kwwwwwwwwwwwwwk.',
   ],
-  judgeBlaze: [
+  judgeSpark: [
     '..k..k..k..k....',
     '.kTk.kTkkTk.k...',
     '.kbTkbbTkbbkTk..',
-    '.kbbbbbbbbbbbk..',
+    '.kkuukkkkkuukk..',
     '.kssssssssssk...',
     '.kskkksssskkksk.',
     '.ksskwksskwkssk.',
@@ -2119,7 +2119,7 @@ const SPR = {
     'kwwwwkkkkkwwwwk.',
     'kwwwwwwwwwwwwwk.',
   ],
-  judgeYesha: [
+  judgeEmber: [
     '.....kkkkk......',
     '....kDDDDDk.....',
     '.....kkkkk......',
@@ -4008,8 +4008,8 @@ const MAX_STRIKES = 3;
 // The panel. Each judge has a portrait sprite and calls out their own kind of mistake.
 const JUDGES = {
   ramsey: { name: 'Yourdone Ramsey', sprite: 'judgeRamsey' },     // head judge: wrong dishes, walk-outs, the verdict
-  blaze:  { name: 'Richie Blaze', sprite: 'judgeBlaze' },         // heat: overcooked and burnt food
-  yesha:  { name: 'Yesha Narrington', sprite: 'judgeYesha' },     // temperature and polish: cold food
+  spark:  { name: 'Nitro Spark', sprite: 'judgeSpark' },          // food scientist: overcooked and burnt food
+  ember:  { name: 'Ember Sterling', sprite: 'judgeEmber' },       // perfectionist: cold food
 };
 // [who says it, lines]. Praise comes from any judge, in their own voice.
 const JUDGE_LINES = {
@@ -4018,13 +4018,13 @@ const JUDGE_LINES = {
   late: ['ramsey', ['The customer LEFT. Can you blame them?', 'Too slow! They grew a beard waiting!', 'Table four walked out. Wonderful.']],
   out: ['ramsey', ['Three strikes. You are DONE. Get out of my kitchen!', 'That is it. Apron off. You are DONE!']],
   pass: ['ramsey', ['...Fine. You can cook. Now get out before I change my mind.']],
-  overcooked: ['blaze', ['Overcooked! This is charcoal with a garnish!', 'That heat was way too high, chef. Dry as a desert!', 'Science says no. That protein is ruined!']],
-  burn: ['blaze', ['I smell smoke! Get that off the heat!', 'You burnt it! Watch your pans!', 'That is not a sear, that is a crime scene!']],
-  cold: ['yesha', ['It is cold. Temperature is everything, chef!', 'This plate went cold on the pass. Serve it hot!', 'Cold food tells me you were not ready. Be ready.']],
+  overcooked: ['spark', ['Overcooked! This is charcoal with a garnish!', 'That heat was way too high, chef. Dry as a desert!', 'Science says no. That protein is ruined!']],
+  burn: ['spark', ['I smell smoke! Get that off the heat!', 'You burnt it! Watch your pans!', 'That is not a sear, that is a crime scene!']],
+  cold: ['ember', ['It is cold. Temperature is everything, chef!', 'This plate went cold on the pass. Serve it hot!', 'Cold food tells me you were not ready. Be ready.']],
   good: [null, {
     ramsey: ['Hmm. Acceptable.', 'Finally. Something edible.', 'Good. Now do it again. Faster.'],
-    blaze: ['Now THAT is a perfect cook!', 'Beautiful sear. I am impressed.'],
-    yesha: ['Lovely. Hot, fresh and on time.', 'That is a plate I would serve. Well done.'],
+    spark: ['Now THAT is a perfect cook!', 'Beautiful sear. The science checks out.'],
+    ember: ['Lovely. Hot, fresh and on time.', 'That is a plate I would serve. Well done.'],
   }],
 };
 
@@ -4390,7 +4390,7 @@ function showResults() {
   else $('res-next').textContent = 'Earn ' + need + ' coins to unlock ' + next.name + '.';
   if (lv.finale && stars && nextOk) $('res-next').textContent = "You made it to Thanksgiving. The road trip is complete! A bonus challenge has opened: The Judge's Table.";
   else if (next && STOPS[next.stop].bonus && !nextOk) $('res-next').textContent = "Earn a star here to earn a seat at The Judge's Table.";
-  if (lv.judge) $('res-next').textContent = G.kicked ? `Yourdone Ramsey threw you out after ${MAX_STRIKES} strikes. "${G.judge ? G.judge.text : ''}"` : stars ? 'Yourdone Ramsey grunts, Richie Blaze nods and Yesha Narrington smiles. You passed the Judge\'s Table!' : `Not enough. The judges want ${need} coins with no more than two strikes.`;
+  if (lv.judge) $('res-next').textContent = G.kicked ? `Yourdone Ramsey threw you out after ${MAX_STRIKES} strikes. "${G.judge ? G.judge.text : ''}"` : stars ? 'Yourdone Ramsey grunts, Nitro Spark nods and Ember Sterling smiles. You passed the Judge\'s Table!' : `Not enough. The judges want ${need} coins with no more than two strikes.`;
   if (guest) $('res-next').textContent = 'Your friend is picking what to play next.';
   show('scr-results');
 }
