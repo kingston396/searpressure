@@ -139,6 +139,19 @@
   .banner { background: var(--paper-2); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .banner p { font-size: 14px; }
   .btn.small { font-size: 15px; padding: 8px 12px; }
+  .tut {
+    position: fixed; left: 50%; transform: translateX(-50%); z-index: 2;
+    width: min(420px, calc(100vw - 24px)); box-sizing: border-box;
+    background: var(--paper); color: var(--text); border-radius: 4px; padding: 8px 12px 10px;
+    box-shadow: 0 0 0 3px #ffd23a, 0 10px 30px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .tut p { font-size: 14px; line-height: 1.3; }
+  .tut .btn { align-self: flex-end; color: #fff; }
+  .tut .mono { font-size: 11px; }
+  .tut-icons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+  .tut-icon { display: flex; align-items: center; gap: 8px; font: 800 13px/1.2 "Nunito", system-ui, sans-serif; }
+  .tut-icon canvas { flex: 0 0 auto; border-radius: 4px; }
   @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
 </style>
 </head>
@@ -146,12 +159,20 @@
 <canvas id="game" aria-label="Kitchen"></canvas>
 <div id="safe-probe"></div>
 
+<aside id="tut" class="tut" hidden aria-live="polite">
+  <div class="tut-head"><span class="mono" id="tut-step">Step 1</span></div>
+  <p id="tut-text"></p>
+  <div id="tut-icons" class="tut-icons" hidden></div>
+  <button id="tut-next" class="btn small" type="button" hidden>Next</button>
+</aside>
+
 <section id="scr-title" class="screen">
   <div class="ticket">
     <div class="head-row"><span class="mono">Table for two chefs</span><button id="btn-mute" class="icon-btn" type="button">Sound: on</button></div>
     <h1>Order<br><span>Up!</span></h1>
     <p>Chop, cook, plate and serve before the tickets run out. You run two chefs. Swap between them to keep both busy.</p>
     <hr class="rule">
+    <button id="btn-tutorial" class="btn" type="button">New here? Start with the tutorial</button>
     <button id="btn-online" class="btn alt" type="button">Play with a friend</button>
     <div id="online-banner" class="banner" hidden><p id="online-banner-text"></p><button id="btn-online-leave" class="btn ghost small" type="button">Leave</button></div>
     <div class="mono">Pick a kitchen</div>
@@ -834,7 +855,7 @@ const CHEF_DARK = ['#a8301d', '#1f5a9a'];
    ========================================================================= */
 
 const SAVE_KEY = 'orderup.v1';
-let save = { best: [], muted: false };
+let save = { best: [], muted: false, tutorialDone: false };
 try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s) save = Object.assign(save, s); } catch (e) {}
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
 function starsFor(lvIdx, score) { return LEVELS[lvIdx].stars.filter(s => score >= s).length; }
@@ -2340,7 +2361,8 @@ function heatAccepts(t, it) { const f = heatFood(t, it); return !!f && (it.state
 function onHeat(t) { return heatAccepts(t, t.item); }
 
 function startLevel(idx, opts = {}) {
-  const lv = LEVELS[idx];
+  const lv = idx === 'tutorial' ? TUTORIAL : LEVELS[idx];
+  $('tut').hidden = true;
   let map = lv.map;
   // Tall screens get tall kitchens: transpose wide maps in portrait. Online, the host decides for both.
   const transposed = opts.transpose ?? (window.innerHeight > window.innerWidth && map[0].length > map.length);
@@ -2780,11 +2802,11 @@ function update(dt) {
     return;
   }
 
-  G.time -= dt;
-  const sec = Math.ceil(G.time);
+  if (!G.lv.tutorial) G.time -= dt;
+  const sec = G.lv.tutorial ? 99 : Math.ceil(G.time);
   if (sec <= 10 && sec < G.lastSec && sec > 0) sfx('tick');
   G.lastSec = sec;
-  if (G.time <= 0) { G.time = 0; endLevel(); return; }
+  if (G.time <= 0 && !G.lv.tutorial) { G.time = 0; endLevel(); return; }
 
   const ctrls = controllers();
   for (const ch of G.chefs) ch.moving = false;
@@ -2886,8 +2908,8 @@ function update(dt) {
     if ((isCookware(it) && it.burnt) || (it && it.type === 'ing' && it.state === 'burnt')) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(50,50,50,.55)', 1.4, 'steam');
   }
 
-  // Orders
-  G.nextOrder -= dt;
+  // Orders (the tutorial hands them out itself, and nobody waits too long)
+  if (!G.lv.tutorial) G.nextOrder -= dt;
   if (G.nextOrder <= 0) {
     if (G.orders.length < G.lv.maxOrders) spawnOrder();
     const [a, b] = G.lv.interval;
@@ -2895,7 +2917,7 @@ function update(dt) {
   }
   for (let i = G.orders.length - 1; i >= 0; i--) {
     const o = G.orders[i];
-    o.timeLeft -= dt;
+    if (!G.lv.tutorial) o.timeLeft -= dt;
     if (o.timeLeft <= 0) {
       G.orders.splice(i, 1);
       G.failed++;
@@ -2914,6 +2936,7 @@ function update(dt) {
     if (G.lv.dishes && G.hatch) G.hatch.dirty++;
     else if (G.plateTile) G.plateTile.count++;
   }
+  if (G.tut) tutorialTick();
 }
 
 function warnBeep(o, dt) {
@@ -3022,7 +3045,8 @@ function updateFx(dt) {
 
 // Tile size is chosen so every sprite pixel lands on whole device pixels.
 function kitchenGeom() {
-  const k = L.kitchen;
+  const res = tutReserve();
+  const k = res ? { x: L.kitchen.x, y: L.kitchen.y + res, w: L.kitchen.w, h: L.kitchen.h - res } : L.kitchen;
   const raw = Math.min(k.w / G.cols, k.h / G.rows, 96);
   const ts = Math.max(16, Math.floor(raw * DPR / 16) * 16) / DPR;
   const snap = v => Math.round(v * DPR) / DPR;
@@ -3038,6 +3062,7 @@ function render(dt) {
   drawKitchen();
   drawHUD(dt);
   drawControls();
+  if (G.tut) { drawTutorialUI(); $('tut').style.top = (L.kitchen.y + 2) + 'px'; }
   drawBanner();
 }
 
@@ -3190,6 +3215,7 @@ function drawKitchen() {
       X.fillRect(bx, by, 4 * P * sx, P); X.fillRect(bx, by, P, 4 * P * sy);
     }
   }
+  if (G.tut) drawTutorialTile();
   for (const t of G.tiles) if (t.item) drawItem(t.item, t.x + 0.5, t.y + (t.type === 'coffee' ? 0.62 : t.type === 'blender' ? 0.5 : 0.4), P);
   const order = G.chefs.map((c, i) => i).sort((a, b) => G.chefs[a].y - G.chefs[b].y);
   for (const i of order) drawChef(G.chefs[i], i);
@@ -3245,11 +3271,11 @@ function drawHUD(dt) {
   X.fillStyle = '#2a3150'; X.fillRect(L.pause.x - 18, L.pause.y - 18, 36, 36);
   X.fillStyle = '#fff5de'; X.fillRect(L.pause.x - 7, L.pause.y - 8, 5, 16); X.fillRect(L.pause.x + 2, L.pause.y - 8, 5, 16);
   // Timer
-  const low = G.time <= 30;
+  const low = G.time <= 30 && !G.lv.tutorial;
   X.font = '400 26px "Pixelify Sans", system-ui, sans-serif'; X.textAlign = 'center'; X.textBaseline = 'middle';
   const tw = 96;
   X.fillStyle = low && Math.sin(T * 8) > 0 ? '#e8472f' : '#2a3150'; X.fillRect(Math.round(W / 2 - tw / 2), b.y, tw, 38);
-  X.fillStyle = '#fff5de'; X.fillText(fmtTime(G.time), W / 2, b.y + 20);
+  X.fillStyle = '#fff5de'; X.fillText(G.lv.tutorial ? 'Practice' : fmtTime(G.time), W / 2, b.y + 20);
   // Coins
   const cx = b.x + b.w - 14, cy = b.y + 20;
   const pulse = 1 + (G.coinPulse || 0) * 0.3;
@@ -3356,7 +3382,7 @@ function drawBanner() {
     const n = Math.ceil(G.countdown);
     text = n > 3 ? null : String(n);
     if (G.countdown > 3) text = 'Ready?';
-  } else if (G.phase === 'play' && G.time > G.lv.time - 0.8) text = 'Go!';
+  } else if (G.phase === 'play' && !G.lv.tutorial && G.time > G.lv.time - 0.8) text = 'Go!';
   else if (G.phase === 'over') { text = "Time's up!"; size = 52; }
   if (!text) return;
   const k = L.kitchen;
@@ -3508,6 +3534,7 @@ function syncOnlineBanner() {
   const on = !!NET.role && !!NET.conn;
   $('online-banner').hidden = !on;
   $('btn-online').hidden = on;
+  syncTutorialButton();
   if (on) $('online-banner-text').textContent = NET.role === 'host' ? `Playing with a friend (room ${NET.code}). Pick a kitchen for you both.` : 'Playing with a friend.';
 }
 
@@ -3628,6 +3655,193 @@ function updateGuest(dt) {
 }
 
 /* =========================================================================
+   Tutorial: a calm little kitchen with one instruction at a time.
+   Each step points at something and moves on when the player does it.
+   ========================================================================= */
+
+const TUTORIAL = {
+  tutorial: true, stop: 0, name: 'Tutorial', time: 9999, stars: [0, 0, 0], maxOrders: 2, interval: [999, 999], plates: 3,
+  recipes: ['salad', 'garden'],
+  map: [
+    '#X#P###',
+    'L.....#',
+    '#.1...C',
+    'T.....#',
+    '#...2.C',
+    '##R####',
+  ],
+};
+
+const tutChef = () => G.chefs[G.active];
+const tutHeld = kind => { const h = tutChef().held; return h && h.type === 'ing' && h.kind === kind; };
+const tutTile = pred => G.tiles.find(pred);
+const tutPlates = () => G.tiles.map(t => t.item).concat(G.chefs.map(c => c.held)).filter(i => i && i.type === 'plate');
+function tutOrder(recipe) {
+  G.orders.push({ id: ++G.orderSeq, recipe, items: RECIPES[recipe].items.slice(), reward: RECIPES[recipe].reward, total: 60, timeLeft: 60, x: null });
+  sfx('order');
+}
+
+const TUT_STEPS = [
+  { text: 'Welcome to the kitchen! Drag anywhere on the left half of the screen to walk your chef around.',
+    ui: 'joy', enter: s => { const c = tutChef(); s.x = c.x; s.y = c.y; },
+    done: s => Math.hypot(tutChef().x - s.x, tutChef().y - s.y) > 1.2 },
+  { text: 'An order just came in. The picture on the ticket is the dish, and the icons under it are what goes in it. This one is just lettuce. The bar shrinks while the customer waits.',
+    ui: 'ticket', next: true, enter: () => tutOrder('salad') },
+  { text: 'Walk up to the lettuce crate and tap Grab. White corners show what you’re facing.',
+    tile: () => tutTile(t => t.type === 'crate' && t.kind === 'lettuce'), ui: 'grab',
+    done: () => tutHeld('lettuce') },
+  { text: 'Face a chopping board and tap Grab to put the lettuce down.',
+    tile: () => tutTile(t => t.type === 'board' && !t.item),
+    done: () => !!tutTile(t => t.type === 'board' && t.item && t.item.kind === 'lettuce') },
+  { text: 'Tap Chop. Your chef keeps chopping until the green bar fills up.',
+    tile: () => tutTile(t => t.type === 'board' && t.item && t.item.kind === 'lettuce'), ui: 'chop',
+    done: () => !!tutTile(t => t.item && t.item.kind === 'lettuce' && t.item.state === 'chopped') || tutChef().held?.state === 'chopped' },
+  { text: 'Grab a clean plate from the stack. You can carry one thing at a time.',
+    tile: () => tutTile(t => t.type === 'plates'),
+    done: () => tutPlates().length > 0 },
+  { text: 'Bring the plate to the chopped lettuce and tap Grab to put it on the plate.',
+    tile: () => tutTile(t => t.item && t.item.kind === 'lettuce'),
+    done: () => tutPlates().some(p => p.items.includes('lettuce:chopped')) },
+  { text: 'Now take the plate to the bell (that’s the serving pass) and tap Grab to serve it.',
+    tile: () => tutTile(t => t.type === 'serve'),
+    done: () => G.served >= 1 },
+  { text: 'Order up! Every dish earns coins, plus a tip for serving it fast. Your total is shown up here.',
+    ui: 'coins', next: true },
+  { text: 'You have two chefs. Tap Swap to switch to the other one, so one can chop while the other plates.',
+    ui: 'swap', enter: s => { s.active = G.active; tutOrder('garden'); },
+    done: s => G.active !== s.active },
+  { text: 'This ticket needs lettuce and tomato on one plate. Chop both, plate them together, and serve. Swap whenever it helps.',
+    ui: 'ticket', done: () => G.served >= 2 },
+  { text: 'Made a mistake? Carry anything to the bin to throw it away. Plates and pots just get emptied.',
+    tile: () => tutTile(t => t.type === 'trash'), next: true },
+  { text: 'Watch for these signs while you cook:', next: true,
+    icons: [['bar', 'Cooking or chopping'], ['check', 'Ready'], ['warn', 'About to burn!'], ['fire', 'Fire! Grab the extinguisher and hold Spray']] },
+  { text: 'That’s the basics. Every new kitchen shows a card explaining its new equipment. Now off to the Hometown Diner!',
+    next: true, finish: true },
+];
+
+function startTutorial() {
+  paused = false; show(null);
+  startLevel('tutorial');
+  G.phase = 'play';
+  G.tut = { i: -1, s: {} };
+  tutGo(0);
+}
+
+function tutGo(i) {
+  G.tut = { i, s: {} };
+  const step = TUT_STEPS[i];
+  if (step.enter) step.enter(G.tut.s);
+  $('tut-text').textContent = step.text;
+  const icons = $('tut-icons');
+  icons.innerHTML = '';
+  icons.hidden = !step.icons;
+  for (const [name, label] of step.icons || []) {
+    const cell = document.createElement('div'); cell.className = 'tut-icon';
+    cell.append(symbolCanvas(name), Object.assign(document.createElement('span'), { textContent: label }));
+    icons.appendChild(cell);
+  }
+  $('tut-next').hidden = !step.next;
+  $('tut-next').textContent = step.finish ? 'Start cooking' : 'Next';
+  $('tut-step').textContent = `Step ${i + 1} of ${TUT_STEPS.length}`;
+  $('tut').hidden = false;
+  if (i > 0) sfx('clean');
+}
+
+function tutorialTick() {
+  const step = TUT_STEPS[G.tut.i];
+  if (step.done && step.done(G.tut.s)) tutGo(G.tut.i + 1);
+}
+
+function tutNext() {
+  if (!G || !G.tut) return;
+  const step = TUT_STEPS[G.tut.i];
+  if (step.finish) { finishTutorial(); return; }
+  tutGo(G.tut.i + 1);
+}
+
+function finishTutorial() {
+  save.tutorialDone = true; persist();
+  $('tut').hidden = true;
+  G = null; paused = false;
+  syncTutorialButton();
+  buildLevelList();
+  show('scr-title');
+}
+
+// Space the tutorial card takes at the top of the kitchen area.
+function tutReserve() { return G && G.tut ? $('tut').offsetHeight + 10 : 0; }
+
+// A symbol from the kitchen, drawn into a little canvas for the tutorial card.
+function symbolCanvas(name) {
+  const size = 40, d = Math.max(1, Math.round(Math.min(window.devicePixelRatio || 1, 3)));
+  const c = document.createElement('canvas');
+  c.width = c.height = size * d; c.style.width = c.style.height = size + 'px';
+  c.style.imageRendering = 'pixelated';
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  const prev = X; X = g;
+  g.fillStyle = '#5b6272'; g.fillRect(0, 0, size * d, size * d);
+  const px = 2 * d, mid = size * d / 2;
+  if (name === 'bar') { g.save(); g.translate(mid, mid); g.scale(px * 16, px * 16); drawBar(0, 0, 0.6, PAL.l); g.restore(); }
+  else if (name === 'fire') { g.drawImage(sprite('fire1'), mid - 8 * px, mid - 8 * px, 16 * px, 16 * px); }
+  else spr(name, mid, mid, px + d);
+  X = prev;
+  return c;
+}
+
+// Pulsing yellow arrow pointing down at (x, y), in whatever units are current.
+function tutArrow(x, y, u) {
+  const b = Math.abs(Math.sin(T * 5)) * 6 * u;
+  X.fillStyle = PAL.k;
+  X.beginPath(); X.moveTo(x - 9 * u, y - 16 * u - b); X.lineTo(x + 9 * u, y - 16 * u - b); X.lineTo(x, y - 2 * u - b); X.closePath(); X.fill();
+  X.fillStyle = '#ffd23a';
+  X.beginPath(); X.moveTo(x - 6 * u, y - 14.5 * u - b); X.lineTo(x + 6 * u, y - 14.5 * u - b); X.lineTo(x, y - 5 * u - b); X.closePath(); X.fill();
+}
+
+// Kitchen-space highlight (called inside the tile transform).
+function drawTutorialTile() {
+  const step = G.tut && TUT_STEPS[G.tut.i];
+  const t = step && step.tile && step.tile();
+  if (!t) return;
+  const a = 0.5 + Math.abs(Math.sin(T * 5)) * 0.5;
+  X.strokeStyle = `rgba(255,210,58,${a})`; X.lineWidth = 3 * P;
+  X.strokeRect(t.x + P, t.y + P, 1 - 2 * P, 1 - 2 * P);
+  // Top-row targets sit right under the card, so point at them from below instead.
+  if (t.y === 0) { X.save(); X.translate(t.x + 0.5, t.y + 1); X.scale(1, -1); tutArrow(0, 0, P); X.restore(); }
+  else tutArrow(t.x + 0.5, t.y, P);
+}
+
+// Screen-space highlight for buttons and HUD bits.
+function drawTutorialUI() {
+  const step = G.tut && TUT_STEPS[G.tut.i];
+  if (!step || !step.ui) return;
+  const r = L.ctrlR, a = 0.55 + Math.abs(Math.sin(T * 5)) * 0.45;
+  let x, y, rad = 0, rect = null;
+  if (step.ui === 'joy') { x = L.joyRest.x; y = L.joyRest.y; rad = JOY_R + 12; }
+  else if (step.ui === 'grab') { x = L.btnA.x; y = L.btnA.y; rad = r + 8; }
+  else if (step.ui === 'chop') { x = L.btnB.x; y = L.btnB.y; rad = r * 0.85 + 8; }
+  else if (step.ui === 'swap') { x = L.btnS.x; y = L.btnS.y; rad = r * 0.62 + 8; }
+  else if (step.ui === 'coins') { rect = [L.bar.x + L.bar.w - 96, L.bar.y - 2, 96, 42]; }
+  else if (step.ui === 'ticket') {
+    const n = G.lv.maxOrders, gap = 6, cw = Math.min(122, (L.orders.w - gap * (n - 1)) / n);
+    const o = G.orders[G.orders.length - 1];
+    rect = [(o && o.x != null ? o.x : L.orders.x) - 5, L.orders.y - 5, cw + 10, L.orders.h + 10];
+  }
+  X.strokeStyle = `rgba(255,210,58,${a})`; X.lineWidth = 4;
+  if (rect) { X.strokeRect(...rect); x = rect[0] + rect[2] / 2; y = rect[1] + rect[3] + 30; }
+  else { X.beginPath(); X.arc(x, y, rad, 0, Math.PI * 2); X.stroke(); y -= rad; }
+  if (rect) { X.save(); X.translate(x, y); X.scale(1, -1); tutArrow(0, 0, 1.6); X.restore(); }
+  else tutArrow(x, y, 1.6);
+}
+
+function syncTutorialButton() {
+  const b = $('btn-tutorial');
+  b.hidden = !!NET.role;
+  b.textContent = save.tutorialDone ? 'Replay the tutorial' : 'New here? Start with the tutorial';
+  b.className = save.tutorialDone ? 'btn ghost' : 'btn';
+}
+
+/* =========================================================================
    Screens
    ========================================================================= */
 
@@ -3704,7 +3918,7 @@ function resumeGame() { if (NET.role) setPaused(false, true); else { paused = fa
 function toMenu() {
   if (NET.role === 'host') { enterOnlineMenu(); return; }
   if (NET.role === 'guest') netLeave();
-  G = null; paused = false; buildLevelList(); show('scr-title');
+  G = null; paused = false; $('tut').hidden = true; buildLevelList(); show('scr-title');
 }
 
 function showResults() {
@@ -3742,7 +3956,9 @@ $('btn-intro-back').onclick = () => show('scr-title');
 $('join-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4); });
 $('btn-intro-go').onclick = () => { audioInit(); play(introIdx); };
 $('btn-resume').onclick = resumeGame;
-$('btn-restart').onclick = () => play(G.lvIdx);
+$('btn-restart').onclick = () => (G.tut ? startTutorial() : play(G.lvIdx));
+$('btn-tutorial').onclick = () => { audioInit(); startTutorial(); };
+$('tut-next').onclick = () => { audioInit(); tutNext(); };
 $('btn-quit').onclick = toMenu;
 $('btn-retry').onclick = () => play(G.lvIdx);
 $('btn-next').onclick = () => openIntro(G.lvIdx + 1);
@@ -3759,6 +3975,7 @@ window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => setTimeout(resize, 150));
 resize();
 syncMute();
+syncTutorialButton();
 buildLevelList();
 show('scr-title');
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(buildLevelList).catch(() => {});
@@ -3774,7 +3991,7 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 // Test hook for automated play-throughs.
-window.__orderUp = { get G() { return G; }, startLevel: play, input, RECIPES, LEVELS, NET };
+window.__orderUp = { get G() { return G; }, startLevel: play, input, RECIPES, LEVELS, NET, TUT_STEPS };
 </script>
 </body>
 </html>

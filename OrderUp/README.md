@@ -9,6 +9,10 @@ It's one self-contained HTML file with no build step and no image files. The pix
 - **On a phone:** host the folder anywhere static (GitHub Pages, Netlify, `npx serve OrderUp`) and open it. Use "Add to Home Screen" to play fullscreen.
 - **Locally:** open `OrderUp/index.html` in a browser.
 
+## Tutorial
+
+New players see **New here? Start with the tutorial** on the title screen. It's a small, untimed practice kitchen that teaches one thing at a time: walking, reading a ticket (dish picture, ingredient icons, patience bar), grabbing, chopping, plating, serving, coins and tips, swapping chefs, a two-ingredient salad, the bin, and the kitchen symbols (progress bar, ready tick, burn warning, fire). A yellow arrow points at whatever to use next, and each step moves on when you do it. Afterwards, the button becomes **Replay the tutorial**. The steps live in `TUT_STEPS`.
+
 ## Play with a friend (online co-op)
 
 Two phones, one kitchen. On the title screen, tap **Play with a friend**. One player taps **Host a kitchen** and gets a 4-letter room code. The other types the code and taps **Join**. Each player runs one chef, and the host picks the kitchens.
