@@ -7,6 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1c2133">
 <title>Order Up!</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@500&family=Nunito:wght@600;800&family=Pixelify+Sans:wght@400;600;700&display=swap">
@@ -174,6 +176,15 @@
   .story-line { display: flex; gap: 12px; align-items: flex-start; background: var(--paper-2); border-radius: 8px; padding: 10px 12px; min-height: 84px; }
   .story-face canvas { background: #f3ecdc; border-radius: 6px; display: block; }
   .story-line p { margin: 4px 0 0; font-size: 16px; }
+  .settings { display: flex; flex-direction: column; gap: 8px; }
+  .set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--paper-2); border-radius: 8px; padding: 8px 10px 8px 12px; font-weight: 800; }
+  .set-btn { min-width: 72px; }
+  .rate-btn.set-btn[aria-pressed="true"] { border-color: #3f9b45; background: #eef8e8; }
+  @media (max-height: 520px) {
+    .ticket { padding: 14px 18px 14px; }
+    .ticket h2 { font-size: 26px; margin: 4px 0; }
+    .result-stars { font-size: 34px !important; }
+  }
   .rate-box { display: flex; flex-direction: column; gap: 6px; background: var(--paper-2); border-radius: 8px; padding: 10px 12px; }
   .rate-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .rate-btn { font: 700 14px/1.1 "Pixelify Sans", "Courier New", monospace; color: var(--text); background: #fff; border: 2px solid var(--line); border-radius: 8px; padding: 9px 4px; cursor: pointer; }
@@ -195,7 +206,7 @@
 
 <section id="scr-title" class="screen">
   <div class="ticket">
-    <div class="head-row"><span class="mono">Table for two chefs</span><button id="btn-mute" class="icon-btn" type="button">Sound: on</button></div>
+    <div class="head-row"><span class="mono">Table for two chefs</span><button id="btn-settings" class="icon-btn" type="button">Settings</button></div>
     <h1>Order<br><span>Up!</span></h1>
     <p>Chop, cook, plate and serve before the tickets run out. You run two chefs. Swap between them to keep both busy.</p>
     <hr class="rule">
@@ -289,6 +300,21 @@
   </div>
 </section>
 
+<section id="scr-settings" class="screen dim" hidden>
+  <div class="ticket">
+    <span class="mono">Settings</span>
+    <h2>Settings</h2>
+    <div class="settings">
+      <div class="set-row"><span>Sound effects</span><button id="btn-mute" class="rate-btn set-btn" type="button" aria-pressed="true">On</button></div>
+      <div class="set-row"><span>Music</span><button id="set-music" class="rate-btn set-btn" type="button" aria-pressed="true">On</button></div>
+      <div class="set-row"><span>Vibration</span><button id="set-buzz" class="rate-btn set-btn" type="button" aria-pressed="true">On</button></div>
+      <div class="set-row"><span>Screen shake</span><button id="set-shake" class="rate-btn set-btn" type="button" aria-pressed="true">On</button></div>
+      <div class="set-row"><span>Left-handed controls<br><span class="small">Stick on the right, buttons on the left</span></span><button id="set-lefty" class="rate-btn set-btn" type="button" aria-pressed="false">Off</button></div>
+    </div>
+    <button id="btn-settings-close" class="btn" type="button">Done</button>
+  </div>
+</section>
+
 <section id="scr-pause" class="screen dim" hidden>
   <div class="ticket">
     <span class="mono">Service paused</span>
@@ -300,6 +326,7 @@
       <button id="btn-restart" class="btn alt" type="button">Restart</button>
       <button id="btn-quit" class="btn ghost" type="button">Kitchens</button>
     </div>
+    <button id="btn-pause-settings" class="btn ghost small" type="button">Settings</button>
   </div>
 </section>
 
@@ -989,7 +1016,7 @@ const MAX_PLAYERS = 4;
    ========================================================================= */
 
 const SAVE_KEY = 'orderup.v1';
-let save = { best: [], stars: [], muted: false, tutorialDone: false, outfits: ['classic', 'classic'], story: {}, daily: null };
+let save = { best: [], stars: [], muted: false, tutorialDone: false, outfits: ['classic', 'classic'], story: {}, daily: null, music: true, buzz: true, shake: true, lefty: false };
 try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s) save = Object.assign(save, s); } catch (e) {}
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
 // Co-op scaling: each extra human player makes service 25% busier and raises star targets to match.
@@ -1082,7 +1109,52 @@ function sfx(n) {
   if (NET.role === 'host' && G && !G.versus) NET.events.push(['s', n]);
   try { SFX[n](); } catch (e) {}
 }
-function buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
+/* ---------- music: a little looping tune per stop, made from a seed ---------- */
+
+const MUSIC = { key: null, tune: null, next: 0, step: 0 };
+const midi = m => 440 * Math.pow(2, (m - 69) / 12);
+function tuneFor(key) {
+  const r = mulberry32(seedOf('tune:' + key));
+  const minor = key === 10 || key === 'drive';
+  const scale = minor ? [0, 3, 5, 7, 10] : [0, 2, 4, 7, 9];
+  const root = 50 + Math.floor(r() * 6);
+  const bpm = key === 'menu' ? 92 : key === 'drive' ? 140 : 104 + (+key || 0) * 2;
+  const chords = minor ? [0, -4, -2, -5] : [0, 7, 9, 5];   // a bar each
+  const lead = [];
+  let deg = 2;
+  for (let i = 0; i < 32; i++) {
+    if (i % 8 === 7 || r() < 0.3) { lead.push(null); continue; }
+    deg = Math.max(0, Math.min(9, deg + Math.floor(r() * 5) - 2));
+    lead.push(root + 12 + scale[deg % 5] + 12 * Math.floor(deg / 5));
+  }
+  return { bpm, root, chords, lead, soft: key === 'menu' };
+}
+function wantedTune() {
+  if (paused) return null;
+  if (D) return D.phase === 'over' ? null : 'drive';
+  if (G) return G.phase === 'over' ? null : G.lv.tutorial ? 0 : G.lv.stop;
+  return $('scr-title').hidden && $('scr-intro').hidden && $('scr-story').hidden && $('scr-wardrobe').hidden ? null : 'menu';
+}
+function musicTick() {
+  if (!AC || AC.state !== 'running' || save.muted || save.music === false) { MUSIC.key = null; return; }
+  const key = wantedTune();
+  if (key == null) { MUSIC.key = null; return; }
+  if (key !== MUSIC.key) { MUSIC.key = key; MUSIC.tune = tuneFor(key); MUSIC.next = AC.currentTime + 0.12; MUSIC.step = 0; }
+  const tn = MUSIC.tune;
+  const rush = (G && G.phase === 'play' && !G.lv.tutorial && G.time <= 30) || (D && D.phase === 'play' && D.time <= 10);
+  const step = 60 / (tn.bpm * (rush ? 1.18 : 1)) / 2;   // eighth notes
+  if (MUSIC.next < AC.currentTime) MUSIC.next = AC.currentTime + 0.05;
+  const v = tn.soft ? 0.6 : 1;
+  while (MUSIC.next < AC.currentTime + 0.2) {
+    const i = MUSIC.step, when = MUSIC.next - AC.currentTime, chord = tn.root - 12 + tn.chords[Math.floor(i / 8) % 4];
+    if (i % 2 === 0) tone(midi(chord + (i % 4 === 2 ? 7 : 0)), step * 1.6, 'triangle', 0.05 * v, when);
+    const n = tn.lead[i];
+    if (n) tone(midi(n), step * 0.9, 'square', 0.018 * v, when);
+    MUSIC.next += step; MUSIC.step = (i + 1) % 32;
+  }
+}
+
+function buzz(ms) { if (save.buzz === false) return; try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
 
 /* =========================================================================
    Canvas + layout
@@ -1130,7 +1202,11 @@ function layout() {
   }
   L.btnB = { x: L.btnA.x - r * 2.25, y: L.btnA.y + r * 0.35 };
   L.btnS = { x: L.btnA.x - r * 0.35, y: L.btnA.y - r * 1.85 };
+  // Left-handed: stick on the right, buttons on the left.
+  if (save.lefty) for (const k of ['joyRest', 'btnA', 'btnB', 'btnS']) L[k].x = W - L[k].x;
 }
+// Which side of the screen starts the stick.
+function stickSide(x, frac) { return save.lefty ? x > W * (1 - frac) : x < W * frac; }
 
 /* =========================================================================
    Drawing primitives (units are whatever the current transform says)
@@ -3075,7 +3151,7 @@ cvs.addEventListener('pointerdown', e => {
   if (dist(L.btnA, x, y) < r * 1.2) { input.grab = true; input.flash.A = 1; return; }
   if (dist(L.btnB, x, y) < r * 1.1) { input.chop = true; input.chopHeld = true; input.chopId = e.pointerId; input.flash.B = 1; return; }
   if ((!NET.role || G.versus) && dist(L.btnS, x, y) < r * 0.9) { input.swap = true; input.flash.S = 1; return; }
-  if (input.joy.id === null && x < W * 0.55 && y > L.orders.y + L.orders.h) {
+  if (input.joy.id === null && stickSide(x, 0.55) && y > L.orders.y + L.orders.h) {
     Object.assign(input.joy, { id: e.pointerId, bx: x, by: y, x, y });
   }
 }, { passive: false });
@@ -3434,7 +3510,7 @@ function updateFx(dt) {
 // Tile size is chosen so every sprite pixel lands on whole device pixels.
 function kitchenGeom() {
   const res = tutReserve();
-  const shake = G.shake > 0 ? (Math.random() - 0.5) * 10 * G.shake : 0;
+  const shake = G.shake > 0 && save.shake !== false ? (Math.random() - 0.5) * 10 * G.shake : 0;
   const k = res ? { x: L.kitchen.x, y: L.kitchen.y + res, w: L.kitchen.w, h: L.kitchen.h - res } : L.kitchen;
   const raw = Math.min(k.w / G.cols, k.h / G.rows, 96);
   const ts = Math.max(16, Math.floor(raw * DPR / 16) * 16) / DPR;
@@ -5417,13 +5493,13 @@ function engineStop() {
 /* ---------- drawing ---------- */
 
 function driveScale() { return Math.max(26, Math.min(44, Math.min(W, H) / 11)); }
-function driveView() { return { cx: W / 2, cy: H * 0.6, s: driveScale(), rot: -D.cam.a - Math.PI / 2 }; }
+function driveView() { return { cx: W / 2, cy: H * (L.land ? 0.7 : 0.6), s: driveScale(), rot: -D.cam.a - Math.PI / 2 }; }
 
 function renderDrive(dt) {
   const v = driveView(), c = D.car, cam = D.cam;
   X.fillStyle = '#2a3150'; X.fillRect(0, 0, W, H);
   X.save();
-  const sh = D.shake > 0 ? D.shake * 10 : 0;
+  const sh = D.shake > 0 && save.shake !== false ? D.shake * 10 : 0;
   X.translate(v.cx + (Math.random() - 0.5) * sh, v.cy + (Math.random() - 0.5) * sh);
   X.rotate(v.rot); X.scale(v.s, v.s); X.translate(-cam.x, -cam.y);
   X.imageSmoothingEnabled = false;
@@ -5540,7 +5616,7 @@ function drivePointer(e) {
   const x = e.clientX, y = e.clientY;
   if (dist(L.pause, x, y) < 30) { pauseGame(); return; }
   if (dist(L.btnA, x, y) < L.ctrlR * 1.3) { D.hand = true; D.handId = e.pointerId; return; }
-  if (input.joy.id === null && x < W * 0.62) Object.assign(input.joy, { id: e.pointerId, bx: x, by: y, x, y });
+  if (input.joy.id === null && stickSide(x, 0.62)) Object.assign(input.joy, { id: e.pointerId, bx: x, by: y, x, y });
 }
 
 function driveResults() {
@@ -5614,7 +5690,7 @@ function rateRun(rating) {
 
 const $ = id => document.getElementById(id);
 let paused = false;
-const SCREENS = ['scr-wardrobe', 'scr-story', 'scr-title', 'scr-online', 'scr-howto', 'scr-intro', 'scr-pause', 'scr-results'];
+const SCREENS = ['scr-settings', 'scr-wardrobe', 'scr-story', 'scr-title', 'scr-online', 'scr-howto', 'scr-intro', 'scr-pause', 'scr-results'];
 function show(id) { for (const s of SCREENS) $(s).hidden = s !== id; }
 
 function starHTML(n) { return [0, 1, 2].map(i => i < n ? '★' : '<span class="off">★</span>').join(''); }
@@ -5823,8 +5899,22 @@ $('ward-c1').onclick = () => { wardSlot = 1; buildWardrobe(); };
 $('btn-story-next').onclick = () => storyNext(false);
 $('btn-story-skip').onclick = () => storyNext(true);
 $('btn-res-menu').onclick = toMenu;
-function syncMute() { $('btn-mute').textContent = 'Sound: ' + (save.muted ? 'off' : 'on'); }
-$('btn-mute').onclick = () => { save.muted = !save.muted; persist(); syncMute(); audioInit(); sfx('pick'); };
+const SETTINGS = [
+  ['btn-mute', () => !save.muted, v => { save.muted = !v; }],
+  ['set-music', () => save.music !== false, v => { save.music = v; }],
+  ['set-buzz', () => save.buzz !== false, v => { save.buzz = v; if (v) buzz(40); }],
+  ['set-shake', () => save.shake !== false, v => { save.shake = v; }],
+  ['set-lefty', () => !!save.lefty, v => { save.lefty = v; layout(); }],
+];
+function syncMute() {
+  for (const [id, get] of SETTINGS) { const on = get(); $(id).textContent = on ? 'On' : 'Off'; $(id).setAttribute('aria-pressed', String(on)); }
+}
+for (const [id, get, set] of SETTINGS) $(id).onclick = () => { set(!get()); persist(); syncMute(); audioInit(); sfx('pick'); };
+let settingsBack = 'scr-title';
+function openSettings(back) { settingsBack = back; syncMute(); show('scr-settings'); }
+$('btn-settings').onclick = () => { audioInit(); openSettings('scr-title'); };
+$('btn-pause-settings').onclick = () => openSettings('scr-pause');
+$('btn-settings-close').onclick = () => show(settingsBack);
 document.addEventListener('visibilitychange', () => { if (document.hidden && !paused && ((G && G.phase === 'play') || (D && D.phase === 'play'))) pauseGame(); });
 
 /* =========================================================================
@@ -5847,11 +5937,18 @@ function loop(now) {
   last = now; T += dt;
   update(dt);
   render(dt);
+  musicTick();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 
+// Installable and playable offline when hosted on a real web server.
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !/claude|localhost|127\.0\.0\.1/.test(location.hostname)) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+
 // Test hook for automated play-throughs.
+window.__sprite = (n, sw) => { if (n.startsWith('chef')) chefSprite(n.split('_')[0], n.split('_')[1]); return sprite(n, sw); };
 window.__orderUp = { get D() { return D; }, startDrive, get G() { return G; }, startLevel: play, spawnOrder, dailyLevel, dailyTwist: () => DAILY.twist.name, input, RECIPES, LEVELS, NET, TUT_STEPS, setHelpers: ks => { chosenHelpers = ks; } };
 </script>
 </body>

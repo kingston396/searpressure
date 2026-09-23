@@ -128,6 +128,13 @@ A driving mini-game in the spirit of Crazy Taxi and The Simpsons: Hit & Run. It 
 - **The city** is generated from the run's seed (`DRIVE_RUNS`): a grid of two-lane roads, sidewalks, buildings, and parks you can cut across (mind the trees). Traffic keeps to the right-hand lane and turns at junctions. It stops when you bump it.
 - Offline only. Best coins are saved per run.
 
+## Settings, music and installing
+
+- **Settings** (title screen, or from the pause menu): sound effects, music, vibration, screen shake, and **left-handed controls**, which put the stick on the right and the buttons on the left.
+- **Music:** each stop has its own little looping tune, made from a seed (`tuneFor`). There's a quieter one on the menus, a minor-key one for the Judge's Table and the driving game, and it speeds up in the last 30 seconds of a service.
+- **Install as an app:** when the folder is hosted on a real web server (Netlify and similar), phones can use "Add to Home Screen". It then opens fullscreen with its own icon and works offline (`manifest.webmanifest`, `sw.js`, `icon-192.png`, `icon-512.png`). Online play still needs a connection. After changing `index.html`, bump `VERSION` in `sw.js` so installed copies update.
+- Short landscape screens get tighter menu cards.
+
 ## Difficulty
 
 - **Rising curve:** each kitchen's ticket rate is set so that "pressure" (orders per minute × work per dish, counting long cooks) rises smoothly. It goes up about 1.2 per stop, and +5 from a stop's first kitchen to its last, so each stop opens gently while it teaches its twist and ends with a rush. Star targets are 35%, 55% and 75% of every possible coin at that pace, creeping up slightly at later stops. `node OrderUp/tools/tune.js` prints the table, and `--write` applies it after you change recipes or levels.
