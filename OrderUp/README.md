@@ -2,7 +2,7 @@
 
 A top-down cooking game for phones, in the spirit of Overcooked. You run a kitchen with two chefs. Chop, cook, plate and serve dishes before each order ticket runs out.
 
-It's one self-contained HTML file with no build step and no assets. Everything is drawn on a canvas, and the sound effects are synthesised in code.
+It's one self-contained HTML file with no build step and no image files. The pixel art is 16×16 sprites stored as text grids in the code, and the sound effects are synthesised.
 
 ## Play
 
@@ -48,6 +48,7 @@ Everything you'd want to tune is at the top of the `<script>`:
 
 - `LEVELS`: ASCII kitchen maps (legend in the comment above them), menu, round length, star thresholds, order pacing and plate count.
 - `RECIPES`: ingredients, price and ticket time for each dish.
+- `SPR` / `PAL`: the pixel art. Each sprite is a grid of palette letters, where `.` is transparent and digits are colour slots filled in per use (for example chef colours and cooked or burnt states). Kitchen tiles are 16 px and food is 12 px.
 - `STOPS`: road trip stops and how many stars open each one.
 - `CHOP_TIME`, `POT_COOK`, `POT_BURN`, `PAN_COOK`, `PAN_BURN`, `GRIDDLE`, `GRIDDLE_BURN`, `BREW_TIME`, `WASH_TIME`, `FIRE_SPREAD`, `SPEED`, `TIP_MAX`, `MISS_PENALTY`.
 

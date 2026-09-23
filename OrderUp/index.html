@@ -9,7 +9,7 @@
 <title>Order Up!</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@500&family=Lilita+One&family=Nunito:wght@600;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@500&family=Nunito:wght@600;800&family=Pixelify+Sans:wght@400;600;700&display=swap">
 <style>
   :root {
     --ink: #1c2133;
@@ -64,7 +64,7 @@
 
   .mono { font-family: "DM Mono", ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   .rule { border: 0; border-top: 2px dashed var(--line); margin: 0; }
-  h1, h2, h3 { font-family: "Lilita One", "Arial Rounded MT Bold", system-ui, sans-serif; font-weight: 400; margin: 0; text-wrap: balance; }
+  h1, h2, h3 { font-family: "Pixelify Sans", "Courier New", monospace; font-weight: 700; margin: 0; text-wrap: balance; }
   h1 { font-size: clamp(54px, 17vw, 76px); line-height: .86; color: var(--tomato); letter-spacing: .01em; }
   h1 span { color: var(--text); }
   h2 { font-size: 32px; line-height: 1; color: var(--text); }
@@ -72,7 +72,7 @@
   .head-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 
   .btn {
-    font: 400 20px/1 "Lilita One", system-ui, sans-serif; letter-spacing: .02em;
+    font: 400 20px/1 "Pixelify Sans", system-ui, sans-serif; letter-spacing: .02em;
     color: #fff; background: var(--tomato); border: 0; border-radius: 12px;
     padding: 14px 18px; box-shadow: 0 4px 0 var(--tomato-dk); cursor: pointer;
     transition: transform .06s ease, box-shadow .06s ease;
@@ -98,7 +98,7 @@
   .lvl:last-child { border-bottom: 0; }
   .lvl:active { background: var(--paper-2); }
   .lvl .no { font: 500 13px "DM Mono", ui-monospace, monospace; color: var(--muted); }
-  .lvl .name { font: 400 22px/1 "Lilita One", system-ui, sans-serif; }
+  .lvl .name { font: 400 22px/1 "Pixelify Sans", system-ui, sans-serif; }
   .lvl .dishes { grid-column: 2 / 3; display: flex; gap: 2px; }
   .lvl .stars { grid-row: 1 / 3; grid-column: 3; font-size: 20px; letter-spacing: 1px; color: var(--mustard); text-shadow: 0 1px 0 var(--mustard-dk); }
   .lvl .stars .off { color: var(--line); text-shadow: none; }
@@ -113,7 +113,7 @@
 
   .howto { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
   .howto li { display: grid; grid-template-columns: 58px 1fr; gap: 10px; align-items: start; font-weight: 600; line-height: 1.4; }
-  .key { font: 400 15px "Lilita One", system-ui, sans-serif; text-align: center; border-radius: 999px; padding: 5px 0; color: #fff; }
+  .key { font: 400 15px "Pixelify Sans", system-ui, sans-serif; text-align: center; border-radius: 999px; padding: 5px 0; color: #fff; }
   .key.a { background: var(--mustard); color: var(--text); }
   .key.b { background: var(--tomato); }
   .key.s { background: var(--basil); }
@@ -123,7 +123,7 @@
   .result-stars { font-size: 56px; letter-spacing: 6px; text-align: center; line-height: 1; color: var(--mustard); text-shadow: 0 3px 0 var(--mustard-dk); }
   .result-stars .off { color: var(--line); text-shadow: none; }
   .tally { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font: 500 15px "DM Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
-  .tally .total { font: 400 26px "Lilita One", system-ui, sans-serif; color: var(--tomato); }
+  .tally .total { font: 400 26px "Pixelify Sans", system-ui, sans-serif; color: var(--tomato); }
   .icon-btn { background: none; border: 0; color: var(--muted); font: 500 12px "DM Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; padding: 6px 4px; }
   @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
 </style>
@@ -370,6 +370,7 @@ const TIP_MAX = 10;
 const MISS_PENALTY = 10;
 const PLATE_RETURN = 5;
 const CHEF_COLORS = ['#e8472f', '#3a86d4'];
+const CHEF_DARK = ['#a8301d', '#1f5a9a'];
 
 /* =========================================================================
    Save data
@@ -521,262 +522,694 @@ function circle(x, y, r, fill, stroke, lw) {
   if (fill) { X.fillStyle = fill; X.fill(); }
   if (stroke) { X.strokeStyle = stroke; X.lineWidth = lw; X.stroke(); }
 }
-function ellipse(x, y, rx, ry, fill, rot = 0) {
-  X.beginPath(); X.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2); X.fillStyle = fill; X.fill();
-}
-function star(x, y, r, inner, points, fill) {
-  X.beginPath();
-  for (let i = 0; i < points * 2; i++) {
-    const a = i * Math.PI / points - Math.PI / 2, d = i % 2 ? r * inner : r;
-    X.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d);
-  }
-  X.closePath(); X.fillStyle = fill; X.fill();
-}
 function hex(c) { const n = parseInt(c.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
 function mix(a, b, t) {
   const A = hex(a), B = hex(b);
-  return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`;
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
 }
 
-const SHREDS = [[-0.42, -0.18, 0.5], [0.08, -0.42, 1.2], [0.38, 0.08, 2.0], [-0.18, 0.34, 2.6], [0.1, 0.02, 0.3], [-0.46, 0.18, 1.7], [0.34, -0.26, 2.9], [0.18, 0.36, 0.9]];
+/* =========================================================================
+   Pixel art. Every sprite is a grid of palette letters; '.' is transparent.
+   Digits 1-4 are swap slots filled per call (liquids, cooked states, chef colours).
+   Kitchen sprites are 16 px to a tile; food is 12 px.
+   ========================================================================= */
 
-function drawIng(kind, state, x, y, s) {
-  const r = s / 2;
-  if (kind === 'tomato') {
-    if (state === 'raw') {
-      circle(x, y, r * 0.86, '#e8472f', '#a8301d', r * 0.08);
-      circle(x - r * 0.32, y - r * 0.26, r * 0.2, 'rgba(255,255,255,.45)');
-      star(x, y - r * 0.05, r * 0.36, 0.35, 5, '#3f9b45');
-    } else {
-      for (const [dx, dy] of [[-0.38, 0.2], [0.38, 0.2], [0, -0.3]]) {
-        const sx = x + dx * r, sy = y + dy * r;
-        circle(sx, sy, r * 0.4, '#e8472f', '#a8301d', r * 0.06);
-        circle(sx, sy, r * 0.27, '#ff8f73');
-        circle(sx - r * 0.09, sy, r * 0.05, '#ffe7a3');
-        circle(sx + r * 0.08, sy + r * 0.06, r * 0.05, '#ffe7a3');
-      }
-    }
-  } else if (kind === 'lettuce') {
-    if (state === 'raw') {
-      circle(x, y, r * 0.88, '#57b043', '#3a8a2c', r * 0.08);
-      circle(x, y, r * 0.6, '#84cf5f');
-      circle(x, y, r * 0.3, '#c3ef9a');
-      X.strokeStyle = '#3a8a2c'; X.lineWidth = r * 0.06; X.beginPath();
-      for (let i = 0; i < 5; i++) { const a = i * 1.257 + 0.3; X.moveTo(x + Math.cos(a) * r * 0.3, y + Math.sin(a) * r * 0.3); X.lineTo(x + Math.cos(a) * r * 0.8, y + Math.sin(a) * r * 0.8); }
-      X.stroke();
-    } else {
-      SHREDS.forEach(([dx, dy, a], i) => {
-        X.save(); X.translate(x + dx * r, y + dy * r); X.rotate(a);
-        rr(-r * 0.26, -r * 0.1, r * 0.52, r * 0.2, r * 0.09);
-        X.fillStyle = i % 2 ? '#9ad86e' : '#57b043'; X.fill();
-        X.restore();
-      });
-    }
-  } else if (kind === 'onion') {
-    if (state === 'raw') {
-      circle(x, y + r * 0.05, r * 0.82, '#d9b3e6', '#8a5aa3', r * 0.08);
-      X.strokeStyle = '#a57bbd'; X.lineWidth = r * 0.06;
-      X.beginPath(); X.ellipse(x, y + r * 0.05, r * 0.3, r * 0.74, 0, 0, Math.PI * 2); X.stroke();
-      star(x, y - r * 0.72, r * 0.2, 0.4, 3, '#7e9c4a');
-    } else {
-      for (const [dx, dy] of [[-0.35, 0.2], [0.35, 0.18], [0, -0.3]]) {
-        circle(x + dx * r, y + dy * r, r * 0.3, null, '#e2c6ee', r * 0.13);
-        circle(x + dx * r, y + dy * r, r * 0.3, null, '#8a5aa3', r * 0.03);
-      }
-    }
-  } else if (kind === 'meat') {
-    if (state === 'raw') {
-      X.save(); X.translate(x, y); X.rotate(-0.3);
-      ellipse(0, 0, r * 0.86, r * 0.64, '#9e3440');
-      ellipse(0, 0, r * 0.78, r * 0.56, '#d95a66');
-      X.strokeStyle = '#f7d7d9'; X.lineWidth = r * 0.1;
-      X.beginPath(); X.arc(-r * 0.1, r * 0.3, r * 0.45, Math.PI * 1.15, Math.PI * 1.75); X.stroke();
-      X.restore();
-    } else if (state === 'chopped') {
-      circle(x, y, r * 0.74, '#e67f8a', '#b24f5b', r * 0.08);
-      for (const [dx, dy] of [[-0.3, -0.2], [0.2, -0.3], [0.3, 0.15], [-0.15, 0.3], [0.02, 0]]) circle(x + dx * r, y + dy * r, r * 0.07, '#f7c0c6');
-    } else {
-      const burnt = state === 'burnt';
-      circle(x, y, r * 0.74, burnt ? '#2a2323' : '#7b4526', burnt ? '#111' : '#4d2914', r * 0.08);
-      X.strokeStyle = burnt ? '#111' : '#4d2914'; X.lineWidth = r * 0.1; X.beginPath();
-      for (const o of [-0.3, 0, 0.3]) { X.moveTo(x - r * 0.4 + o * r, y - r * 0.4 - o * r * 0.2); X.lineTo(x + r * 0.2 + o * r, y + r * 0.4 - o * r * 0.2); }
-      X.stroke();
-    }
-  } else if (kind === 'bun') {
-    circle(x, y, r * 0.82, '#e0a04e', '#a8702f', r * 0.08);
-    ellipse(x - r * 0.18, y - r * 0.22, r * 0.4, r * 0.24, '#f0c07a', -0.5);
-    for (const [dx, dy, a] of [[-0.3, 0.1, 0.4], [0.2, -0.3, 1.2], [0.3, 0.25, 2.1], [-0.05, 0.4, 0.2], [0.05, -0.05, 2.8]]) ellipse(x + dx * r, y + dy * r, r * 0.08, r * 0.045, '#fff3d0', a);
-  } else if (kind === 'soup') {
-    circle(x, y, r * 0.9, '#f3efe6', '#c9c1b2', r * 0.07);
-    circle(x, y, r * 0.66, state === 'tomato' ? '#e5552f' : '#d69a3a');
-    ellipse(x - r * 0.2, y - r * 0.24, r * 0.22, r * 0.1, 'rgba(255,255,255,.4)', -0.6);
-    star(x + r * 0.18, y + r * 0.14, r * 0.16, 0.45, 4, state === 'tomato' ? '#3f9b45' : '#f3e1a8');
-  } else if (kind === 'egg') {
-    if (state === 'raw') {
-      X.save(); X.translate(x, y); X.rotate(-0.4);
-      ellipse(0, 0, r * 0.62, r * 0.78, '#cdbb95');
-      ellipse(0, 0, r * 0.56, r * 0.72, '#f6ecd6');
-      ellipse(-r * 0.18, -r * 0.3, r * 0.14, r * 0.2, 'rgba(255,255,255,.7)');
-      circle(r * 0.2, r * 0.2, r * 0.05, '#cdbb95'); circle(-r * 0.1, r * 0.36, r * 0.04, '#cdbb95');
-      X.restore();
-    } else {
-      const burnt = state === 'burnt';
-      for (const [dx, dy, rad] of [[0, 0, 0.62], [-0.32, 0.22, 0.42], [0.34, -0.2, 0.4], [0.2, 0.36, 0.34], [-0.3, -0.3, 0.32]])
-        circle(x + dx * r, y + dy * r, r * rad, burnt ? '#3a2e22' : '#fffdf6');
-      circle(x + r * 0.05, y, r * 0.3, burnt ? '#1e1812' : '#f7b52c', burnt ? null : '#e39a14', r * 0.04);
-      if (!burnt) circle(x - r * 0.04, y - r * 0.08, r * 0.09, 'rgba(255,255,255,.6)');
-    }
-  } else if (kind === 'bacon') {
-    const [meat, fat] = state === 'raw' ? ['#e98a8a', '#f8d9d3'] : state === 'burnt' ? ['#2a1f1b', '#3d302a'] : ['#a3492f', '#e8b27a'];
-    for (const off of [-0.28, 0.28]) {
-      X.lineCap = 'round';
-      X.strokeStyle = meat; X.lineWidth = r * 0.36;
-      X.beginPath(); X.moveTo(x - r * 0.72, y + off * r);
-      X.bezierCurveTo(x - r * 0.3, y + off * r - r * 0.22, x + r * 0.2, y + off * r + r * 0.22, x + r * 0.72, y + off * r); X.stroke();
-      X.strokeStyle = fat; X.lineWidth = r * 0.08;
-      X.beginPath(); X.moveTo(x - r * 0.65, y + off * r);
-      X.bezierCurveTo(x - r * 0.3, y + off * r - r * 0.22, x + r * 0.2, y + off * r + r * 0.22, x + r * 0.65, y + off * r); X.stroke();
-      X.lineCap = 'butt';
-    }
-  } else if (kind === 'batter') {
-    if (state === 'raw') {
-      circle(x, y, r * 0.84, '#e9e4da', '#b9b0a1', r * 0.07);
-      circle(x, y, r * 0.62, '#f3dc8f');
-      ellipse(x - r * 0.18, y - r * 0.2, r * 0.2, r * 0.1, 'rgba(255,255,255,.5)', -0.5);
-      X.strokeStyle = '#8c95a6'; X.lineWidth = r * 0.07; X.beginPath();
-      X.ellipse(x + r * 0.15, y + r * 0.05, r * 0.14, r * 0.34, 0.6, 0, Math.PI * 2); X.stroke();
-    } else {
-      const burnt = state === 'burnt';
-      circle(x, y + r * 0.06, r * 0.8, burnt ? '#1c1511' : '#9c5f22');
-      circle(x, y, r * 0.8, burnt ? '#2e241d' : '#d9953f', burnt ? '#1c1511' : '#9c5f22', r * 0.06);
-      circle(x, y, r * 0.55, burnt ? '#3a2e25' : '#e8b060');
-      if (!burnt) {
-        X.fillStyle = '#8a4a16'; X.beginPath(); X.ellipse(x + r * 0.1, y + r * 0.05, r * 0.42, r * 0.3, 0.4, 0, Math.PI * 2); X.fill();
-        X.fillStyle = '#fff0a0'; rr(x - r * 0.12, y - r * 0.16, r * 0.26, r * 0.22, r * 0.04); X.fill();
-      }
-    }
-  } else if (kind === 'coffee') {
-    circle(x + r * 0.62, y + r * 0.05, r * 0.24, null, '#c9c1b2', r * 0.12);
-    circle(x, y, r * 0.66, '#fbfaf6', '#c9c1b2', r * 0.07);
-    circle(x, y, r * 0.5, '#5a3620');
-    circle(x, y, r * 0.5, null, '#a0673f', r * 0.08);
-    ellipse(x - r * 0.14, y - r * 0.16, r * 0.14, r * 0.07, 'rgba(255,255,255,.35)', -0.5);
+const PAL = {
+  k: '#2b1d2a', w: '#ffffff', W: '#ddd5c4', g: '#c2c6cf', G: '#8a8f9c', d: '#5a5f6e', D: '#3a3d48',
+  r: '#e8472f', R: '#a8301d', f: '#ff9c80', o: '#f59a2e', y: '#f5d33e', Y: '#fff1a8',
+  l: '#8ad65e', n: '#4fa843', N: '#2e6e34', p: '#dcb8ea', P: '#9a6ab3',
+  m: '#ec8a92', M: '#b24f5b', b: '#8a5a36', B: '#5a3620', t: '#d9953f', T: '#f0c07a',
+  c: '#c98b52', C: '#a86f3e', e: '#ecdfc2', E: '#dccdab', q: '#c9b88f', u: '#6fb0d6', U: '#3f6f8f',
+  s: '#f2c9a0', S: '#c99a70', h: '#e8472f', H: '#a8301d',
+};
+
+// Counter bodies are generated: a top surface, a darker edge and a front lip.
+function counterRows(top, grain, edge, lip, hi) {
+  const rows = ['k'.repeat(16), 'k' + hi.repeat(14) + 'k'];
+  for (let i = 2; i <= 10; i++) {
+    let r = 'k';
+    for (let j = 1; j <= 14; j++) r += (i * 7 + j * 5) % 13 === 0 ? grain : top;
+    rows.push(r + 'k');
   }
+  rows.push('k' + edge.repeat(14) + 'k');
+  for (let i = 12; i <= 14; i++) rows.push('k' + lip.repeat(14) + 'k');
+  rows.push('k'.repeat(16));
+  return rows;
 }
-
-function drawExt(x, y, s) {
-  const r = s / 2;
-  X.fillStyle = '#1b1d22'; rr(x + r * 0.3, y - r * 0.12, r * 0.6, r * 0.22, r * 0.08); X.fill();
-  circle(x, y, r * 0.58, '#d93a2b', '#8f2016', r * 0.08);
-  ellipse(x - r * 0.18, y - r * 0.2, r * 0.18, r * 0.1, 'rgba(255,255,255,.4)', -0.5);
-  circle(x, y, r * 0.2, '#c7ced8', '#5b6272', r * 0.05);
-}
-
-function drawDirty(n, x, y, s) {
-  const k = Math.min(n, 4);
-  for (let i = 0; i < k; i++) {
-    const py = y - i * s * 0.07;
-    circle(x, py, s * 0.44, '#d6ccb6', '#a99d84', s * 0.03);
-    circle(x, py, s * 0.3, '#e3dac6');
-    circle(x - s * 0.1, py + s * 0.05, s * 0.07, 'rgba(120,80,40,.45)');
-    circle(x + s * 0.12, py - s * 0.08, s * 0.05, 'rgba(120,80,40,.4)');
+function floorRows(base, grout, speck) {
+  const rows = [];
+  for (let y = 0; y < 16; y++) {
+    let r = '';
+    for (let x = 0; x < 16; x++) r += y === 15 || x === 15 ? grout : (x * 5 + y * 3) % 23 === 0 ? speck : base;
+    rows.push(r);
   }
-  if (n > 1) {
-    const bx = x + s * 0.34, by = y - s * 0.34;
-    circle(bx, by, s * 0.17, '#2b2230', '#fff5de', s * 0.03);
-    X.fillStyle = '#fff5de'; X.font = `800 ${s * 0.22}px Nunito, sans-serif`; X.textAlign = 'center'; X.textBaseline = 'middle';
-    X.fillText(String(n), bx, by + s * 0.01);
+  return rows;
+}
+// Flames: three frames of columns with a hot yellow core.
+function fireRows(frame) {
+  const rows = Array.from({ length: 16 }, () => Array(16).fill('.'));
+  for (let x = 1; x < 15; x++) {
+    const prof = 1 - Math.abs(x - 7.5) / 8;
+    const h = Math.round((5 + 6 * Math.abs(Math.sin((x + frame * 2.3) * 0.9)) + ((x * 13 + frame * 7) % 3)) * prof) + 2;
+    for (let y = 15 - h; y < 15; y++) {
+      if (y < 0) continue;
+      const d = y - (15 - h);
+      rows[y][x] = d === 0 ? 'R' : d < 3 ? 'r' : d < 5 || prof < 0.45 ? 'o' : d < 8 ? 'y' : 'Y';
+    }
   }
+  return rows.map(r => r.join(''));
 }
 
-// Draws one dish the way an order ticket shows it.
-function drawDish(recipeKey, x, y, s) {
-  const r = RECIPES[recipeKey];
-  if (r.mug) drawIng('coffee', 'brewed', x, y, s * 0.8);
-  else drawPlate(r.items, x, y, s);
-}
-function drawKey(k, x, y, s) { const [kind, state] = k.split(':'); drawIng(kind, state, x, y, s); }
+const SPR = {
+  wood: counterRows('c', 'C', 'C', 'b', 'T'),
+  steel: counterRows('g', 'W', 'G', 'd', 'w'),
+  floorA: floorRows('e', 'q', 'E'),
+  floorB: floorRows('E', 'q', 'e'),
+  fire0: fireRows(0), fire1: fireRows(1), fire2: fireRows(2),
 
-function drawBurger(x, y, s, lettuce, tomato) {
-  const r = s / 2;
-  if (lettuce) for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; circle(x + Math.cos(a) * r * 0.74, y + Math.sin(a) * r * 0.74, r * 0.22, i % 2 ? '#6cc24a' : '#57b043'); }
-  if (tomato) circle(x, y, r * 0.88, '#e8472f');
-  circle(x, y, r * 0.84, '#6b3a1e');
-  circle(x, y, r * 0.74, '#e0a04e', '#a8702f', r * 0.06);
-  ellipse(x - r * 0.18, y - r * 0.22, r * 0.34, r * 0.2, '#f0c07a', -0.5);
-  for (const [dx, dy, a] of [[-0.3, 0.1, 0.4], [0.2, -0.3, 1.2], [0.3, 0.25, 2.1], [-0.05, 0.4, 0.2], [0.05, -0.05, 2.8]]) ellipse(x + dx * r, y + dy * r, r * 0.07, r * 0.04, '#fff3d0', a);
+  // ---- tile decorations (16x16, drawn over a counter)
+  crate: [
+    '................',
+    '.kkkkkkkkkkkkkk.',
+    '.kbbbbbbbbbbbbk.',
+    '.kbkkkkkkkkkkbk.',
+    '.kbkBBBBBBBBkbk.',
+    '.kbkBBBBBBBBkbk.',
+    '.kbkBBBBBBBBkbk.',
+    '.kbkBBBBBBBBkbk.',
+    '.kbkBBBBBBBBkbk.',
+    '.kbkkkkkkkkkkbk.',
+    '.kbbbbbbbbbbbbk.',
+    '.kkkkkkkkkkkkkk.',
+  ],
+  board: [
+    '................',
+    '................',
+    '..kkkkkkkkkkkk..',
+    '..kYYYYYYYYYYk..',
+    '..kYTTTTTTTTYk..',
+    '..kYTTTTTTTTYk..',
+    '..kYTTTTTTTTYk..',
+    '..kYTTTTTTTTYk..',
+    '..kYTTTTTTTTYk..',
+    '..kTTTTTTTTTTk..',
+    '..kkkkkkkkkkkk..',
+  ],
+  knife: [
+    '.......kk',
+    '.kkkkkkDDk',
+    'kgggggkDDk',
+    '.kkkkkkkk',
+  ],
+  burner: [
+    '................',
+    '...kkkkkkkkkk...',
+    '..kDDDDDDDDDDk..',
+    '..kD11111111Dk..',
+    '..kD1DDDDDD1Dk..',
+    '..kD1D2222D1Dk..',
+    '..kD1D2222D1Dk..',
+    '..kD1DDDDDD1Dk..',
+    '..kD11111111Dk..',
+    '..kDDDDDDDDDDk..',
+    '...kkkkkkkkkk...',
+  ],
+  griddle: [
+    '................',
+    '.kkkkkkkkkkkkkk.',
+    '.kDDDDDDDDDDDDk.',
+    '.kD1111111111Dk.',
+    '.kDDDDDDDDDDDDk.',
+    '.kD1111111111Dk.',
+    '.kDDDDDDDDDDDDk.',
+    '.kD1111111111Dk.',
+    '.kDDDDDDDDDDDDk.',
+    '.kD1111111111Dk.',
+    '.kDDDDDDDDDDDDk.',
+    '.kkkkkkkkkkkkkk.',
+  ],
+  bell: [
+    '................',
+    '................',
+    '.......kk.......',
+    '......kyyk......',
+    '.....kyyyyk.....',
+    '....kywyyyok....',
+    '....kywyyyok....',
+    '...kyyyyyyyok...',
+    '..kooooooooook..',
+    '...kkkkkkkkkk...',
+  ],
+  bin: [
+    '................',
+    '....kkkkkkkk....',
+    '...kddddddddk...',
+    '..kdDDDDDDDDdk..',
+    '..kdDkkkkkkDdk..',
+    '..kdDkkkkkkDdk..',
+    '..kdDkkkkkkDdk..',
+    '..kdDkkkkkkDdk..',
+    '..kdDDDDDDDDdk..',
+    '...kddddddddk...',
+    '....kkkkkkkk....',
+  ],
+  sink: [
+    '.......kk.......',
+    '......kGGk......',
+    '.kkkkkkGGkkkkkk.',
+    '.kgggggkkggggggk',
+    '.kgUUUUUUUUUUUgk',
+    '.kgUuuuuuuuuuUgk',
+    '.kgUuwuuuuuuuUgk',
+    '.kgUuuuuuuwuuUgk',
+    '.kgUuuuuuuuuuUgk',
+    '.kgUUUUUUUUUUUgk',
+    '.kggggggggggggk.',
+    '.kkkkkkkkkkkkkk.',
+  ],
+  hatch: [
+    '................',
+    '.kkkkkkkkkkkkkk.',
+    '.kDDDDDDDDDDDDk.',
+    '.kDddddddddddDk.',
+    '.kDDDDDDDDDDDDk.',
+    '.kDddddddddddDk.',
+    '.kDDDDDDDDDDDDk.',
+    '.kDddddddddddDk.',
+    '.kDDDDDDDDDDDDk.',
+    '.kDddddddddddDk.',
+    '.kDDDDDDDDDDDDk.',
+    '.kkkkkkkkkkkkkk.',
+  ],
+  coffeeMachine: [
+    '..kkkkkkkkkkkk..',
+    '.kDDDDDDDDDDDDk.',
+    '.kDddddddddd1Dk.',
+    '.kDddddddddddDk.',
+    '.kDDDDDDDDDDDDk.',
+    '.kkkkkkGGkkkkkk.',
+    '......kGGk......',
+    '.......kk.......',
+    '................',
+    '...kkkkkkkkkk...',
+    '...kGGGGGGGGk...',
+    '...kkkkkkkkkk...',
+  ],
+
+  // ---- food and kitchenware (12x12)
+  tomato: [
+    '....k.nk....',
+    '...knnnnk...',
+    '..krrnnrrk..',
+    '.krwrrrrrrk.',
+    '.krwrrrrrrk.',
+    'krrrrrrrrrRk',
+    'krrrrrrrrrRk',
+    'krrrrrrrrRRk',
+    '.krrrrrrRRk.',
+    '.kRrrrrRRRk.',
+    '..kkRRRRkk..',
+    '....kkkk....',
+  ],
+  tomatoChopped: [
+    '............',
+    '.kkk....kkk.',
+    'krrrk..krrrk',
+    'kfyfk..kfyfk',
+    'krrrk..krrrk',
+    '.kkk....kkk.',
+    '....kkk.....',
+    '...krrrk....',
+    '...kfyfk....',
+    '...krrrk....',
+    '....kkk.....',
+  ],
+  lettuce: [
+    '...kkkkk....',
+    '..knnlnnk...',
+    '.knlllllnk..',
+    'knlllYlllnk.',
+    'knllYYYllnk.',
+    'knlllYlllnk.',
+    'knllllllnNk.',
+    '.knlllllnNk.',
+    '.kNnnlnnNk..',
+    '..kNNNNNk...',
+    '...kkkkk....',
+  ],
+  lettuceChopped: [
+    '............',
+    '.kkk....kk..',
+    'klllk..klnk.',
+    '.kkk.kk.kk..',
+    '....klnk....',
+    '.kk..kk.kkk.',
+    'klnk...klllk',
+    '.kk.kkk.kkk.',
+    '...klllk....',
+    '....kkk.....',
+  ],
+  onion: [
+    '.....kk.....',
+    '.....nk.....',
+    '....kppk....',
+    '...kpPppk...',
+    '..kppPpppk..',
+    '.kpppPppppk.',
+    '.kpppPppppk.',
+    '.kpppPpppPk.',
+    '..kppPppPk..',
+    '...kPPPPk...',
+    '....kkkk....',
+  ],
+  onionChopped: [
+    '............',
+    '..kkk...kkk.',
+    '.kpPpk.kpPpk',
+    '.kP.Pk.kP.Pk',
+    '.kpPpk.kpPpk',
+    '..kkk...kkk.',
+    '.....kkk....',
+    '....kpPpk...',
+    '....kP.Pk...',
+    '....kpPpk...',
+    '.....kkk....',
+  ],
+  steak: [
+    '............',
+    '..kkkkkk....',
+    '.kmmmmmmkk..',
+    'kmmwwmmmmmk.',
+    'kmmmmwmmmmMk',
+    'kmmmmmwmmmMk',
+    '.kmmmmmmmMk.',
+    '..kMmmmmMk..',
+    '...kkkkkk...',
+  ],
+  patty: [
+    '............',
+    '............',
+    '...kkkkkk...',
+    '..k111111k..',
+    '.k11311112k.',
+    '.k11113112k.',
+    '.k13111112k.',
+    '..k211112k..',
+    '...kkkkkk...',
+  ],
+  bun: [
+    '............',
+    '............',
+    '...kkkkkk...',
+    '..kTTTTttk..',
+    '.kTTwTttttk.',
+    '.kTttttwttk.',
+    '.kttwttttbk.',
+    '.kttttttbbk.',
+    '..kbbbbbbk..',
+    '...kkkkkk...',
+  ],
+  bowl: [
+    '............',
+    '..kkkkkkkk..',
+    '.kwwwwwwwwk.',
+    'kw11111111Wk',
+    'kw1w111111Wk',
+    'kw11111n11Wk',
+    'kw11111111Wk',
+    '.kWWWWWWWWk.',
+    '..kWWWWWWk..',
+    '...kkkkkk...',
+  ],
+  egg: [
+    '............',
+    '....kkk.....',
+    '...kwwwk....',
+    '..kwwwwwk...',
+    '..kwwwwwk...',
+    '.kwwwwwwWk..',
+    '.kwwwwwwWk..',
+    '.kWwwwwWWk..',
+    '..kWWWWWk...',
+    '...kkkkk....',
+  ],
+  eggFried: [
+    '............',
+    '..kkk.kkk...',
+    '.k111k111k..',
+    'k111111111k.',
+    'k1112221111k',
+    'k1122w21111k',
+    '.k112221111k',
+    'k111111111k.',
+    '.k1111111k..',
+    '..kkkkkkk...',
+  ],
+  bacon: [
+    '............',
+    '.kkkkkkkkkk.',
+    'k1111111111k',
+    'k2222222222k',
+    'k1111111111k',
+    '.kkkkkkkkkk.',
+    '.kkkkkkkkkk.',
+    'k1111111111k',
+    'k2222222222k',
+    'k1111111111k',
+    '.kkkkkkkkkk.',
+  ],
+  batter: [
+    '............',
+    '..kkkkkkkk..',
+    '.kggggggggk.',
+    'kgYYYYYYYYgk',
+    'kgYYYwYYYYgk',
+    'kgYYYYYYYYgk',
+    'kgYYYYYGYYgk',
+    '.kgggggggGk.',
+    '..kGGGGGGk..',
+    '...kkkkkk...',
+  ],
+  pancakes: [
+    '............',
+    '..kkkkkkkk..',
+    '.k11111111k.',
+    'k1114334111k',
+    'k1144334411k',
+    'k1114444111k',
+    'k2111111112k',
+    '.k22222222k.',
+    'kk22222222kk',
+    '..kkkkkkkk..',
+  ],
+  mug: [
+    '............',
+    '..kkkkkk....',
+    '.kwwwwwwk...',
+    'kwBBBBBBwkk.',
+    'kwBbbBBBwkwk',
+    'kwBBBBBBwk.k',
+    'kwBBBBBBwkwk',
+    'kwwwwwwwwkk.',
+    '.kWWWWWWk...',
+    '..kkkkkk....',
+  ],
+  plate: [
+    '............',
+    '...kkkkkk...',
+    '.kkWWWWWWkk.',
+    '.kWwwwwwwWk.',
+    'kWwwwwwwwwWk',
+    'kWwwwwwwwwWk',
+    'kWwwwwwwwwWk',
+    'kWwwwwwwwwWk',
+    '.kWwwwwwwWk.',
+    '.kkWWWWWWkk.',
+    '...kkkkkk...',
+  ],
+  dirtyPlate: [
+    '............',
+    '...kkkkkk...',
+    '.kkqqqqqqkk.',
+    '.kqWWWbWWqk.',
+    'kqWbWWWWWWqk',
+    'kqWWWWWbWWqk',
+    'kqWWbWWWWWqk',
+    'kqWWWWWWbWqk',
+    '.kqWbWWWWqk.',
+    '.kkqqqqqqkk.',
+    '...kkkkkk...',
+  ],
+  pot: [
+    '............',
+    '..kkkkkkkk..',
+    '.kGGGGGGGGk.',
+    'kkG111111Gkk',
+    'kdG111111Gdk',
+    'kkG111111Gkk',
+    '.kG111111Gk.',
+    '.kgGGGGGGgk.',
+    '.kddddddddk.',
+    '.kddddddddk.',
+    '..kkkkkkkk..',
+  ],
+  pan: [
+    '............',
+    '..kkkkkk....',
+    '.kDDDDDDk...',
+    'kDddddddDk..',
+    'kDddddddDkkk',
+    'kDddddddDDDk',
+    'kDddddddDkkk',
+    '.kDdddddk...',
+    '..kkkkkk....',
+  ],
+  ext: [
+    '....kkk.....',
+    '...kgggk....',
+    '...kkGkkkk..',
+    '..krrrrk.kk.',
+    '..krwrrk..k.',
+    '..krwrrk..k.',
+    '..krrrrk....',
+    '..krrrRk....',
+    '..kRRRRk....',
+    '...kkkk.....',
+  ],
+  burger: [
+    '............',
+    '............',
+    '...kkkkkk...',
+    '..kTTwTTTk..',
+    '.kTwTTTTwTk.',
+    '.kTTTTTTTTk.',
+    '.k33333333k.',
+    '.kbbbbbbbbk.',
+    '.kBBBBBBBBk.',
+    '.kttttttttk.',
+    '..kkkkkkkk..',
+  ],
+
+  // ---- UI bits
+  coin: [
+    '..kkkk..',
+    '.kyyyyk.',
+    'kyYyyyok',
+    'kyYyyyok',
+    'kyYyyyok',
+    'kyyyyook',
+    '.kooook.',
+    '..kkkk..',
+  ],
+  warn: [
+    '...k...',
+    '..krk..',
+    '..kwk..',
+    '.krwrk.',
+    '.krrrk.',
+    'krrwrrk',
+    'kkkkkkk',
+  ],
+  check: [
+    '.kkkkk.',
+    'knnnnwk',
+    'knnnwnk',
+    'kwnwnnk',
+    'knwnnnk',
+    '.kkkkk.',
+  ],
+  arrow: [
+    'kkkkkkk',
+    'k11111k',
+    '.k111k.',
+    '..k1k..',
+    '...k...',
+  ],
+
+  // ---- chefs (16x16, 3/4 view). Slot 1 = neckerchief, 2 = its shade.
+  chefDown: [
+    '......kkkk......',
+    '....kkwwwwkk....',
+    '...kwwwwwwwwk...',
+    '...kwwwwwwwWk...',
+    '....kwwwwwWk....',
+    '....kWWWWWWk....',
+    '....kssssssk....',
+    '....kskssksk....',
+    '....kssssssk....',
+    '...kk111111kk...',
+    '..kswww12wwwsk..',
+    '..kskwwwwwwksk..',
+    '...kkwwwwwwkk...',
+    '....kwwwwwwk....',
+    '....kDk..kDk....',
+    '....kkk..kkk....',
+  ],
+  chefUp: [
+    '......kkkk......',
+    '....kkwwwwkk....',
+    '...kwwwwwwwwk...',
+    '...kwwwwwwwWk...',
+    '....kwwwwwWk....',
+    '....kWWWWWWk....',
+    '....kbbbbbbk....',
+    '....kbbbbbbk....',
+    '....ksbbbbsk....',
+    '...kk112211kk...',
+    '..kswwwwwwwwsk..',
+    '..kskwwwwwwksk..',
+    '...kkwwwwwwkk...',
+    '....kwwwwwwk....',
+    '....kDk..kDk....',
+    '....kkk..kkk....',
+  ],
+  chefSide: [
+    '.....kkkk.......',
+    '...kkwwwwkk.....',
+    '..kwwwwwwwwk....',
+    '..kwwwwwwwWk....',
+    '...kwwwwwWk.....',
+    '...kWWWWWWk.....',
+    '...kbbsssssk....',
+    '...kbbssskssk...',
+    '...kbssssssk....',
+    '....k11111k.....',
+    '....kwwww2sk....',
+    '....kwwwwwsk....',
+    '....kwwwwwk.....',
+    '....kwwwwwk.....',
+    '....kDk.kDk.....',
+    '....kkk.kkk.....',
+  ],
+};
+// Second walk frames: one foot lifted.
+for (const n of ['chefDown', 'chefUp', 'chefSide']) {
+  SPR[n + '1'] = SPR[n].slice(0, 14).concat(n === 'chefSide' ? ['....kDk.kk......', '....kkk.........'] : ['....kDk..kkk....', '....kkk.........']);
 }
 
-function drawPlate(items, x, y, s) {
-  circle(x, y + s * 0.04, s * 0.48, 'rgba(0,0,0,.2)');
-  circle(x, y, s * 0.47, '#f4f1ea', '#cbc4b6', s * 0.03);
-  circle(x, y, s * 0.34, '#fffdf8');
+const spriteCache = new Map();
+function sprite(name, swaps) {
+  const key = swaps ? name + JSON.stringify(swaps) : name;
+  let c = spriteCache.get(key);
+  if (c) return c;
+  const rows = SPR[name];
+  const w = Math.max(...rows.map(r => r.length)), h = rows.length;
+  c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const ch = row[x];
+      if (ch === '.' || ch === ' ') continue;
+      const col = (swaps && swaps[ch]) || PAL[ch];
+      if (!col) continue;
+      g.fillStyle = col; g.fillRect(x, y, 1, 1);
+    }
+  });
+  spriteCache.set(key, c);
+  return c;
+}
+// Draw a sprite centred on (cx, cy); px is the size of one sprite pixel in current units.
+function spr(name, cx, cy, px, swaps, flip) {
+  const c = sprite(name, swaps);
+  const w = c.width * px, h = c.height * px;
+  const x = Math.round((cx - w / 2) / px) * px, y = Math.round((cy - h / 2) / px) * px;
+  if (flip) { X.save(); X.translate(x + w, y); X.scale(-1, 1); X.drawImage(c, 0, 0, w, h); X.restore(); }
+  else X.drawImage(c, x, y, w, h);
+}
+// Top-left anchored, for tiles.
+function sprTL(name, x, y, px, swaps) { const c = sprite(name, swaps); X.drawImage(c, x, y, c.width * px, c.height * px); }
+
+const PATTY = { chopped: { 1: '#ec8a92', 2: '#b24f5b', 3: '#f7c0c6' }, cooked: { 1: '#8a5a36', 2: '#5a3620', 3: '#5a3620' }, burnt: { 1: '#3a3d48', 2: '#2b1d2a', 3: '#2b1d2a' } };
+const FRIED = { cooked: { 1: '#ffffff', 2: '#f5b82e' }, burnt: { 1: '#4a4040', 2: '#2b1d2a' } };
+const BACON = { raw: { 1: '#ec8a92', 2: '#f8e0da' }, cooked: { 1: '#a3492f', 2: '#e8b27a' }, burnt: { 1: '#3a3d48', 2: '#5a5f6e' } };
+const PANCAKE = { cooked: { 1: '#e8b060', 2: '#b8762e', 3: '#fff0a0', 4: '#8a4a16' }, burnt: { 1: '#3a3d48', 2: '#2b1d2a', 3: '#4a4040', 4: '#2b1d2a' } };
+
+// Which sprite (and swaps) shows an ingredient in a given state.
+function ingSprite(kind, state) {
+  switch (kind) {
+    case 'tomato': return state === 'raw' ? ['tomato'] : ['tomatoChopped'];
+    case 'lettuce': return state === 'raw' ? ['lettuce'] : ['lettuceChopped'];
+    case 'onion': return state === 'raw' ? ['onion'] : ['onionChopped'];
+    case 'meat': return state === 'raw' ? ['steak'] : ['patty', PATTY[state]];
+    case 'bun': return ['bun'];
+    case 'soup': return ['bowl', { 1: state === 'tomato' ? '#e5552f' : '#d69a3a' }];
+    case 'egg': return state === 'raw' ? ['egg'] : ['eggFried', FRIED[state]];
+    case 'bacon': return ['bacon', BACON[state]];
+    case 'batter': return state === 'raw' ? ['batter'] : ['pancakes', PANCAKE[state]];
+    case 'coffee': return ['mug'];
+  }
+  return ['plate'];
+}
+function drawIng(kind, state, x, y, px) { const [n, sw] = ingSprite(kind, state); spr(n, x, y, px, sw); }
+function drawKey(k, x, y, px) { const [kind, state] = k.split(':'); drawIng(kind, state, x, y, px); }
+
+function drawPlate(items, x, y, px) {
+  spr('plate', x, y, px);
   const keys = items.slice().sort();
   if (keys.includes('bun:raw') && keys.includes('meat:cooked')) {
-    drawBurger(x, y, s * 0.74, keys.includes('lettuce:chopped'), keys.includes('tomato:chopped'));
+    spr('burger', x, y - px, px, { 3: keys.includes('lettuce:chopped') ? PAL.n : PAL.B });
     return;
   }
-  if (keys.length === 1) { drawKey(keys[0], x, y, s * 0.64); return; }
+  if (keys.length === 1) { drawKey(keys[0], x, y - px, px * 0.84); return; }
   keys.forEach((k, i) => {
     const a = -Math.PI / 2 + i * 2 * Math.PI / keys.length;
-    drawKey(k, x + Math.cos(a) * s * 0.16, y + Math.sin(a) * s * 0.16, s * 0.44);
+    drawKey(k, x + Math.cos(a) * px * 2.6, y - px + Math.sin(a) * px * 2.2, px * 0.6);
   });
+}
+// One dish the way an order ticket shows it.
+function drawDish(recipeKey, x, y, px) {
+  const r = RECIPES[recipeKey];
+  if (r.mug) drawIng('coffee', 'brewed', x, y, px);
+  else drawPlate(r.items, x, y, px);
 }
 
 function potColor(p) {
-  if (p.burnt) return '#161414';
-  if (!p.items.length) return '#4b5260';
+  if (p.burnt) return '#1e1a1c';
+  if (!p.items.length) return '#3a3d48';
   const base = p.items[0] === 'tomato' ? '#e5552f' : '#d69a3a';
-  if (p.items.length < 3) return '#8fb6c6';
-  return mix('#8fb6c6', base, Math.min(1, p.cook));
+  if (p.items.length < 3) return '#8fc0d6';
+  return mix('#8fc0d6', base, Math.round(Math.min(1, p.cook) * 6) / 6);
 }
-function drawPot(p, x, y, s, t = 0) {
-  const r = s / 2;
-  X.fillStyle = '#2c3038'; rr(x - r * 1.04, y - r * 0.14, r * 2.08, r * 0.28, r * 0.1); X.fill();
-  circle(x, y, r * 0.88, '#a3abb9', '#3a3f49', r * 0.08);
-  circle(x, y, r * 0.7, potColor(p));
-  if (p.burnt) {
-    for (let i = 0; i < 4; i++) circle(x + Math.cos(i * 1.7) * r * 0.3, y + Math.sin(i * 1.7) * r * 0.3, r * 0.12, '#2c2626');
-  } else if (p.items.length && p.cook < 1) {
-    p.items.forEach((k, i) => {
-      const a = i * 2.1 + t * (p.items.length === 3 ? 1.6 : 0.4);
-      drawIng(k, 'chopped', x + Math.cos(a) * r * 0.3, y + Math.sin(a) * r * 0.3, r * 0.5);
-    });
-  } else if (p.cook >= 1) {
-    for (let i = 0; i < 3; i++) {
-      const ph = (t * 1.3 + i * 0.37) % 1;
-      circle(x + Math.cos(i * 2.3) * r * 0.32, y + Math.sin(i * 2.3) * r * 0.32, r * 0.1 * ph, 'rgba(255,255,255,.35)');
-    }
+function drawPot(p, x, y, px) {
+  spr('pot', x, y, px, { 1: potColor(p) });
+  if (!p.burnt && p.items.length && p.cook < 1) {
+    p.items.forEach((k, i) => drawIng(k, 'chopped', x - px * 2.5 + i * px * 2.5, y - px, px * 0.4));
   }
 }
-function drawPan(p, x, y, s) {
-  const r = s / 2;
-  X.save(); X.translate(x, y); X.rotate(Math.PI * 0.25);
-  X.fillStyle = '#1b1d22'; rr(r * 0.62, -r * 0.13, r * 0.78, r * 0.26, r * 0.1); X.fill();
-  X.restore();
-  circle(x, y, r * 0.82, '#3a3d45', '#1b1d22', r * 0.08);
-  circle(x, y, r * 0.64, '#4a4e57');
-  if (p.items.length) drawIng('meat', p.burnt ? 'burnt' : p.cook >= 1 ? 'cooked' : 'chopped', x, y, r * 1.25);
+function drawPan(p, x, y, px) {
+  spr('pan', x, y, px);
+  if (p.items.length) drawIng('meat', p.burnt ? 'burnt' : p.cook >= 1 ? 'cooked' : 'chopped', x - px, y, px * 0.66);
+}
+function drawDirty(n, x, y, px) {
+  const k = Math.min(n, 4);
+  for (let i = 0; i < k; i++) spr('dirtyPlate', x, y - i * px * 1.5, px);
+  if (n > 1) {
+    const bx = x + px * 5, by = y - px * 5;
+    X.fillStyle = PAL.k; X.fillRect(bx - px * 3, by - px * 3, px * 6, px * 6);
+    X.fillStyle = '#fff5de'; X.font = `700 ${px * 5}px "Pixelify Sans", monospace`; X.textAlign = 'center'; X.textBaseline = 'middle';
+    X.fillText(String(n), bx, by + px * 0.3);
+  }
 }
 
-function drawItem(it, x, y, s, t = 0) {
-  if (it.type === 'ing') drawIng(it.kind, it.state, x, y, s * 0.78);
-  else if (it.type === 'plate') drawPlate(it.items, x, y, s);
-  else if (it.type === 'pot') drawPot(it, x, y, s, t);
-  else if (it.type === 'pan') drawPan(it, x, y, s);
-  else if (it.type === 'ext') drawExt(x, y, s * 0.9);
-  else if (it.type === 'dirty') drawDirty(it.n, x, y, s * 0.9);
+function drawItem(it, x, y, px) {
+  if (it.type === 'ing') drawIng(it.kind, it.state, x, y, px);
+  else if (it.type === 'plate') drawPlate(it.items, x, y, px);
+  else if (it.type === 'pot') drawPot(it, x, y, px);
+  else if (it.type === 'pan') drawPan(it, x, y, px);
+  else if (it.type === 'ext') spr('ext', x, y, px);
+  else if (it.type === 'dirty') drawDirty(it.n, x, y, px);
 }
 
 // Paint a dish into a small DOM canvas (menu cards, level list).
-function dishCanvas(recipeKey, px) {
+function dishCanvas(recipeKey, size) {
   const c = document.createElement('canvas');
-  const d = Math.min(window.devicePixelRatio || 1, 3);
-  c.width = px * d; c.height = px * d; c.style.width = px + 'px'; c.style.height = px + 'px';
+  const d = Math.max(1, Math.round(Math.min(window.devicePixelRatio || 1, 3)));
+  c.width = size * d; c.height = size * d; c.style.width = size + 'px'; c.style.height = size + 'px';
+  c.style.imageRendering = 'pixelated';
   c.setAttribute('role', 'img'); c.setAttribute('aria-label', RECIPES[recipeKey].name);
-  const g = c.getContext('2d'); g.scale(d, d);
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
   const prev = X; X = g;
-  drawDish(recipeKey, px / 2, px / 2, px * 0.92);
+  drawDish(recipeKey, size * d / 2, size * d / 2, Math.max(1, Math.floor(size * d / 12)));
   X = prev;
   return c;
 }
@@ -823,7 +1256,7 @@ function startLevel(idx) {
     tiles.push(t);
   }
   const chefs = ['1', '2'].map((k, i) => ({
-    x: spawns[k].x, y: spawns[k].y, fx: 0, fy: 1, held: null, color: CHEF_COLORS[i],
+    x: spawns[k].x, y: spawns[k].y, fx: 0, fy: 1, held: null, color: CHEF_COLORS[i], dark: CHEF_DARK[i], moving: false,
     task: null, taskSfx: 0, spraying: false, walk: 0, target: null, toast: null, toastT: 0,
   }));
   G = {
@@ -853,6 +1286,7 @@ function collides(x, y) {
 }
 function moveChef(c, mx, my, dt) {
   const mag = Math.hypot(mx, my);
+  c.moving = mag > 0.15;
   if (mag > 0.15) {
     c.fx = mx / mag; c.fy = my / mag;
     c.walk += dt * Math.min(1, mag);
@@ -1344,15 +1778,19 @@ function updateFx(dt) {
    Render
    ========================================================================= */
 
+// Tile size is chosen so every sprite pixel lands on whole device pixels.
 function kitchenGeom() {
   const k = L.kitchen;
-  const ts = Math.min(k.w / G.cols, k.h / G.rows, 84);
-  return { ts, ox: k.x + (k.w - G.cols * ts) / 2, oy: k.y + (k.h - G.rows * ts) / 2 };
+  const raw = Math.min(k.w / G.cols, k.h / G.rows, 96);
+  const ts = Math.max(16, Math.floor(raw * DPR / 16) * 16) / DPR;
+  const snap = v => Math.round(v * DPR) / DPR;
+  return { ts, ox: snap(k.x + (k.w - G.cols * ts) / 2), oy: snap(k.y + (k.h - G.rows * ts) / 2) };
 }
 
 function render(dt) {
   X = mainCtx;
   X.setTransform(DPR, 0, 0, DPR, 0, 0);
+  X.imageSmoothingEnabled = false;
   X.fillStyle = '#1c2133'; X.fillRect(0, 0, W, H);
   if (!G) { drawBackdrop(); return; }
   drawKitchen();
@@ -1363,199 +1801,139 @@ function render(dt) {
 
 // Drifting ingredients behind the menus.
 function drawBackdrop() {
-  const s = 64, kinds = [['tomato', 'raw'], ['lettuce', 'raw'], ['onion', 'raw'], ['bun', 'raw'], ['meat', 'raw'], ['tomato', 'chopped']];
-  X.globalAlpha = 0.16;
+  const s = 72, kinds = [['tomato', 'raw'], ['lettuce', 'raw'], ['onion', 'raw'], ['bun', 'raw'], ['egg', 'raw'], ['batter', 'cooked'], ['bacon', 'cooked'], ['coffee', 'brewed']];
+  X.globalAlpha = 0.18;
   const off = (T * 12) % s;
   for (let y = -1; y < H / s + 1; y++) for (let x = -1; x < W / s + 1; x++) {
     const k = kinds[Math.abs((x * 7 + y * 3) % kinds.length)];
-    drawIng(k[0], k[1], x * s + off + (y % 2) * s / 2, y * s + off, s * 0.5);
+    drawIng(k[0], k[1], x * s + off + (y % 2) * s / 2, y * s + off, 3);
   }
   X.globalAlpha = 1;
 }
 
+const P = 1 / 16;   // one sprite pixel, in tiles
+const STEEL = ['stove', 'serve', 'trash', 'griddle', 'sink', 'hatch', 'coffee'];
+
 function drawTile(t) {
   const { x, y } = t;
-  if (t.type === 'floor') {
-    X.fillStyle = (x + y) % 2 ? '#e9dfc7' : '#dfd2b5';
-    X.fillRect(x, y, 1.001, 1.001);
-    return;
-  }
-  const steel = ['stove', 'serve', 'trash', 'griddle', 'sink', 'hatch', 'coffee'].includes(t.type);
-  // Body + front lip give each counter a little depth.
-  X.fillStyle = steel ? '#5b6272' : '#8f5c33';
-  X.fillRect(x, y, 1.001, 1.001);
-  X.fillStyle = steel ? '#8c95a6' : '#c98b52';
-  rr(x + 0.03, y + 0.03, 0.94, 0.82, 0.07); X.fill();
-
+  if (t.type === 'floor') { sprTL((x + y) % 2 ? 'floorA' : 'floorB', x, y, P); return; }
+  sprTL(STEEL.includes(t.type) ? 'steel' : 'wood', x, y, P);
+  const flick = Math.floor(T * 8) % 2;
   if (t.type === 'crate') {
-    X.fillStyle = '#b77a43'; rr(x + 0.1, y + 0.1, 0.8, 0.68, 0.06); X.fill();
-    X.strokeStyle = '#8f5c33'; X.lineWidth = 0.035;
-    X.beginPath(); X.moveTo(x + 0.1, y + 0.33); X.lineTo(x + 0.9, y + 0.33); X.moveTo(x + 0.1, y + 0.56); X.lineTo(x + 0.9, y + 0.56); X.stroke();
-    if (!t.item) drawIng(t.kind, 'raw', x + 0.5, y + 0.44, 0.52);
+    sprTL('crate', x, y, P);
+    if (!t.item) drawIng(t.kind, 'raw', x + 0.5, y + 0.4, P);
   } else if (t.type === 'board') {
-    X.fillStyle = '#f0d9a8'; rr(x + 0.12, y + 0.14, 0.76, 0.62, 0.1); X.fill();
-    X.strokeStyle = '#d7b77a'; X.lineWidth = 0.03; X.stroke();
-    if (!t.item) {
-      X.fillStyle = '#c7ced8'; rr(x + 0.28, y + 0.4, 0.4, 0.08, 0.03); X.fill();
-      X.fillStyle = '#3a3f49'; rr(x + 0.64, y + 0.39, 0.16, 0.1, 0.03); X.fill();
-    }
+    sprTL('board', x, y, P);
+    if (!t.item) spr('knife', x + 0.5, y + 0.4, P);
   } else if (t.type === 'stove') {
-    const hot = isCookware(t.item) && !t.item.burnt && (t.item.type === 'pot' ? t.item.items.length === 3 : t.item.items.length === 1);
-    X.fillStyle = '#3b404b'; rr(x + 0.08, y + 0.08, 0.84, 0.72, 0.08); X.fill();
-    circle(x + 0.5, y + 0.44, 0.33, hot ? `rgba(255,${90 + Math.sin(T * 8) * 30},40,.9)` : '#252930', '#1c1f25', 0.04);
-    circle(x + 0.5, y + 0.44, 0.2, null, hot ? '#ffb347' : '#1c1f25', 0.03);
+    const hot = isCookware(t.item) && !t.item.burnt && t.fire <= 0 && (t.item.type === 'pot' ? t.item.items.length === 3 : t.item.items.length === 1);
+    sprTL('burner', x, y, P, hot ? { 1: flick ? PAL.o : PAL.r, 2: PAL.R } : { 1: PAL.d, 2: PAL.D });
+  } else if (t.type === 'griddle') {
+    const hot = onGriddle(t) && t.item.state !== 'burnt' && t.fire <= 0;
+    sprTL('griddle', x, y, P, { 1: hot ? (flick ? PAL.R : PAL.r) : PAL.d });
   } else if (t.type === 'serve') {
-    X.fillStyle = '#c9d0db'; rr(x + 0.06, y + 0.06, 0.88, 0.76, 0.06); X.fill();
-    X.strokeStyle = '#9aa3b2'; X.lineWidth = 0.03; X.beginPath();
-    for (let i = 1; i < 5; i++) { X.moveTo(x + 0.06, y + 0.06 + i * 0.152); X.lineTo(x + 0.94, y + 0.06 + i * 0.152); }
-    X.stroke();
-    // Bell
-    ellipse(x + 0.5, y + 0.5, 0.24, 0.07, '#b98a1a');
-    X.fillStyle = '#f5b82e'; X.beginPath(); X.arc(x + 0.5, y + 0.48, 0.2, Math.PI, 0); X.closePath(); X.fill();
-    circle(x + 0.5, y + 0.26, 0.04, '#b98a1a');
-    ellipse(x + 0.43, y + 0.38, 0.05, 0.03, 'rgba(255,255,255,.6)', -0.6);
+    sprTL('bell', x, y, P);
   } else if (t.type === 'trash') {
-    circle(x + 0.5, y + 0.45, 0.34, '#2d323c', '#1c1f25', 0.04);
-    circle(x + 0.5, y + 0.45, 0.24, '#171a20');
-    X.strokeStyle = '#8c95a6'; X.lineWidth = 0.05; X.beginPath();
-    X.moveTo(x + 0.4, y + 0.35); X.lineTo(x + 0.6, y + 0.55); X.moveTo(x + 0.6, y + 0.35); X.lineTo(x + 0.4, y + 0.55); X.stroke();
+    sprTL('bin', x, y, P);
   } else if (t.type === 'plates') {
     const n = Math.min(t.count, 5);
-    for (let i = 0; i < n; i++) {
-      const py = y + 0.5 - i * 0.05;
-      circle(x + 0.5, py, 0.34, '#f4f1ea', '#bdb5a5', 0.025);
-    }
-    if (n) circle(x + 0.5, y + 0.5 - (n - 1) * 0.05, 0.24, '#fffdf8');
-    else { X.strokeStyle = 'rgba(0,0,0,.25)'; X.setLineDash([0.06, 0.05]); X.lineWidth = 0.03; circle(x + 0.5, y + 0.45, 0.3, null, 'rgba(0,0,0,.25)', 0.03); X.setLineDash([]); }
-  } else if (t.type === 'griddle') {
-    const hot = onGriddle(t) && t.item.state !== 'burnt';
-    X.fillStyle = '#2b2e35'; rr(x + 0.07, y + 0.07, 0.86, 0.74, 0.06); X.fill();
-    X.fillStyle = hot ? '#4a3a36' : '#3a3d45'; rr(x + 0.12, y + 0.12, 0.76, 0.64, 0.04); X.fill();
-    X.strokeStyle = hot ? `rgba(255,${120 + Math.sin(T * 8) * 30},60,.55)` : 'rgba(255,255,255,.06)'; X.lineWidth = 0.025; X.beginPath();
-    for (let i = 1; i < 4; i++) { X.moveTo(x + 0.14, y + 0.12 + i * 0.16); X.lineTo(x + 0.86, y + 0.12 + i * 0.16); }
-    X.stroke();
-  } else if (t.type === 'coffee') {
-    X.fillStyle = '#2d2a2e'; rr(x + 0.14, y + 0.06, 0.72, 0.36, 0.06); X.fill();
-    circle(x + 0.74, y + 0.18, 0.05, t.brewing ? '#6cc24a' : '#e8472f');
-    X.fillStyle = '#8c95a6'; rr(x + 0.42, y + 0.38, 0.16, 0.08, 0.02); X.fill();
-    X.fillStyle = '#5b6272'; rr(x + 0.2, y + 0.5, 0.6, 0.3, 0.05); X.fill();
-    if (t.brewing) { X.strokeStyle = '#5a3620'; X.lineWidth = 0.03; X.beginPath(); X.moveTo(x + 0.5, y + 0.46); X.lineTo(x + 0.5, y + 0.58); X.stroke(); }
+    if (!n) { X.globalAlpha = 0.3; spr('plate', x + 0.5, y + 0.42, P); X.globalAlpha = 1; }
+    for (let i = 0; i < n; i++) spr('plate', x + 0.5, y + 0.45 - i * P * 1.5, P);
   } else if (t.type === 'sink') {
-    X.fillStyle = '#c9d0db'; rr(x + 0.08, y + 0.08, 0.84, 0.72, 0.1); X.fill();
-    X.fillStyle = '#6fa8c9'; rr(x + 0.15, y + 0.15, 0.7, 0.58, 0.08); X.fill();
-    X.fillStyle = '#8c95a6'; rr(x + 0.45, y + 0.02, 0.1, 0.18, 0.03); X.fill();
-    if (t.dirty > 0) drawDirty(t.dirty, x + 0.5, y + 0.46, 0.55);
-    for (let i = 0; i < 4; i++) circle(x + 0.25 + i * 0.16, y + 0.62 + Math.sin(T * 3 + i) * 0.03, 0.05 + (i % 2) * 0.02, 'rgba(255,255,255,.55)');
+    sprTL('sink', x, y, P);
+    if (t.dirty > 0) drawDirty(t.dirty, x + 0.5, y + 0.44, P);
   } else if (t.type === 'hatch') {
-    X.fillStyle = '#2b2e35'; rr(x + 0.1, y + 0.1, 0.8, 0.68, 0.06); X.fill();
-    X.fillStyle = '#5b6272'; for (let i = 0; i < 4; i++) { rr(x + 0.14, y + 0.14 + i * 0.16, 0.72, 0.1, 0.03); X.fill(); }
-    if (t.dirty > 0) drawDirty(t.dirty, x + 0.5, y + 0.46, 0.7);
+    sprTL('hatch', x, y, P);
+    if (t.dirty > 0) drawDirty(t.dirty, x + 0.5, y + 0.42, P);
+  } else if (t.type === 'coffee') {
+    sprTL('coffeeMachine', x, y, P, { 1: t.brewing ? (flick ? PAL.l : PAL.n) : PAL.r });
+    if (t.brewing) { X.fillStyle = PAL.B; X.fillRect(x + 7 * P, y + 8 * P, P * 2, P * 2); }
   }
 }
 
-// Flames licking up from a burning counter.
 function drawFire(t) {
-  const cx = t.x + 0.5, base = t.y + 0.8, k = 0.35 + t.fire * 0.65;
-  circle(cx, t.y + 0.45, 0.5 * k, 'rgba(255,120,40,.25)');
-  const flames = [[-0.24, 0.55, 1.3], [0.22, 0.6, 2.1], [0, 0.85, 0], [-0.08, 0.5, 3.3], [0.12, 0.45, 4.2]];
-  for (const [dx, h, ph] of flames) {
-    const fh = h * k * (0.85 + Math.sin(T * 14 + ph) * 0.15), fw = 0.2 * k;
-    const x = cx + dx * k + Math.sin(T * 9 + ph) * 0.03;
-    for (const [col, sc] of [['#e8472f', 1], ['#f5b82e', 0.66], ['#fff1a8', 0.33]]) {
-      X.fillStyle = col; X.beginPath();
-      X.moveTo(x - fw * sc, base);
-      X.quadraticCurveTo(x - fw * sc * 1.1, base - fh * sc * 0.6, x, base - fh * sc);
-      X.quadraticCurveTo(x + fw * sc * 1.1, base - fh * sc * 0.6, x + fw * sc, base);
-      X.closePath(); X.fill();
-    }
-  }
+  const k = 0.5 + t.fire * 0.5;
+  X.fillStyle = 'rgba(255,120,40,.22)'; X.fillRect(t.x - P * 2, t.y - P * 4, 1 + P * 4, 1 + P * 4);
+  X.globalAlpha = Math.min(1, 0.4 + t.fire);
+  const c = sprite('fire' + (Math.floor(T * 10 + t.x) % 3));
+  const h = Math.round(16 * k) * P;
+  X.drawImage(c, t.x, t.y + 0.9 - h, 1, h);
+  X.globalAlpha = 1;
 }
 
-function drawBar(x, y, w, frac, color) {
-  X.fillStyle = 'rgba(20,24,38,.85)'; rr(x - w / 2 - 0.03, y - 0.075, w + 0.06, 0.15, 0.075); X.fill();
-  X.fillStyle = color; rr(x - w / 2, y - 0.045, Math.max(0.05, w * Math.min(1, frac)), 0.09, 0.045); X.fill();
+function drawBar(x, y, frac, color) {
+  const w = 12 * P;
+  X.fillStyle = PAL.k; X.fillRect(x - w / 2 - P, y - 2 * P, w + 2 * P, 4 * P);
+  X.fillStyle = '#1c2133'; X.fillRect(x - w / 2, y - P, w, 2 * P);
+  X.fillStyle = color; X.fillRect(x - w / 2, y - P, Math.max(P, Math.round(w * Math.min(1, frac) / P) * P), 2 * P);
 }
 
 function drawTileOverlay(t) {
-  const cx = t.x + 0.5, top = t.y - 0.02;
-  if (t.type === 'coffee' && t.brewing) drawBar(cx, top + 0.08, 0.72, t.brew, '#a0673f');
-  if (t.type === 'sink' && t.wash > 0) drawBar(cx, top + 0.08, 0.72, t.wash, '#6fa8c9');
+  const cx = t.x + 0.5, top = t.y;
+  if (t.type === 'coffee' && t.brewing) drawBar(cx, top + 0.06, t.brew, '#c07a45');
+  if (t.type === 'sink' && t.wash > 0) drawBar(cx, top + 0.06, t.wash, PAL.u);
   const it = t.item;
   if (!it) return;
-  if (it.type === 'ing' && it.chop > 0 && it.state === 'raw') drawBar(cx, top + 0.08, 0.72, it.chop, '#6cc24a');
+  if (it.type === 'ing' && it.chop > 0 && it.state === 'raw') drawBar(cx, top + 0.06, it.chop, PAL.l);
   // Griddle food shares the cookware progress/warning/done markers.
   const heat = onGriddle(t) && it.state !== 'burnt' ? { cook: it.state === 'cooked' ? 1 : it.cook, burn: it.burn } : isCookware(it) && t.type === 'stove' && !it.burnt ? it : null;
   if (heat) {
-    if (heat.cook > 0 && heat.cook < 1) drawBar(cx, top + 0.08, 0.72, heat.cook, '#6cc24a');
+    if (heat.cook > 0 && heat.cook < 1) drawBar(cx, top + 0.06, heat.cook, PAL.l);
     else if (heat.cook >= 1 && heat.burn > 0.3) {
-      const on = Math.sin(T * (heat.burn > 0.75 ? 22 : 12)) > 0;
-      if (on) {
-        X.fillStyle = '#e8472f'; X.beginPath(); X.moveTo(cx, top - 0.22); X.lineTo(cx + 0.2, top + 0.14); X.lineTo(cx - 0.2, top + 0.14); X.closePath(); X.fill();
-        X.fillStyle = '#fff'; X.font = 'bold 0.26px Nunito, sans-serif'; X.textAlign = 'center'; X.textBaseline = 'middle'; X.fillText('!', cx, top + 0.02);
-      }
-    } else if (heat.cook >= 1) {
-      circle(cx + 0.32, top + 0.12, 0.13, '#3f9b45', '#fff', 0.03);
-      X.strokeStyle = '#fff'; X.lineWidth = 0.04; X.beginPath(); X.moveTo(cx + 0.26, top + 0.12); X.lineTo(cx + 0.31, top + 0.17); X.lineTo(cx + 0.39, top + 0.07); X.stroke();
-    }
+      if (Math.sin(T * (heat.burn > 0.75 ? 22 : 12)) > 0) spr('warn', cx, top - 0.02, P);
+    } else if (heat.cook >= 1) spr('check', cx + 0.34, top + 0.08, P);
   }
   // Pot contents bubble while it's still being filled.
   if (it.type === 'pot' && !it.burnt && it.cook < 1 && it.items.length && it.items.length < 3) {
-    X.fillStyle = 'rgba(255,253,248,.95)'; rr(cx - 0.36, top - 0.2, 0.72, 0.26, 0.13); X.fill();
+    X.fillStyle = PAL.k; X.fillRect(cx - 7 * P, top - 5 * P, 14 * P, 6 * P);
+    X.fillStyle = '#fff5de'; X.fillRect(cx - 6 * P, top - 4 * P, 12 * P, 4 * P);
     for (let i = 0; i < 3; i++) {
-      const sx = cx - 0.23 + i * 0.23;
-      if (it.items[i]) drawIng(it.items[i], 'chopped', sx, top - 0.07, 0.2);
-      else circle(sx, top - 0.07, 0.07, null, '#c9c1b2', 0.02);
+      const sx = cx - 4 * P + i * 4 * P;
+      if (it.items[i]) drawIng(it.items[i], 'raw', sx, top - 2 * P, P * 0.33);
+      else { X.fillStyle = PAL.q; X.fillRect(sx - P / 2, top - 2.5 * P, P, P); }
     }
   }
 }
 
+function chefDir(c) { return Math.abs(c.fx) > Math.abs(c.fy) ? (c.fx > 0 ? 'R' : 'L') : (c.fy > 0 ? 'D' : 'U'); }
+
 function drawChef(c, idx) {
-  const active = idx === G.active;
-  ellipse(c.x + 0.03, c.y + 0.08, 0.34, 0.28, 'rgba(0,0,0,.22)');
-  if (active) {
-    const pulse = 0.42 + G.swapFx * 0.25;
-    circle(c.x, c.y, pulse, null, c.color, 0.06);
-  }
-  const ang = Math.atan2(c.fy, c.fx);
-  const bob = Math.sin(c.walk * 14) * 0.035;
-  X.save(); X.translate(c.x, c.y); X.rotate(ang);
-  // Hands
-  const chopBob = c.task ? Math.sin(T * (c.task.kind === 'wash' ? 16 : 26)) * 0.07 : 0;
-  const hx = c.held ? 0.3 : 0.2 + bob;
-  circle(hx, -0.22, 0.075, '#f2c9a0', '#c99a70', 0.02);
-  circle(c.held ? 0.3 : 0.2 - bob, 0.22 + chopBob, 0.075, '#f2c9a0', '#c99a70', 0.02);
-  // Body (chef whites), neckerchief, head, hat
-  ellipse(0, 0, 0.22, 0.31, '#c9c6bd');
-  ellipse(0, 0, 0.2, 0.29, '#f7f5ef');
-  ellipse(0.1, 0, 0.07, 0.11, c.color);
-  circle(-0.02, 0, 0.16, '#f2c9a0');
-  circle(-0.04, 0, 0.15, '#ffffff', '#d9d6cc', 0.02);
-  circle(-0.12, -0.07, 0.06, '#ffffff'); circle(-0.12, 0.07, 0.06, '#ffffff'); circle(0.04, 0, 0.07, '#ffffff');
-  X.restore();
-  // Knife while chopping
+  const dir = chefDir(c);
+  const frame = c.moving ? Math.floor(c.walk * 9) % 2 : 0;
+  const busy = c.task ? Math.floor(T * 10) % 2 : 0;
+  const name = (dir === 'D' ? 'chefDown' : dir === 'U' ? 'chefUp' : 'chefSide') + (frame ? '1' : '');
+  const cy = c.y - 0.34 - busy * P;
+  X.fillStyle = 'rgba(0,0,0,.25)'; X.fillRect(c.x - 5 * P, c.y + 0.1, 10 * P, 2 * P);
+  const heldAt = { D: [0, 0.02], U: [0, -0.62], R: [0.4, -0.24], L: [-0.4, -0.24] }[dir];
+  if (c.held && dir === 'U') drawItem(c.held, c.x + heldAt[0], c.y + heldAt[1], P);
+  spr(name, c.x, cy, P, { 1: c.color, 2: c.dark }, dir === 'L');
+  if (c.held && dir !== 'U') drawItem(c.held, c.x + heldAt[0], c.y + heldAt[1], P);
   if (c.task && c.task.kind === 'chop') {
-    const kx = c.x + c.fx * 0.45, ky = c.y + c.fy * 0.45 - Math.abs(Math.sin(T * 13)) * 0.12;
-    X.save(); X.translate(kx, ky); X.rotate(ang + Math.PI / 2);
-    X.fillStyle = '#dfe4ea'; rr(-0.04, -0.2, 0.08, 0.22, 0.02); X.fill();
-    X.fillStyle = '#3a3f49'; rr(-0.035, 0.02, 0.07, 0.12, 0.02); X.fill();
-    X.restore();
+    const b = c.task.tile;
+    spr('knife', b.x + 0.6, b.y + 0.3 - (Math.floor(T * 12) % 2) * 3 * P, P);
   }
-  if (c.held) drawItem(c.held, c.x + c.fx * 0.42, c.y + c.fy * 0.42, 0.62, T);
+  if (idx === G.active) {
+    const bob = (Math.floor(T * 3) % 2) * P + G.swapFx * 0.2;
+    spr('arrow', c.x, cy - 0.66 - bob, P, { 1: c.color });
+  }
 }
 
 function drawKitchen() {
   const { ts, ox, oy } = kitchenGeom();
   X.save(); X.translate(ox, oy); X.scale(ts, ts);
-  X.fillStyle = 'rgba(0,0,0,.35)'; rr(-0.12, -0.02, G.cols + 0.24, G.rows + 0.26, 0.25); X.fill();
+  X.fillStyle = 'rgba(0,0,0,.35)'; X.fillRect(-P * 3, P * 2, G.cols + P * 6, G.rows + P * 3);
   for (const t of G.tiles) drawTile(t);
-  // Target highlight for the active chef
+  // Target brackets for the active chef
   const act = G.chefs[G.active];
   if (act.target && G.phase === 'play') {
-    const t = act.target, a = 0.55 + Math.sin(T * 7) * 0.25;
-    X.strokeStyle = `rgba(255,255,255,${a})`; X.lineWidth = 0.06;
-    rr(t.x + 0.05, t.y + 0.05, 0.9, 0.84, 0.1); X.stroke();
+    const t = act.target, a = Math.floor(T * 4) % 2 ? 1 : 0.6;
+    X.fillStyle = `rgba(255,255,255,${a})`;
+    for (const [cx, cy, sx, sy] of [[0, 0, 1, 1], [1, 0, -1, 1], [0, 1, 1, -1], [1, 1, -1, -1]]) {
+      const bx = t.x + cx - (sx < 0 ? P : 0), by = t.y + cy - (sy < 0 ? P : 0);
+      X.fillRect(bx, by, 4 * P * sx, P); X.fillRect(bx, by, P, 4 * P * sy);
+    }
   }
-  for (const t of G.tiles) if (t.item) drawItem(t.item, t.x + 0.5, t.y + 0.44, 0.8, T);
+  for (const t of G.tiles) if (t.item) drawItem(t.item, t.x + 0.5, t.y + (t.type === 'coffee' ? 0.62 : 0.4), P);
   const order = G.chefs.map((c, i) => i).sort((a, b) => G.chefs[a].y - G.chefs[b].y);
   for (const i of order) drawChef(G.chefs[i], i);
   for (const t of G.tiles) drawTileOverlay(t);
@@ -1563,7 +1941,8 @@ function drawKitchen() {
   for (const p of G.puffs) {
     const k = p.life / p.max;
     X.globalAlpha = Math.max(0, k);
-    circle(p.x, p.y, p.kind === 'chip' ? 0.035 : 0.08 + (1 - k) * 0.14, p.color);
+    const s = p.kind === 'chip' ? P : Math.round((2 + (1 - k) * 3)) * P;
+    X.fillStyle = p.color; X.fillRect(Math.round(p.x / P) * P - s / 2, Math.round(p.y / P) * P - s / 2, s, s);
   }
   X.globalAlpha = 1;
   // Chef speech (toasts)
@@ -1571,10 +1950,11 @@ function drawKitchen() {
   for (const c of G.chefs) {
     if (c.toastT <= 0) continue;
     X.globalAlpha = Math.min(1, c.toastT * 3);
-    X.font = '800 0.3px Nunito, system-ui, sans-serif';
+    X.font = '600 0.3px "Pixelify Sans", Nunito, sans-serif';
     const w = X.measureText(c.toast).width + 0.3;
-    X.fillStyle = '#fff5de'; rr(c.x - w / 2, c.y - 0.95, w, 0.42, 0.14); X.fill();
-    X.fillStyle = '#2b2230'; X.fillText(c.toast, c.x, c.y - 0.73);
+    X.fillStyle = PAL.k; X.fillRect(c.x - w / 2 - P, c.y - 1.2 - P, w + 2 * P, 0.42 + 2 * P);
+    X.fillStyle = '#fff5de'; X.fillRect(c.x - w / 2, c.y - 1.2, w, 0.42);
+    X.fillStyle = '#2b2230'; X.fillText(c.toast, c.x, c.y - 0.98);
     X.globalAlpha = 1;
   }
   X.restore();
@@ -1596,21 +1976,20 @@ function recipeIngredients(key) {
 function drawHUD(dt) {
   const b = L.bar;
   // Pause button
-  circle(L.pause.x, L.pause.y, L.pause.r, '#2a3150');
-  X.fillStyle = '#fff5de'; X.fillRect(L.pause.x - 6, L.pause.y - 7, 4, 14); X.fillRect(L.pause.x + 2, L.pause.y - 7, 4, 14);
+  X.fillStyle = '#2a3150'; X.fillRect(L.pause.x - 18, L.pause.y - 18, 36, 36);
+  X.fillStyle = '#fff5de'; X.fillRect(L.pause.x - 7, L.pause.y - 8, 5, 16); X.fillRect(L.pause.x + 2, L.pause.y - 8, 5, 16);
   // Timer
   const low = G.time <= 30;
-  X.font = '400 26px "Lilita One", system-ui, sans-serif'; X.textAlign = 'center'; X.textBaseline = 'middle';
+  X.font = '400 26px "Pixelify Sans", system-ui, sans-serif'; X.textAlign = 'center'; X.textBaseline = 'middle';
   const tw = 96;
-  X.fillStyle = low && Math.sin(T * 8) > 0 ? '#e8472f' : '#2a3150'; rr(W / 2 - tw / 2, b.y, tw, 38, 19); X.fill();
+  X.fillStyle = low && Math.sin(T * 8) > 0 ? '#e8472f' : '#2a3150'; X.fillRect(Math.round(W / 2 - tw / 2), b.y, tw, 38);
   X.fillStyle = '#fff5de'; X.fillText(fmtTime(G.time), W / 2, b.y + 20);
   // Coins
   const cx = b.x + b.w - 14, cy = b.y + 20;
   const pulse = 1 + (G.coinPulse || 0) * 0.3;
-  X.font = `400 ${Math.round(24 * pulse)}px "Lilita One", system-ui, sans-serif`; X.textAlign = 'right';
+  X.font = `400 ${Math.round(24 * pulse)}px "Pixelify Sans", system-ui, sans-serif`; X.textAlign = 'right';
   X.fillStyle = '#fff5de'; X.fillText(String(G.score), cx - 26, cy + 1);
-  circle(cx - 8, cy, 11, '#f5b82e', '#b9821a', 3);
-  X.fillStyle = '#b9821a'; X.font = '800 12px Nunito, sans-serif'; X.textAlign = 'center'; X.fillText('$', cx - 8, cy + 1);
+  spr('coin', cx - 8, cy, 3);
 
   // Order tickets
   const R = L.orders, n = G.lv.maxOrders, gap = 6;
@@ -1622,40 +2001,52 @@ function drawHUD(dt) {
     const frac = o.timeLeft / o.total;
     const shake = frac < 0.25 ? Math.sin(T * 40) * 1.5 : 0;
     const x = o.x + shake, y = R.y;
-    X.fillStyle = 'rgba(0,0,0,.3)'; rr(x + 1, y + 3, cw, ch, 6); X.fill();
-    X.fillStyle = '#fff5de'; rr(x, y, cw, ch, 6); X.fill();
+    const px = Math.round(x);
+    X.fillStyle = 'rgba(0,0,0,.35)'; X.fillRect(px + 3, y + 3, cw, ch);
+    X.fillStyle = PAL.k; X.fillRect(px - 2, y - 2, cw + 4, ch + 4);
+    X.fillStyle = '#fff5de'; X.fillRect(px, y, cw, ch);
     // time strip
     const col = frac > 0.5 ? '#3f9b45' : frac > 0.25 ? '#f5b82e' : '#e8472f';
-    X.fillStyle = '#e8dcbc'; rr(x + 5, y + 5, cw - 10, 7, 3.5); X.fill();
-    X.fillStyle = col; rr(x + 5, y + 5, Math.max(7, (cw - 10) * frac), 7, 3.5); X.fill();
+    X.fillStyle = '#e8dcbc'; X.fillRect(px + 5, y + 5, cw - 10, 6);
+    X.fillStyle = col; X.fillRect(px + 5, y + 5, Math.max(3, Math.round((cw - 10) * frac / 3) * 3), 6);
     // dish
-    const ds = Math.min(ch * 0.52, cw * 0.55);
-    drawDish(o.recipe, x + cw / 2, y + 14 + ds / 2, ds);
+    const dpx = Math.max(2, Math.floor(Math.min(ch - 36, cw * 0.6) / 12));
+    drawDish(o.recipe, px + cw / 2, y + 14 + dpx * 6, dpx);
     // ingredients
     const ings = recipeIngredients(o.recipe);
-    const is = Math.min(16, (cw - 10) / ings.length);
-    const iy = y + ch - is / 2 - 5;
-    ings.forEach((k, j) => drawIng(k, 'raw', x + cw / 2 + (j - (ings.length - 1) / 2) * is, iy, is * 0.95));
+    const ipx = (cw - 10) / ings.length >= 24 && ch > 80 ? 2 : 1;
+    const is = 13 * ipx;
+    ings.forEach((k, j) => drawIng(k, 'raw', px + cw / 2 + (j - (ings.length - 1) / 2) * is, y + ch - is / 2 - 4, ipx));
   });
 
   for (const f of G.floats) {
     X.globalAlpha = Math.min(1, f.life * 2);
-    X.font = '400 28px "Lilita One", system-ui, sans-serif'; X.textAlign = 'center';
+    X.font = '400 28px "Pixelify Sans", system-ui, sans-serif'; X.textAlign = 'center';
     X.lineWidth = 5; X.strokeStyle = '#1c2133'; X.strokeText(f.text, f.x, f.y); X.fillStyle = f.color; X.fillText(f.text, f.x, f.y);
     if (f.sub) { X.font = '800 13px Nunito, sans-serif'; X.lineWidth = 4; X.strokeText(f.sub, f.x, f.y + 20); X.fillStyle = '#fff5de'; X.fillText(f.sub, f.x, f.y + 20); }
     X.globalAlpha = 1;
   }
 }
 
+// A circle built from 3px rows so the controls match the pixel art.
+function pixCircle(cx, cy, r, color, s = 3) {
+  X.fillStyle = color;
+  for (let dy = -r; dy < r; dy += s) {
+    const yy = dy + s / 2, hw = Math.round(Math.sqrt(Math.max(0, r * r - yy * yy)) / s) * s;
+    if (hw > 0) X.fillRect(Math.round(cx - hw), Math.round(cy + dy), hw * 2, s);
+  }
+}
+
 function drawButton(p, r, fill, dark, label, sub, dim, flash) {
   X.globalAlpha = dim ? 0.5 : 1;
-  const press = flash * 3;
-  circle(p.x, p.y + 4, r, dark);
-  circle(p.x, p.y + press, r, fill);
-  circle(p.x - r * 0.25, p.y - r * 0.3 + press, r * 0.35, 'rgba(255,255,255,.18)');
+  const press = Math.round(flash * 3);
+  pixCircle(p.x, p.y + 1, r + 3, PAL.k);
+  pixCircle(p.x, p.y + 4, r, dark);
+  pixCircle(p.x, p.y + press, r, fill);
+  pixCircle(p.x - r * 0.3, p.y - r * 0.35 + press, r * 0.3, 'rgba(255,255,255,.22)');
   X.fillStyle = fill === '#f5b82e' ? '#2b2230' : '#fff';
   X.textAlign = 'center'; X.textBaseline = 'middle';
-  X.font = `400 ${Math.round(r * (label.length > 4 ? 0.42 : 0.5))}px "Lilita One", system-ui, sans-serif`;
+  X.font = `400 ${Math.round(r * (label.length > 4 ? 0.42 : 0.5))}px "Pixelify Sans", system-ui, sans-serif`;
   X.fillText(label, p.x, p.y + press + (sub ? -r * 0.1 : 1));
   if (sub) { X.font = `800 ${Math.round(r * 0.26)}px Nunito, sans-serif`; X.globalAlpha *= 0.75; X.fillText(sub, p.x, p.y + press + r * 0.36); }
   X.globalAlpha = 1;
@@ -1665,10 +2056,10 @@ function drawControls() {
   // Joystick
   const j = input.joy, active = j.id !== null;
   const bx = active ? j.bx : L.joyRest.x, by = active ? j.by : L.joyRest.y;
-  circle(bx, by, JOY_R + 6, active ? 'rgba(255,245,222,.12)' : 'rgba(255,245,222,.06)', 'rgba(255,245,222,.25)', 2);
+  pixCircle(bx, by, JOY_R + 6, active ? 'rgba(255,245,222,.14)' : 'rgba(255,245,222,.08)');
   let kx = bx, ky = by;
   if (active) { const dx = j.x - j.bx, dy = j.y - j.by, d = Math.hypot(dx, dy) || 1, m = Math.min(d, JOY_R); kx = bx + dx / d * m; ky = by + dy / d * m; }
-  circle(kx, ky, 24, active ? 'rgba(255,245,222,.75)' : 'rgba(255,245,222,.3)');
+  pixCircle(kx, ky, 24, active ? 'rgba(255,245,222,.75)' : 'rgba(255,245,222,.3)');
   if (!active && G.phase !== 'over') {
     X.fillStyle = 'rgba(255,245,222,.45)'; X.font = '800 11px Nunito, sans-serif'; X.textAlign = 'center';
     X.fillText('DRAG TO MOVE', bx, by + JOY_R + 22);
@@ -1684,7 +2075,8 @@ function drawControls() {
   const other = G.chefs[(G.active + 1) % G.chefs.length];
   const sr = r * 0.62;
   drawButton(L.btnS, sr, '#3f9b45', '#2a6e2f', 'Swap', null, false, input.flash.S);
-  circle(L.btnS.x + sr * 0.72, L.btnS.y - sr * 0.72, sr * 0.3, other.color, '#fff', 2);
+  pixCircle(L.btnS.x + sr * 0.72, L.btnS.y - sr * 0.72, sr * 0.3 + 3, '#fff');
+  pixCircle(L.btnS.x + sr * 0.72, L.btnS.y - sr * 0.72, sr * 0.3, other.color);
 }
 
 function drawBanner() {
@@ -1697,7 +2089,7 @@ function drawBanner() {
   else if (G.phase === 'over') { text = "Time's up!"; size = 52; }
   if (!text) return;
   const k = L.kitchen;
-  X.font = `400 ${size}px "Lilita One", system-ui, sans-serif`; X.textAlign = 'center'; X.textBaseline = 'middle';
+  X.font = `400 ${size}px "Pixelify Sans", system-ui, sans-serif`; X.textAlign = 'center'; X.textBaseline = 'middle';
   X.lineWidth = 10; X.strokeStyle = '#1c2133'; X.lineJoin = 'round';
   X.strokeText(text, k.x + k.w / 2, k.y + k.h / 2);
   X.fillStyle = G.phase === 'over' ? '#e8472f' : '#fff5de';
