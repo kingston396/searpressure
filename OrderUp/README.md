@@ -32,6 +32,9 @@ Two phones, one kitchen. On the title screen, tap **Play with a friend**. One pl
 | **Chop** (red) | E | Chop raw food on a board, or wash dirty plates at the sink. The chef keeps going until done or until you walk away. While holding the extinguisher it becomes **Spray**: hold it down to spray |
 | **Swap** (green) | Q | Switch to the other chef |
 | Pause button | Esc | Pause |
+| Tap a ticket | Click a ticket | Zoom in: the dish, each item by name, time left and whether it's a delivery. Tap again or wait 4 seconds to close |
+
+Tickets with four or more items wrap their icons onto two rows when the rail is crowded.
 
 ## Kitchens
 

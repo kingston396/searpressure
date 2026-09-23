@@ -3051,6 +3051,9 @@ cvs.addEventListener('pointerdown', e => {
   if (!G || G.phase === 'over' || paused) return;
   const x = e.clientX, y = e.clientY;
   if (dist(L.pause, x, y) < 30) { pauseGame(); return; }
+  if (G.zoom) { G.zoom = null; return; }
+  const tk = ticketAt(x, y);
+  if (tk) { G.zoom = { id: tk.id, t: 4 }; sfx('pick'); return; }
   const r = L.ctrlR;
   if (dist(L.btnA, x, y) < r * 1.2) { input.grab = true; input.flash.A = 1; return; }
   if (dist(L.btnB, x, y) < r * 1.1) { input.chop = true; input.chopHeld = true; input.chopId = e.pointerId; input.flash.B = 1; return; }
@@ -3420,6 +3423,7 @@ function render(dt) {
   drawHUD(dt);
   if (G.lv.judge) drawJudge();
   drawControls();
+  drawZoom(dt);
   if (G.tut) { drawTutorialUI(); $('tut').style.top = (L.kitchen.y + 2) + 'px'; }
   drawBanner();
 }
@@ -3641,6 +3645,64 @@ function recipeIngredients(items) {
   return out;
 }
 
+// Plain names for what a ticket asks for, shown when a ticket is zoomed in.
+const ITEM_NAMES = {
+  'potato:cooked': 'Fries', 'batter:cooked': 'Pancakes', 'cornmeal:cooked': 'Cornbread', 'dough:cooked': 'Beignets', 'bread:cooked': 'Toast',
+  'meat:cooked': 'Cooked meat', 'egg:cooked': 'Fried egg', 'bacon:cooked': 'Crispy bacon', 'coffee:brewed': 'Coffee', 'tortilla:cooked': 'Warm tortilla',
+  'soup:tomato': 'Tomato soup', 'soup:onion': 'Onion soup', 'shake:vanilla': 'Vanilla shake', 'shake:strawberry': 'Strawberry shake', 'smoothie:berry': 'Berry smoothie',
+  'mac:cheese': 'Mac & cheese', 'rice:cooked': 'Rice', 'beans:cooked': 'Beans', 'ribs:cooked': 'Smoked ribs', 'bagel:cooked': 'Toasted bagel',
+  'pizza:sliced': 'Cheese pizza slice', 'pepperonipizza:sliced': 'Pepperoni pizza slice', 'turkey:sliced': 'Carved turkey', 'pie:sliced': 'Slice of pie',
+  'avocado:chopped': 'Guacamole', 'clam:chopped': 'Shucked clams', 'fish:cooked': 'Cooked fish', 'lobster:cooked': 'Cooked lobster',
+  'gumbo:cooked': 'Gumbo', 'jambalaya:cooked': 'Jambalaya', 'chowder:cooked': 'Clam chowder', 'stuffing:cooked': 'Stuffing', 'mash:cooked': 'Mashed potatoes',
+};
+const KIND_NAMES = { icecream: 'ice cream', creamcheese: 'cream cheese', sugar: 'powdered sugar', chips: 'tortilla chips', meat: 'meat', rye: 'rye bread' };
+function itemName(k) {
+  if (ITEM_NAMES[k]) return ITEM_NAMES[k];
+  const [kind, state] = k.split(':'), name = KIND_NAMES[kind] || kind;
+  const s = state === 'raw' ? name : `${state} ${name}`;
+  return s[0].toUpperCase() + s.slice(1);
+}
+// Tap a ticket to see it big, with every item named. Tap again (or wait) to close.
+function ticketAt(x, y) {
+  const R = L.orders;
+  if (!G || y < R.y - 4 || y > R.y + R.h + 4) return null;
+  const n = maxOrders(), gap = 6, cw = Math.min(122, (R.w - gap * (n - 1)) / n);
+  return G.orders.find(o => o.x != null && x >= o.x - 3 && x <= o.x + cw + 3) || null;
+}
+function drawZoom(dt) {
+  const z = G.zoom;
+  if (!z) return;
+  z.t -= dt;
+  const o = G.orders.find(q => q.id === z.id);
+  if (!o || z.t <= 0) { G.zoom = null; return; }
+  const items = orderItems(o), R = RECIPES[o.recipe];
+  const w = Math.min(W - 32, 340), rowH = 40, h = 96 + items.length * rowH + (o.delivery ? 26 : 0);
+  const x = Math.round(W / 2 - w / 2), y = Math.round(L.orders.y + L.orders.h + 12);
+  X.globalAlpha = Math.min(1, z.t * 4);
+  X.fillStyle = 'rgba(0,0,0,.4)'; X.fillRect(x + 4, y + 4, w, h);
+  X.fillStyle = PAL.k; X.fillRect(x - 3, y - 3, w + 6, h + 6);
+  X.fillStyle = '#fff5de'; X.fillRect(x, y, w, h);
+  const frac = o.timeLeft / o.total;
+  X.fillStyle = '#e8dcbc'; X.fillRect(x + 12, y + 12, w - 24, 8);
+  X.fillStyle = frac > 0.5 ? '#3f9b45' : frac > 0.25 ? '#f5b82e' : '#e8472f'; X.fillRect(x + 12, y + 12, Math.max(3, (w - 24) * frac), 8);
+  if (R.mug) drawKey(items[0], x + 40, y + 56, 4); else drawPlate(items, x + 40, y + 56, 4);
+  X.fillStyle = '#2b2230'; X.textAlign = 'left'; X.textBaseline = 'middle';
+  X.font = '700 22px "Pixelify Sans", "Courier New", monospace'; X.fillText(R.name, x + 80, y + 46);
+  X.font = '700 13px "Nunito", system-ui, sans-serif'; X.fillStyle = '#6b5a48';
+  X.fillText(`${orderReward(o)} coins + tip`, x + 80, y + 68);
+  items.forEach((k, i) => {
+    const ry = y + 104 + i * rowH;
+    X.fillStyle = i % 2 ? '#fff5de' : '#f6ead0'; X.fillRect(x + 8, ry - rowH / 2 + 2, w - 16, rowH - 4);
+    drawKey(k, x + 32, ry, 2.5);
+    X.fillStyle = '#2b2230'; X.font = '700 17px "Nunito", system-ui, sans-serif'; X.fillText(itemName(k), x + 62, ry + 1);
+  });
+  if (o.delivery) {
+    X.fillStyle = '#a8301d'; X.font = '800 14px "Nunito", system-ui, sans-serif';
+    X.fillText(o.late ? 'Driver waiting! Hand the bag off now.' : 'Delivery: bag it for the pickup window.', x + 14, y + h - 16);
+  }
+  X.globalAlpha = 1;
+}
+
 function drawHUD(dt) {
   const b = L.bar;
   // Pause button
@@ -3685,12 +3747,18 @@ function drawHUD(dt) {
     // ingredients row at the bottom, dish in the space above it
     const ings = recipeIngredients(orderItems(o));
     // Icons as big as the ticket allows (in half-pixel steps): build-your-own orders live or die by these.
-    const ipx = Math.max(1, Math.min(ch > 80 ? 2 : 1.5, Math.floor((cw - 8) / (Math.max(1, ings.length) * 13) * 2) / 2));
+    // Long lists on narrow tickets wrap onto two rows so the icons stay readable.
+    const rows = ings.length >= 4 && (cw - 8) / (ings.length * 13) < 1.5 ? 2 : 1;
+    const perRow = Math.ceil(ings.length / rows);
+    const ipx = Math.max(1, Math.min(ch > 80 ? 2 : 1.5, Math.floor((cw - 8) / (Math.max(1, perRow) * 13) * 2) / 2));
     const is = 13 * ipx;
-    const dpx = Math.max(2, Math.floor(Math.min(ch - 16 - (ings.length ? is + 6 : 0), cw * 0.6) / 12));
+    const dpx = Math.max(2, Math.floor(Math.min(ch - 16 - (ings.length ? rows * is + 6 : 0), cw * 0.6) / 12));
     if (RECIPES[o.recipe].mug) drawKey(orderItems(o)[0], px + cw / 2, y + 14 + dpx * 6, dpx);
     else drawPlate(orderItems(o), px + cw / 2, y + 14 + dpx * 6, dpx);
-    ings.forEach((k, j) => drawKey(k, px + cw / 2 + (j - (ings.length - 1) / 2) * is, y + ch - is / 2 - 4, ipx));
+    for (let r = 0; r < rows; r++) {
+      const row = ings.slice(r * perRow, (r + 1) * perRow);
+      row.forEach((k, j) => drawKey(k, px + cw / 2 + (j - (row.length - 1) / 2) * is, y + ch - is / 2 - 4 - (rows - 1 - r) * is, ipx));
+    }
   });
 
   const kg = kitchenGeom();
@@ -4078,7 +4146,7 @@ const TUT_STEPS = [
   { text: 'Welcome to the kitchen! Drag anywhere on the left half of the screen to walk your chef around.',
     ui: 'joy', enter: s => { const c = tutChef(); s.x = c.x; s.y = c.y; },
     done: s => Math.hypot(tutChef().x - s.x, tutChef().y - s.y) > 1.2 },
-  { text: 'An order just came in. The picture on the ticket is the dish, and the icons under it are what goes in it. This one is just lettuce. The bar shrinks while the customer waits.',
+  { text: 'An order just came in. The picture on the ticket is the dish, and the icons under it are what goes in it. This one is just lettuce. The bar shrinks while the customer waits. Tap a ticket any time to see it bigger.',
     ui: 'ticket', next: true, enter: () => tutOrder('salad') },
   { text: 'Walk up to the lettuce crate and tap Grab. White corners show what you’re facing.',
     tile: () => tutTile(t => t.type === 'crate' && t.kind === 'lettuce'), ui: 'grab',
