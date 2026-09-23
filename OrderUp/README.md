@@ -46,27 +46,27 @@ The campaign is a food truck road trip (see `ROADMAP.md`). Kitchens are grouped 
 | 5 | Route 66 Breakfast | Sunrise Griddle | Eggs & Bacon, Pancakes | Griddle, dishwashing |
 | 6 | Route 66 Breakfast | Bottomless Coffee | + Coffee | Coffee machine (served in the mug, no plate) |
 | 7 | Route 66 Breakfast | Truck Stop Rush | + Big Breakfast | Three-item plates, three griddles |
-| 8 | Drive-In Burgers | Curb Service | Burger, Cheeseburger, Fries | Deep fryer, patties on the griddle |
+| 8 | Drive-In Burgers | Curb Service | Burger, Cheeseburger, Fries | Deep fryer, patties on the griddle; **delivery tickets** start |
 | 9 | Drive-In Burgers | Shake Shack | + Vanilla & Strawberry Shakes | Blender (served in the cup) |
-| 10 | Drive-In Burgers | Friday Night Rush | + Burger & Fries | Split kitchen, everything at once |
+| 10 | Drive-In Burgers | Friday Night Rush | + Burger & Fries | Split kitchen, everything at once; deliveries |
 | 11 | Texas BBQ Smokehouse | Low & Slow | Smoked Ribs, Cornbread | Smoker (long cooks, so plan ahead) |
 | 12 | Texas BBQ Smokehouse | Brisket Board | Brisket Plate, Ribs, Mac & Cheese | Slicing smoked brisket; pot recipes |
 | 13 | Texas BBQ Smokehouse | Pitmaster Showdown | + Pitmaster Platter, Cornbread | Three smokers, split kitchen |
-| 14 | Tex-Mex Border Town | Taco Truck | Tacos, Nachos (built to order) | Build-your-own tickets; tortillas on the griddle |
+| 14 | Tex-Mex Border Town | Taco Truck | Tacos, Nachos (built to order) | Build-your-own tickets; tortillas on the griddle; deliveries |
 | 15 | Tex-Mex Border Town | Burrito Bar | Burritos, Tacos | Rice and bean pots, guacamole |
 | 16 | Tex-Mex Border Town | Fiesta Night | Tacos, Burritos, Nachos | Split kitchen, everything built to order |
 | 17 | New Orleans Cajun | Bayou Kitchen | Gumbo, Beignets | Ordered pots; frying dough |
 | 18 | New Orleans Cajun | Jazz Brunch | + Jambalaya | Two ordered stews sharing sausage |
 | 19 | New Orleans Cajun | Mardi Gras | Gumbo, Jambalaya, Beignets | Split kitchen, three pots |
-| 20 | New York Deli & Pizza | Corner Slice | Cheese Slice, Pepperoni Slice | Oven; stretch, top, bake, slice |
+| 20 | New York Deli & Pizza | Corner Slice | Cheese Slice, Pepperoni Slice | Oven; stretch, top, bake, slice; pizza delivery |
 | 21 | New York Deli & Pizza | Deli Counter | Pastrami on Rye, Bagel & Schmear, Cheese Slice | Slicing pastrami; toasting bagels |
-| 22 | New York Deli & Pizza | Midtown Lunch Rush | Everything | Split kitchen, three ovens |
+| 22 | New York Deli & Pizza | Midtown Lunch Rush | Everything | Split kitchen, three ovens; deliveries |
 | 23 | New England Seafood Shack | Harbor Shack | Clam Chowder, Fish & Chips | Shucking clams, filleting and frying fish |
 | 24 | New England Seafood Shack | Lobster Pound | Lobster Roll, Clam Chowder | Live lobsters that wander off and escape |
 | 25 | New England Seafood Shack | Nor'easter | Everything | Split kitchen: pass lobsters across fast |
 | 26 | California Coast | Venice Beach | Fish Tacos, Avocado Toast (built to order) | Short tickets; fish and toast in seconds |
 | 27 | California Coast | Smoothie Stand | Smoothie Bowl, Avocado Toast | Blender recipes; pour into a bowl, top with granola |
-| 28 | California Coast | Sunset Rush | Everything | Split kitchen, fastest ticket rate |
+| 28 | California Coast | Sunset Rush | Everything | Split kitchen, fastest ticket rate; deliveries |
 | 29 | Thanksgiving Finale | Family Dinner | Turkey Dinner, Pumpkin Pie | Long turkey roast; carving; mash pot |
 | 30 | Thanksgiving Finale | Grandma's Kitchen | The Feast, Stuffing, Pumpkin Pie | Three-part feast plate |
 | 31 | Thanksgiving Finale | The Big Feast | Everything Thanksgiving | 5-minute boss service; road trip complete |
@@ -127,6 +127,7 @@ Each served order pays its menu price plus a tip of up to 10 coins, scaled by ho
 - **Pots follow recipes** (`POT_RECIPES`): 3 tomatoes, 3 onions, 2 macaroni + 1 cheese, 2 rice, or 2 beans. A pot only takes ingredients that lead to something on the kitchen's menu.
 - **Blender:** add a scoop of ice cream (and a strawberry for a strawberry shake), then tap **Blend**. Shakes are served in the cup, like coffee.
 - **Dishwashing** (kitchens with `dishes: true`): served plates come back dirty through the hatch. Carry the stack to the sink and wash the plates there, and clean ones appear on the plate rack.
+- **Delivery tickets** (kitchens with `delivery: <chance>`, a bagging station `A` and a pickup window `@`): some tickets show a paper bag. Plate the order as usual, tap Grab at the bagging station to bag it (the plate goes back to the dishes), then hand the bag off at the pickup window. Delivery tickets get 25% more time and pay 5 extra coins. When the ticket runs out, the driver pulls up on a scooter and waits 8 more seconds (`DRIVER_WAIT`). A bag handed over then earns no tip, and if the driver leaves it's a missed order. The bell won't take a delivery plate, and bags can be binned.
 - **Fire** (kitchens with `fire: true`): burnt food sets its counter alight. Fire spreads to a neighbouring counter every few seconds, and you can't use a counter while it's burning. Items on it aren't destroyed. Pick up the extinguisher and hold Spray while facing the flames.
 
 ## Playtest feedback

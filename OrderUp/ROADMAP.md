@@ -48,7 +48,7 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 - Put dirty plates in the sink and hold Chop to wash them. Clean plates stack on a drying rack.
 - Kitchen 0 keeps clean plate returns so the tutorial stays simple.
 
-### Delivery orders (in-level ghost kitchen)
+### Delivery orders (in-level ghost kitchen) (done)
 - Some tickets are marked **Delivery**, with their own countdown for when the driver arrives.
 - Plate the dish as usual, then put it in a bag at the bagging station and leave it at the pickup window.
 - The driver waits a few seconds. A late bag means a lower tip, and a missed pickup counts as a missed order.
@@ -78,6 +78,8 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 - AI helper chefs (solo, Judge's Table only): hire from 3 random offers, one per star on The Big Feast, up to 3 (`helperHires`); one job per station (`HELPERS`).
 
 - Playtest log: runs and a Too easy / Just right / Too hard rating are saved from the published artifact; `tools/playtest.js` summarises them per kitchen.
+
+- Delivery orders: bag station, pickup window and a waiting driver, in Curb Service, Friday Night Rush, Taco Truck, Corner Slice, Midtown Lunch Rush and Sunset Rush.
 
 ## Difficulty (done)
 - Smooth rising curve across all 31 kitchens (tools/tune.js), and co-op scaling (+25% pace and star targets per extra player).

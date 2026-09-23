@@ -32,11 +32,12 @@ LEVELS.forEach((lv, i) => {
   const k = LEVELS.filter((l, j) => l.stop === lv.stop && j < i).length;            // position within the stop
   const n = LEVELS.filter(l => l.stop === lv.stop).length;
   const target = 13 + 1.2 * lv.stop + (n > 1 ? 5 * k / (n - 1) : 0);              // pressure goal: +5 from first to last
-  const eff = lv.recipes.reduce((n, r) => n + dishEffort(r), 0) / lv.recipes.length;
+  // Delivery tickets add a bagging trip (and pay a bonus for it).
+  const eff = lv.recipes.reduce((n, r) => n + dishEffort(r), 0) / lv.recipes.length + (lv.delivery || 0) * 1.5;
   const rate = target / eff;                                                       // orders per minute
   const avg = Math.min(32, Math.max(6, 60 / rate));
   const interval = [Math.round(avg * 0.8), Math.round(avg * 1.2)];
-  const reward = lv.recipes.reduce((n, r) => { const R = RECIPES[r]; return n + R.reward + (R.extras ? (R.pick[0] + R.pick[1]) / 2 * R.extraReward : 0); }, 0) / lv.recipes.length;
+  const reward = lv.recipes.reduce((n, r) => { const R = RECIPES[r]; return n + R.reward + (R.extras ? (R.pick[0] + R.pick[1]) / 2 * R.extraReward : 0); }, 0) / lv.recipes.length + (lv.delivery || 0) * 5;
   const possible = lv.time / 60 * (60 / avg) * (reward + 5);                          // every ticket served, average tip
   const f = [0.35, 0.55, 0.75].map(x => x + 0.005 * lv.stop);
   const stars = f.map(x => Math.round(possible * x / 10) * 10);

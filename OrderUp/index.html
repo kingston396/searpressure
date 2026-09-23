@@ -335,6 +335,7 @@ const STOPS = [
 //  l j f 3 4  crates: clams, milk, fish, live lobster, roll
 //  5 6 7      crates: banana, bread, granola
 //  8 9        crates: turkey, pumpkin pie
+//  A  bagging station (delivery)          @  pickup window (delivery)
 //
 // New kitchens go at the end of the list: best scores are saved by index.
 const LEVELS = [
@@ -437,17 +438,17 @@ const LEVELS = [
     ],
   },
   {
-    stop: 2, name: 'Curb Service', time: 180, stars: [160, 260, 350], maxOrders: 4, interval: [9, 14], plates: 4, fire: true, dishes: true,
+    stop: 2, name: 'Curb Service', time: 180, stars: [150, 230, 320], maxOrders: 4, interval: [11, 16], plates: 4, fire: true, dishes: true, delivery: 0.3,
     recipes: ['burger', 'cheeseburger', 'fries'],
-    tip: 'Chop potatoes and drop them in the fryer. Patties now cook on the griddle too. Fryers burn fast, so stay close to them.',
+    tip: 'Chop potatoes and drop them in the fryer. Patties now cook on the griddle too. Fryers burn fast, so stay close to them. New: delivery tickets have a paper bag on them. Plate the order, tap Grab at the bag station, then hand the bag off at the pickup window before the driver leaves.',
     map: [
       '#X#H#K#P#',
       'M.......Y',
       'C..1.2..#',
-      '#..#G#..Y',
+      '#..AG#..Y',
       'C.......#',
       'U.......Z',
-      '#B#J#R#G#',
+      '#B#J#R@G#',
     ],
   },
   {
@@ -465,12 +466,12 @@ const LEVELS = [
     ],
   },
   {
-    stop: 2, name: 'Friday Night Rush', time: 210, stars: [220, 340, 460], maxOrders: 5, interval: [8, 12], plates: 5, fire: true, dishes: true,
+    stop: 2, name: 'Friday Night Rush', time: 210, stars: [200, 320, 430], maxOrders: 5, interval: [9, 14], plates: 5, fire: true, dishes: true, delivery: 0.3,
     recipes: ['cheeseburger', 'combo', 'fries', 'sshake', 'vshake'],
-    tip: 'Chop and plate on the left, fry, grill and blend on the right. Pass food over the counter, and keep an eye on those fryers.',
+    tip: 'Chop and plate on the left, fry, grill and blend on the right. Pass food over the counter, and keep an eye on those fryers. Bag delivery tickets and hand them off at the window.',
     map: [
-      '#XZPK#H##V#',
-      'M....#....V',
+      '#XZPK#H#@V#',
+      'M....A....V',
       'C.1..#..2.#',
       'U.........I',
       'C....#....W',
@@ -521,17 +522,17 @@ const LEVELS = [
     ],
   },
   {
-    stop: 4, name: 'Taco Truck', time: 180, stars: [120, 180, 250], maxOrders: 4, interval: [13, 20], plates: 4, fire: true, dishes: true,
+    stop: 4, name: 'Taco Truck', time: 180, stars: [110, 180, 240], maxOrders: 4, interval: [15, 22], plates: 4, fire: true, dishes: true, delivery: 0.35,
     recipes: ['taco', 'nachos'],
-    tip: 'Every ticket lists its own toppings. Warm a tortilla on the griddle, add the meat, then exactly the toppings shown. Extra toppings pay more, and a wrong build gets sent back.',
+    tip: 'Every ticket lists its own toppings. Warm a tortilla on the griddle, add the meat, then exactly the toppings shown. Extra toppings pay more, and a wrong build gets sent back. Delivery tickets go in a bag and out the pickup window.',
     map: [
       '#X#H#K#P#',
       't.......G',
       'C..1.2..#',
-      '#..#h#..G',
+      '#..#hA..G',
       'C.......v',
       'M.......Z',
-      '#L#J#R#T#',
+      '#L#J#R@T#',
     ],
   },
   {
@@ -605,9 +606,9 @@ const LEVELS = [
     ],
   },
   {
-    stop: 6, name: 'Corner Slice', time: 210, stars: [160, 250, 330], maxOrders: 4, interval: [15, 23], plates: 4, fire: true, dishes: true,
+    stop: 6, name: 'Corner Slice', time: 210, stars: [150, 240, 320], maxOrders: 4, interval: [16, 25], plates: 4, fire: true, dishes: true, delivery: 0.4,
     recipes: ['slice', 'pepslice'],
-    tip: 'Stretch dough on a board, then add sauce, then cheese (then pepperoni if the ticket shows it). Bake it in the oven, then slice it on a board.',
+    tip: 'Stretch dough on a board, then add sauce, then cheese (then pepperoni if the ticket shows it). Bake it in the oven, then slice it on a board. Pizza delivery! Bag the slices for delivery tickets.',
     map: [
       '#X#H#K#P#',
       'd.......o',
@@ -615,7 +616,7 @@ const LEVELS = [
       'q..#J#..o',
       'C.......#',
       'i.......Z',
-      '###R#####',
+      '###R#A#@#',
     ],
   },
   {
@@ -633,17 +634,17 @@ const LEVELS = [
     ],
   },
   {
-    stop: 6, name: 'Midtown Lunch Rush', time: 240, stars: [260, 400, 540], maxOrders: 5, interval: [9, 14], plates: 5, fire: true, dishes: true,
+    stop: 6, name: 'Midtown Lunch Rush', time: 240, stars: [250, 380, 520], maxOrders: 5, interval: [10, 16], plates: 5, fire: true, dishes: true, delivery: 0.35,
     recipes: ['pepslice', 'slice', 'pastrami', 'bagel'],
-    tip: 'Build pizzas on the left and bake them on the right. Keep the ovens full and slice as fast as you can.',
+    tip: 'Build pizzas on the left and bake them on the right. Keep the ovens full and slice as fast as you can. Office delivery orders: bag them for the window.',
     map: [
       '#XZPK#H##o#',
       'd....#....o',
       'C.1..#..2.o',
       'q.........g',
-      'C....#....k',
+      'C....A....k',
       'x....#....w',
-      '#J#iR##z#Z#',
+      '#J#iR#@z#Z#',
     ],
   },
   {
@@ -717,17 +718,17 @@ const LEVELS = [
     ],
   },
   {
-    stop: 8, name: 'Sunset Rush', time: 210, stars: [230, 350, 470], maxOrders: 5, interval: [9, 13], plates: 5, fire: true, dishes: true,
+    stop: 8, name: 'Sunset Rush', time: 210, stars: [220, 340, 450], maxOrders: 5, interval: [10, 15], plates: 5, fire: true, dishes: true, delivery: 0.35,
     recipes: ['fishtaco', 'avotoast', 'smoothiebowl'],
-    tip: 'Everything on the coast, split in two, and the tickets keep coming. Keep the griddles and blenders busy.',
+    tip: 'Everything on the coast, split in two, and the tickets keep coming. Keep the griddles and blenders busy. Delivery tickets: bag and hand off at the window.',
     map: [
       '#XZPK#H##V#',
       't....#....V',
       'C.1..#..2.G',
       'f.........G',
-      'C....#....G',
+      'C....A....G',
       'v....#....5',
-      '#6#LR##W#7#',
+      '#6#LR@#W#7#',
     ],
   },
   {
@@ -883,7 +884,7 @@ const BREW_TIME = 4;
 const WASH_TIME = 1.5;
 const FIRE_SPREAD = 4.5;    // seconds between a fire jumping to a neighbouring counter
 const SPRAY_RANGE = 2.7;
-const FIREPROOF = ['floor', 'serve', 'sink', 'hatch'];
+const FIREPROOF = ['floor', 'serve', 'sink', 'hatch', 'pickup'];
 const CHOPPABLE = ['tomato', 'lettuce', 'onion', 'meat', 'potato', 'avocado', 'sausage', 'shrimp', 'clam', 'fish', 'bread'];
 const LOBSTER_HOP = 3.5;          // seconds a live lobster sits still
 const HOP_TILES = ['counter', 'board'];
@@ -895,6 +896,8 @@ const CHEF_R = 0.3;         // collision half-size in tiles
 const TIP_MAX = 10;
 const MISS_PENALTY = 10;
 const PLATE_RETURN = 5;
+const DRIVER_WAIT = 8;       // seconds the delivery driver waits at the window once the ticket runs out
+const DELIVERY_BONUS = 5;    // extra coins on a delivery ticket, for the bagging step
 const CHEF_COLORS = ['#e8472f', '#3a86d4'];
 const CHEF_DARK = ['#a8301d', '#1f5a9a'];
 
@@ -1467,6 +1470,70 @@ const SPR = {
     '.kWwwwwwwWk.',
     '.kkWWWWWWkk.',
     '...kkkkkk...',
+  ],
+  bag: [
+    '....kkkk....',
+    '...kCkkCk...',
+    '...kk..kk...',
+    '.kkkkkkkkkk.',
+    '.kTccccccCk.',
+    '.kTccccccCk.',
+    '.kTcrrrrcCk.',
+    '.kTcrwwrcCk.',
+    '.kTcrrrrcCk.',
+    '.kTccccccCk.',
+    '.kCCCCCCCCk.',
+    '.kkkkkkkkkk.',
+  ],
+  bagStack: [
+    '................',
+    '................',
+    '................',
+    '..kkkkkkkkkkkk..',
+    '..kTccrrrrccCk..',
+    '..kCCCCCCCCCCk..',
+    '..kkkkkkkkkkkk..',
+    '..kTccccccccCk..',
+    '..kCCCCCCCCCCk..',
+    '..kkkkkkkkkkkk..',
+    '..kTccccccccCk..',
+    '..kCCCCCCCCCCk..',
+    '..kkkkkkkkkkkk..',
+    '................',
+    '................',
+    '................',
+  ],
+  pickup: [
+    'rwrwrwrwrwrwrwrw',
+    'rwrwrwrwrwrwrwrw',
+    'kkkkkkkkkkkkkkkk',
+    'kuuuuuuuuuuuuuuk',
+    'kuUuuuuuuuuuuuuk',
+    'kuuUuuuuuuuuuuuk',
+    'kuuuuuuuuuuuuuuk',
+    'kkkkkkkkkkkkkkkk',
+    'kbbbbbbbbbbbbbbk',
+    'kBBBBBBBBBBBBBBk',
+    'kkkkkkkkkkkkkkkk',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+  scooter: [
+    '................',
+    '..........kkk...',
+    '.........kGk....',
+    '..kkkkk..kGk....',
+    '.kcccck..kGk....',
+    '.kcrrck.kkkkk...',
+    '.kcccckkrrrrrk..',
+    '.kkkkkrrrrrrrrk.',
+    '..krrrrrrrrrrk..',
+    '.kDDDk....kDDDk.',
+    '.kDgDk....kDgDk.',
+    '..kkk......kkk..',
   ],
   dirtyPlate: [
     '............',
@@ -2442,6 +2509,7 @@ function drawItem(it, x, y, px) {
   else if (it.type === 'pan') drawPan(it, x, y, px);
   else if (it.type === 'ext') spr('ext', x, y, px);
   else if (it.type === 'dirty') drawDirty(it.n, x, y, px);
+  else if (it.type === 'bag') spr('bag', x, y, px);
 }
 
 // Paint a dish into a small DOM canvas (menu cards, level list).
@@ -2504,6 +2572,8 @@ function startLevel(idx, opts = {}) {
     else if (ch === 'Q') { t.type = 'coffee'; t.brew = 0; t.brewing = false; }
     else if (ch === 'K') { t.type = 'sink'; t.dirty = 0; t.wash = 0; }
     else if (ch === 'H') { t.type = 'hatch'; t.dirty = 0; }
+    else if (ch === 'A') t.type = 'bagger';
+    else if (ch === '@') t.type = 'pickup';
     else if (ch === 'Z') { t.type = 'counter'; t.item = { type: 'ext' }; }
     else if (CRATES[ch]) { t.type = 'crate'; t.kind = CRATES[ch]; }
     else if (ch === '1' || ch === '2') spawns[ch] = { x: x + 0.5, y: y + 0.5 };
@@ -2685,7 +2755,7 @@ function grabPlan(c) {
   if (!h) {
     if (t.type === 'plates') return t.count > 0 ? { label: 'Plate', run() { t.count--; c.held = newPlate(); sfx('pick'); } } : null;
     if (t.type === 'hatch') return t.dirty > 0 ? { label: 'Grab', run() { c.held = { type: 'dirty', n: t.dirty }; t.dirty = 0; sfx('pick'); } } : null;
-    if (t.type === 'sink') return null;
+    if (t.type === 'sink' || t.type === 'bagger' || t.type === 'pickup') return null;
     if (t.type === 'coffee' && !it) return t.brewing ? null : { label: 'Brew', run() { t.brewing = true; t.brew = 0; sfx('brew'); } };
     if (t.type === 'blender' && !it) return null;
     if (it) return { label: 'Grab', run() { c.held = it; t.item = null; sfx('pick'); if (it.type === 'ext') say(c, 'Hold Spray to use'); } };
@@ -2696,9 +2766,20 @@ function grabPlan(c) {
     if (h.type === 'ing') return { label: 'Bin', run() { c.held = null; sfx('trash'); } };
     if (h.type === 'dirty') return { label: 'Bin', dim: true, run() { say(c, 'Wash them in the sink'); sfx('nope'); } };
     if (h.type === 'ext') return null;
+    if (h.type === 'bag') return { label: 'Bin', run() { c.held = null; sfx('trash'); } };
     if (h.items.length) return { label: 'Bin', run() { if (isCookware(h)) emptyCookware(h); else { h.items = []; delete h.hotAt; delete h.over; } sfx('trash'); } };
     return null;
   }
+  if (t.type === 'bagger') {
+    if ((h.type === 'plate' && h.items.length) || (h.type === 'ing' && CUPS.includes(h.kind)))
+      return { label: 'Bag', run() { bagUp(c); } };
+    return { label: 'Bag', dim: true, run() { say(c, h.type === 'bag' ? 'Take it to the pickup window' : 'Bag a finished plate'); sfx('nope'); } };
+  }
+  if (t.type === 'pickup') {
+    if (h.type === 'bag') return { label: 'Hand off', run() { deliver(c); } };
+    return { label: 'Hand off', dim: true, run() { say(c, 'Bag it first'); sfx('nope'); } };
+  }
+  if (h.type === 'bag' && t.type === 'serve') return { label: 'Serve', dim: true, run() { say(c, 'Bags go to the pickup window'); sfx('nope'); } };
   if (t.type === 'serve') {
     if ((h.type === 'plate' && h.items.length) || (h.type === 'ing' && CUPS.includes(h.kind))) return { label: 'Serve', run() { serve(c); } };
     return { label: 'Serve', dim: true, run() { say(c, h.type === 'plate' ? 'Plate is empty' : 'Put it on a plate'); sfx('nope'); } };
@@ -2772,8 +2853,9 @@ function sameItems(a, b) { return a.length === b.length && a.slice().sort().join
 function serve(c) {
   const h = c.held;
   const items = h.type === 'plate' ? h.items : [ingKey(h)];
-  const idx = G.orders.findIndex(o => sameItems(orderItems(o), items));
+  const idx = G.orders.findIndex(o => !o.delivery && sameItems(orderItems(o), items));
   if (idx < 0) {
+    if (G.orders.some(o => o.delivery && sameItems(orderItems(o), items))) { say(c, "That one's delivery: bag it"); sfx('nope'); return; }
     if (G.lv.judge) { judgeReject(c, h, 'wrong'); return; }
     say(c, 'Nobody ordered that'); sfx('nope'); return;
   }
@@ -2791,6 +2873,33 @@ function serve(c) {
   G.coinPulse = 1;
   sfx('serve'); buzz(25);
   if (G.lv.judge && (!G.judge || G.judge.t <= 0 || G.judge.mood === 0) && Math.random() < 0.7) judgeSay('good', 0);
+  if (G.orders.length === 0) G.nextOrder = Math.min(G.nextOrder, 1.2);
+}
+
+// Bagging: the food goes in a paper bag and the plate goes back to the dish pile.
+function bagUp(c) {
+  const h = c.held;
+  const bag = { type: 'bag', items: h.type === 'plate' ? h.items.slice() : [ingKey(h)] };
+  if (h.type === 'plate') G.returns.push(PLATE_RETURN);
+  c.held = bag;
+  sfx('pick');
+}
+
+// A bag at the pickup window goes out with the driver for its delivery ticket.
+function deliver(c) {
+  const h = c.held;
+  const idx = G.orders.findIndex(o => o.delivery && sameItems(orderItems(o), h.items));
+  if (idx < 0) { say(c, G.orders.some(o => o.delivery) ? 'Wrong bag for this driver' : 'No delivery for that'); sfx('nope'); return; }
+  const o = G.orders[idx];
+  const tip = o.late ? 0 : Math.round(TIP_MAX * o.timeLeft / o.total);
+  const earned = orderReward(o) + tip;
+  G.score += earned; G.tips += tip; G.served++;
+  G.orders.splice(idx, 1);
+  c.held = null;
+  const st = c.target;
+  addFloat('tile', st.x + 0.5, st.y + 0.2, '+' + earned, '#f5b82e', o.late ? 'Late delivery' : tip >= 7 ? 'Speedy delivery!' : 'Delivered');
+  G.coinPulse = 1;
+  sfx('serve'); buzz(25);
   if (G.orders.length === 0) G.nextOrder = Math.min(G.nextOrder, 1.2);
 }
 
@@ -2823,7 +2932,12 @@ function spawnOrder() {
     const n = Math.min(pool.length, R.pick[0] + Math.floor(Math.random() * (R.pick[1] - R.pick[0] + 1)));
     for (let i = 0; i < n; i++) { items.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]); reward += R.extraReward; }
   }
-  G.orders.push({ id: ++G.orderSeq, recipe: r, items, reward, total, timeLeft: total, x: null });
+  const o = { id: ++G.orderSeq, recipe: r, items, reward, total, timeLeft: total, x: null };
+  // Delivery tickets: bag it and leave it at the pickup window before the driver gives up.
+  if (G.lv.delivery && G.tiles.some(t => t.type === 'pickup') && Math.random() < G.lv.delivery) {
+    o.delivery = true; o.total = o.timeLeft = Math.round(total * 1.25); o.reward += DELIVERY_BONUS;
+  }
+  G.orders.push(o);
   sfx('order');
 }
 
@@ -3064,6 +3178,13 @@ function update(dt) {
   for (let i = G.orders.length - 1; i >= 0; i--) {
     const o = G.orders[i];
     if (!G.lv.tutorial) o.timeLeft -= dt;
+    if (o.timeLeft <= 0 && o.delivery && !o.late) {
+      // The driver pulls up and waits a few seconds. Handing the bag over now earns no tip.
+      o.late = true; o.total = o.timeLeft = DRIVER_WAIT;
+      addFloat('hud', 0, 0, 'Driver waiting!', '#f59a2e');
+      sfx('order');
+      continue;
+    }
     if (o.timeLeft <= 0) {
       G.orders.splice(i, 1);
       G.failed++;
@@ -3230,7 +3351,7 @@ function drawBackdrop() {
 }
 
 const P = 1 / 16;   // one sprite pixel, in tiles
-const STEEL = ['stove', 'serve', 'trash', 'griddle', 'sink', 'hatch', 'coffee', 'fryer', 'blender', 'smoker', 'oven'];
+const STEEL = ['pickup', 'stove', 'serve', 'trash', 'griddle', 'sink', 'hatch', 'coffee', 'fryer', 'blender', 'smoker', 'oven'];
 
 function drawTile(t) {
   const { x, y } = t;
@@ -3264,6 +3385,12 @@ function drawTile(t) {
     sprTL('blender', x, y, P, { 1: col, 2: t.blending && flick ? PAL.w : col });
   } else if (t.type === 'serve') {
     sprTL('bell', x, y, P);
+  } else if (t.type === 'bagger') {
+    sprTL('bagStack', x, y, P);
+  } else if (t.type === 'pickup') {
+    sprTL('pickup', x, y, P);
+    // A driver on a scooter waits at the window while a delivery is overdue.
+    if (G.orders.some(o => o.late)) spr('scooter', x + 0.5, y + 0.62 + (flick ? P : 0), P);
   } else if (t.type === 'trash') {
     sprTL('bin', x, y, P);
   } else if (t.type === 'plates') {
@@ -3463,6 +3590,11 @@ function drawHUD(dt) {
     const col = frac > 0.5 ? '#3f9b45' : frac > 0.25 ? '#f5b82e' : '#e8472f';
     X.fillStyle = '#e8dcbc'; X.fillRect(px + 5, y + 5, cw - 10, 6);
     X.fillStyle = col; X.fillRect(px + 5, y + 5, Math.max(3, Math.round((cw - 10) * frac / 3) * 3), 6);
+    if (o.delivery) {
+      // Delivery badge, and an orange frame that flashes while the driver waits.
+      if (o.late && Math.sin(T * 12) > 0) { X.strokeStyle = '#f59a2e'; X.lineWidth = 3; X.strokeRect(px + 1.5, y + 1.5, cw - 3, ch - 3); }
+      spr('bag', px + cw - 11, y + 22, 1.5);
+    }
     // ingredients row at the bottom, dish in the space above it
     const ings = recipeIngredients(orderItems(o));
     // Icons as big as the ticket allows (in half-pixel steps): build-your-own orders live or die by these.
@@ -3477,9 +3609,11 @@ function drawHUD(dt) {
   const kg = kitchenGeom();
   for (const f of G.floats) {
     X.globalAlpha = Math.min(1, f.life * 2);
-    const fx = f.at === 'tile' ? kg.ox + f.x * kg.ts : L.orders.x + 50;
+    let fx = f.at === 'tile' ? kg.ox + f.x * kg.ts : L.orders.x + 50;
     const fy = (f.at === 'tile' ? kg.oy + f.y * kg.ts : L.orders.y + L.orders.h + 14) + f.dy;
     X.font = '400 28px "Pixelify Sans", system-ui, sans-serif'; X.textAlign = 'center';
+    const half = X.measureText(f.text).width / 2 + 8;
+    fx = Math.max(half, Math.min(W - half, fx));
     X.lineWidth = 5; X.strokeStyle = '#1c2133'; X.strokeText(f.text, fx, fy); X.fillStyle = f.color; X.fillText(f.text, fx, fy);
     if (f.sub) { X.font = '800 13px Nunito, sans-serif'; X.lineWidth = 4; X.strokeText(f.sub, fx, fy + 20); X.fillStyle = '#fff5de'; X.fillText(f.sub, fx, fy + 20); }
     X.globalAlpha = 1;
@@ -3738,7 +3872,7 @@ function snapshot() {
     t: 'snap',
     tl: G.netTiles.map(t => [t.item, +t.fire.toFixed(2), t.count, t.dirty, +(t.wash || 0).toFixed(2), +(t.brew || 0).toFixed(2), !!t.brewing, t.jar, +(t.blend || 0).toFixed(2), !!t.blending]),
     ch: G.chefs.map(c => [+c.x.toFixed(3), +c.y.toFixed(3), +c.fx.toFixed(2), +c.fy.toFixed(2), c.held, c.task ? [c.task.kind, ci(c.task.tile)] : null, c.moving, +c.walk.toFixed(2), c.toast, +c.toastT.toFixed(2), c.spraying]),
-    or: G.orders.map(o => [o.id, o.recipe, o.total, +o.timeLeft.toFixed(2), orderItems(o), orderReward(o)]),
+    or: G.orders.map(o => [o.id, o.recipe, o.total, +o.timeLeft.toFixed(2), orderItems(o), orderReward(o), o.delivery ? (o.late ? 2 : 1) : 0]),
     g: [G.score, G.tips, G.served, G.failed, +G.time.toFixed(2), G.phase, +G.countdown.toFixed(2), +G.endT.toFixed(2)],
     ev: NET.events.splice(0),
     jd: [G.strikes || 0, G.judge ? G.judge.text : null, G.judge ? +G.judge.t.toFixed(1) : 0, G.judge ? G.judge.mood : 0, !!G.kicked, +(G.clock || 0).toFixed(1), G.judge ? G.judge.who : null],
@@ -3767,9 +3901,9 @@ function applySnapshot(m) {
       c.tx = x; c.ty = y; c.fx = fx; c.fy = fy; c.moving = moving; c.walk = walk;
     }
   });
-  G.orders = m.or.map(([id, recipe, total, timeLeft, items, reward]) => {
+  G.orders = m.or.map(([id, recipe, total, timeLeft, items, reward, dl]) => {
     const old = G.orders.find(o => o.id === id);
-    return { id, recipe, total, timeLeft, items, reward, x: old ? old.x : null };
+    return { id, recipe, total, timeLeft, items, reward, delivery: dl > 0, late: dl === 2, x: old ? old.x : null };
   });
   if (m.jd) {
     const [strikes, text, t, mood, kicked, clock, who] = m.jd;
@@ -4503,7 +4637,7 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 // Test hook for automated play-throughs.
-window.__orderUp = { get G() { return G; }, startLevel: play, input, RECIPES, LEVELS, NET, TUT_STEPS, setHelpers: ks => { chosenHelpers = ks; } };
+window.__orderUp = { get G() { return G; }, startLevel: play, spawnOrder, input, RECIPES, LEVELS, NET, TUT_STEPS, setHelpers: ks => { chosenHelpers = ks; } };
 </script>
 </body>
 </html>
