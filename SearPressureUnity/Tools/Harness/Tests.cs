@@ -5,14 +5,25 @@ using System.Linq;
 using SearPressure;
 
 // Scenarios for the headless harness. `dotnet run -- <name> <outdir>`.
-static class Tests
+static partial class Tests
 {
+    // Drive and online scenarios live in DriveTests.cs and NetTests.cs.
+    static partial void RunDrive(string which, ref bool handled);
+    static partial void RunNet(string which, ref bool handled);
+
     public static void Run(string which)
     {
         switch (which)
         {
             case "smoke": Smoke(); break;
-            default: Console.WriteLine("unknown test " + which); break;
+            default:
+                {
+                    bool handled = false;
+                    RunDrive(which, ref handled);
+                    RunNet(which, ref handled);
+                    if (!handled) Console.WriteLine("unknown test " + which);
+                    break;
+                }
         }
     }
 
