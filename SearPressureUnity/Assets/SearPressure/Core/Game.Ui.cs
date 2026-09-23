@@ -75,6 +75,8 @@ namespace SearPressure
             for (int i = uiHits.Count - 1; i >= 0; i--) { var r = uiHits[i].r; if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return uiHits[i].id; }
             return null;
         }
+        // Set by the host: what the back button does on the title screen (Android: leave the app).
+        public Action onQuit;
         bool UiKeyDown(string code)
         {
             if (focusField != null)
@@ -91,6 +93,8 @@ namespace SearPressure
                 else if (screen == "scr-howto") show(G != null ? "scr-pause" : "scr-title");
                 else if (screen == "scr-settings") show(settingsBack);
                 else if (screen == "scr-intro" || screen == "scr-shop" || screen == "scr-wardrobe") show("scr-title");
+                else if (screen == "scr-results") toMenu();
+                else if (screen == "scr-title") onQuit?.Invoke();   // Android back on the title closes the game
                 return true;
             }
             if (code == "ArrowDown") { Scroll(40); return true; }

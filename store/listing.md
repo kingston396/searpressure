@@ -6,6 +6,8 @@ Everything to paste into Google Play Console and App Store Connect. Character li
 - **Contact email:** b.kingston396@gmail.com
 - **Privacy policy:** `store/privacy-policy.html`. It needs a public web address; see "Hosting the privacy policy" at the end.
 - **Version:** 1.0.0 (build 1)
+- **Package name:** `com.kingstongames.searpressure` (permanent once uploaded)
+- **Step-by-step Google Play guide:** `store/google-play/GUIDE.md`
 
 ---
 

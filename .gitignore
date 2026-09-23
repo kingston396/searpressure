@@ -1,0 +1,3 @@
+# Android signing keys: never commit these
+*.keystore
+*.jks

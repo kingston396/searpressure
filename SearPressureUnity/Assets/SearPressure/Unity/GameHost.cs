@@ -63,6 +63,9 @@ namespace SearPressure.UnityHost
             audioOut = gameObject.AddComponent<AudioOut>();
             game = new Game(this, canvas);
             game.onlineEnabled = NetConfig.OnlineEnabled;
+#if UNITY_ANDROID && !UNITY_EDITOR
+            game.onQuit = () => Application.Quit();
+#endif
             ApplyScreen(true);
         }
 

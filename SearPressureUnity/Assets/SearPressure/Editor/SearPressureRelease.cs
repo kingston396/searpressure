@@ -132,6 +132,8 @@ namespace SearPressure.EditorTools
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
             if (force || (int)PlayerSettings.Android.targetSdkVersion == 0 || (int)PlayerSettings.Android.targetSdkVersion < TargetApi)
                 PlayerSettings.Android.targetSdkVersion = (AndroidSdkVersions)TargetApi;
+            // Draw under the notch/camera cutout; the game keeps its buttons inside the safe area itself.
+            PlayerSettings.Android.renderOutsideSafeArea = true;
             // Play Store uploads are App Bundles (.aab).
             EditorUserBuildSettings.buildAppBundle = true;
         }

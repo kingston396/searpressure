@@ -11,7 +11,7 @@ the daily challenge, Delivery Runs and online co-op and versus.
    up for **Unity 6000.3.9f1**, the same version as the repo root project.
 2. On first open, the editor script makes `Assets/SearPressure/Scenes/Main.unity`, adds it to Build
    Settings and sets the player settings: Gamma colour, auto-rotation, and bundle id
-   `com.searpressure.game`. If Active Input Handling is "Input System Package (New)", it is set to
+   `com.kingstongames.searpressure`. If Active Input Handling is "Input System Package (New)", it is set to
    **Both**, and Unity asks to restart.
 3. Press **Play**. The game starts in any scene; the `GameHost` component creates itself if it isn't there.
 

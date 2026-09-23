@@ -40,6 +40,16 @@ static partial class Tests
         Check(!HasHit(g3, "btn-online"), "no Play with a friend button when online is off");
         g3.show("scr-online"); Program.Run(g3, 0.1);
         Check(g3.screen == "scr-title", "the online screen can't be opened when online is off");
+        // Android back button (Escape): results go to the kitchen list, the title asks the host to quit.
+        {
+            var g4 = Program.NewGame(new HarnessPlatform()); Program.Run(g4, 0.2);
+            bool quit = false; g4.onQuit = () => quit = true;
+            g4.play(0); Program.Run(g4, 3.7); g4.G.time = 0.01; Program.Run(g4, 2.2);
+            g4.KeyDown("Escape", false); g4.KeyUp("Escape"); Program.Run(g4, 0.1);
+            Check(g4.screen == "scr-title" && !quit, "back on the results card goes to the kitchen list");
+            g4.KeyDown("Escape", false); g4.KeyUp("Escape"); Program.Run(g4, 0.1);
+            Check(quit, "back on the title closes the game");
+        }
         Console.WriteLine(fails == 0 ? "ALL PASSED" : fails + " FAILED");
     }
 
