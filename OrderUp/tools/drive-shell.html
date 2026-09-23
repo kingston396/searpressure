@@ -48,7 +48,8 @@
     <span class="mono">Test build · driving only</span>
     <h1>Sear<br><span>Pressure</span></h1>
     <p>Delivery Runs: drive the orders out yourself. In the full game these are secret bonuses found by three-starring the delivery kitchens. Here all three are open.</p>
-    <div class="tip">Drag on the left to drive: up is gas, down is brake, sideways steers. Hold <b>Drift</b> (or Space) to slide. Follow the arrow (and the corner map) and stop in the green ring to hand a bag over. After three bags, reload at the food truck. Knocking someone over costs 10 coins. Watch for road works, crashes, potholes and oil. Keyboard: arrows or WASD, Space to drift, Esc to pause.</div>
+    <div class="tip">Drag on the left to drive: up is gas, down is brake, sideways steers. Hold <b>Drift</b> (or Space) to slide. New to it? Take the <b>Driving lesson</b> first (Run 1 starts with it the first time). Follow the arrow (and the corner map) and stop in the green ring to hand a bag over. After three bags, reload at the food truck. Knocking someone over costs 10 coins. Watch for road works, crashes, potholes and oil. Keyboard: arrows or WASD, Space to drift, Esc to pause.</div>
+    <button id="btn-lesson" class="btn alt" type="button">Driving lesson</button>
     <div id="runs" style="display:flex;flex-direction:column;gap:8px"></div>
     <div class="toggles">
       <button id="btn-sound" class="btn ghost" type="button">Sound: on</button>
@@ -139,6 +140,7 @@ function buildRuns() {
   $('btn-lefty').textContent = 'Left-handed: ' + (save.lefty ? 'on' : 'off');
 }
 
+$('btn-lesson').onclick = () => { audioInit(); startDrive(0, { tutorial: true }); };
 $('btn-resume').onclick = resumeGame;
 $('btn-restart').onclick = () => { engineStop(); startDrive(D.k); };
 $('btn-quit').onclick = toMenu;
@@ -162,6 +164,7 @@ window.addEventListener('keydown', e => {
   if (!D || e.repeat) return;
   if (e.code === 'Escape' || e.code === 'KeyP') { if (paused) resumeGame(); else pauseGame(); }
   else if (e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'KeyJ') { D.hand = true; e.preventDefault(); }
+  else if (e.code === 'Enter' && D.tut && DRIVE_TUT[D.tut.i].next) tutTapDrive(D.tut.next.x + 1, D.tut.next.y + 1);
 });
 window.addEventListener('keyup', e => {
   if (MOVE_KEYS[e.code]) input.keys[e.code] = false;

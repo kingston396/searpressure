@@ -297,6 +297,7 @@
       <button id="btn-intro-back" class="btn ghost" type="button">Back</button>
       <button id="btn-intro-go" class="btn" type="button">Open kitchen</button>
     </div>
+    <button id="btn-drive-tut" class="btn ghost small" type="button" hidden>Replay the driving lesson</button>
   </div>
 </section>
 
@@ -3175,6 +3176,7 @@ window.addEventListener('keydown', e => {
   if (D && !e.repeat) {
     if (e.code === 'Escape' || e.code === 'KeyP') { if (paused) resumeGame(); else pauseGame(); }
     else if (e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'KeyJ') { D.hand = true; e.preventDefault(); }
+    else if (e.code === 'Enter' && D.tut && DRIVE_TUT[D.tut.i].next) tutTapDrive(D.tut.next.x + 1, D.tut.next.y + 1);
     return;
   }
   if (!G || e.repeat) return;
@@ -5290,7 +5292,81 @@ function renderMinimap(c) {
   return cv;
 }
 
-function startDrive(k) {
+/* ---------- driving tutorial: coaches the first Delivery Run, clock stopped ---------- */
+
+const carSpeed = () => Math.hypot(D.car.vx, D.car.vy);
+function angDiff(a, b) { let d = a - b; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return Math.abs(d); }
+const DRIVE_TUT = [
+  { text: 'Drag up on the left side of the screen to drive forward.', ui: 'stick', done: () => carSpeed() > 3 },
+  { text: 'Drag left or right to steer. Turn at the next corner.', ui: 'stick', enter: s => { s.a = D.car.a; }, done: s => angDiff(D.car.a, s.a) > 1.2 },
+  { text: 'Now get some speed, then drag down to brake and come to a stop.', ui: 'stick', done: s => { if (carSpeed() > 3.5) s.fast = true; return s.fast && carSpeed() < 0.8; } },
+  { text: 'Drift: at speed, hold the Drift button and steer to slide round a corner. A long slide pays coins.', ui: 'drift', done: () => D.driftT > 0.5 },
+  { text: 'Follow the green arrow (and the green dot on the map) to the customer. Stop inside the green ring to hand the bag over.', ui: 'arrow', done: () => D.delivered >= 1 },
+  { text: 'Cones, hydrants and bins pay a coin when you knock them over. People don\u2019t: hitting someone costs 10 coins.', next: true },
+  { text: 'Watch for road works, crashes, potholes and oil. After three bags, go back to the truck to reload. The clock starts when you tap Go!', next: true, finish: true },
+];
+function tutGoDrive(i) {
+  D.tut = { i, s: {} };
+  const st = DRIVE_TUT[i];
+  if (st.enter) st.enter(D.tut.s);
+  if (i > 0) sfx('clean');
+}
+function tutFinishDrive() {
+  D.tut = null;
+  save.driveTut = true; persist();
+  // The real run starts now, from where you are.
+  Object.assign(D, { time: D.run.time, coins: 0, tips: 0, delivered: 0, stunts: 0, smashed: 0, hits: 0, bags: 3, lastSec: 99 });
+  nextDrop();
+  drivePop('Go!', 'The clock is running', '#8ad65e'); sfx('go');
+}
+// The coaching card, drawn on the canvas so it works in every build.
+function drawDriveTut(v) {
+  const st = DRIVE_TUT[D.tut.i], b = L.bar;
+  const w = Math.min(W - 24, 380), x = Math.round(W / 2 - w / 2), y = Math.round(b.y + 46 + Math.min(96, W * 0.24) + 12);   // under the corner map
+  X.font = '800 15px Nunito, system-ui, sans-serif';
+  const words = st.text.split(' '), lines = [];
+  let line = '';
+  for (const wd of words) { const t = line ? line + ' ' + wd : wd; if (X.measureText(t).width > w - 28 && line) { lines.push(line); line = wd; } else line = t; }
+  lines.push(line);
+  const h = 38 + lines.length * 20 + (st.next ? 46 : 8);
+  X.fillStyle = 'rgba(0,0,0,.35)'; X.fillRect(x + 4, y + 4, w, h);
+  X.fillStyle = PAL.k; X.fillRect(x - 3, y - 3, w + 6, h + 6);
+  X.fillStyle = '#fff5de'; X.fillRect(x, y, w, h);
+  X.textAlign = 'left'; X.textBaseline = 'middle';
+  X.font = '500 12px "DM Mono", ui-monospace, monospace'; X.fillStyle = '#7a6450';
+  X.fillText(`DRIVING LESSON ${D.tut.i + 1} OF ${DRIVE_TUT.length}`, x + 14, y + 17);
+  X.textAlign = 'right'; X.fillText('SKIP', x + w - 14, y + 17);
+  D.tut.skip = { x: x + w - 70, y, w: 70, h: 34 };
+  X.textAlign = 'left'; X.font = '800 15px Nunito, system-ui, sans-serif'; X.fillStyle = '#2b2230';
+  lines.forEach((l, i) => X.fillText(l, x + 14, y + 42 + i * 20));
+  D.tut.next = null;
+  if (st.next) {
+    const bw = 110, bh = 34, bx = x + w - bw - 12, by = y + h - bh - 10;
+    X.fillStyle = '#a8301d'; X.fillRect(bx, by + 3, bw, bh);
+    X.fillStyle = '#e8472f'; X.fillRect(bx, by, bw, bh);
+    X.fillStyle = '#fff'; X.textAlign = 'center'; X.font = '400 19px "Pixelify Sans", system-ui, sans-serif';
+    X.fillText(st.finish ? 'Go!' : 'Next', bx + bw / 2, by + bh / 2 + 1);
+    D.tut.next = { x: bx, y: by, w: bw, h: bh + 3 };
+  }
+  // Point at what the step is about.
+  const a = 0.5 + Math.abs(Math.sin(T * 5)) * 0.5;
+  X.strokeStyle = `rgba(255,210,58,${a})`; X.lineWidth = 4;
+  X.beginPath();
+  if (st.ui === 'stick') X.arc(input.joy.id !== null ? input.joy.bx : L.joyRest.x, input.joy.id !== null ? input.joy.by : L.joyRest.y, JOY_R + 14, 0, Math.PI * 2);
+  else if (st.ui === 'drift') X.arc(L.btnA.x, L.btnA.y, L.ctrlR + 12, 0, Math.PI * 2);
+  else if (st.ui === 'arrow') X.arc(v.cx, v.cy - v.s * 1.9, 34, 0, Math.PI * 2);
+  if (st.ui) X.stroke();
+  return y + h;
+}
+const inRect = (r, x, y) => r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+function tutTapDrive(x, y) {
+  if (!D.tut) return false;
+  if (inRect(D.tut.skip, x, y)) { tutFinishDrive(); return true; }
+  if (inRect(D.tut.next, x, y)) { const st = DRIVE_TUT[D.tut.i]; if (st.finish) tutFinishDrive(); else tutGoDrive(D.tut.i + 1); return true; }
+  return false;
+}
+
+function startDrive(k, opts = {}) {
   const run = DRIVE_RUNS[k], city = driveCity(run);
   G = null; paused = false; show(null);
   const start = city.truck;
@@ -5318,6 +5394,8 @@ function startDrive(k) {
   for (let i = 0; i < run.peds; i++) D.peds.push(spawnPed(r));
   nextDrop();
   input.joy.id = null;
+  // First time on the first run (or asked for): a driving lesson before the clock starts.
+  if (opts.tutorial || (k === 0 && !save.driveTut)) tutGoDrive(0);
   engineStart();
 }
 
@@ -5414,9 +5492,10 @@ function updateDrive(dt) {
     return;
   }
 
-  D.time -= dt;
+  if (D.tut) { const st = DRIVE_TUT[D.tut.i]; if (st.done && st.done(D.tut.s)) tutGoDrive(D.tut.i + 1); }
+  else D.time -= dt;
   const sec = Math.ceil(D.time);
-  if (sec <= 10 && sec < D.lastSec && sec > 0) sfx('tick');
+  if (!D.tut && sec <= 10 && sec < D.lastSec && sec > 0) sfx('tick');
   D.lastSec = sec;
   if (D.time <= 0) { D.time = 0; D.phase = 'over'; sfx('end'); return; }
 
@@ -5791,8 +5870,10 @@ function renderDrive(dt) {
   X.lineWidth = 4; X.strokeStyle = '#1c2133'; const lbl = (tg.truck ? 'Truck ' : '') + Math.round(dist * 10) + ' m';
   X.strokeText(lbl, ax, ay + 30); X.fillStyle = '#fff5de'; X.fillText(lbl, ax, ay + 30);
 
+  D.popY = D.tut ? drawDriveTut(v) + 30 : null;
   drawDriveHUD();
   drawDriveControls();
+  if (D.tut) drawDriveTut(v);
   if (D.phase === 'count') driveBanner(D.count > 0.2 ? String(Math.ceil(D.count)) : 'Go!');
   else if (D.phase === 'over') driveBanner("Time's up!");
 }
@@ -5829,7 +5910,7 @@ function drawDriveHUD() {
   dot(D.car.x, D.car.y, '#e8472f', 2.5);
   // Pop-ups
   D.pops.forEach((p, i) => {
-    const y = b.y + 130 + i * 44 - (1.6 - p.life) * 12;
+    const y = (D.popY || b.y + 130) + i * 44 - (1.6 - p.life) * 12;
     X.globalAlpha = Math.min(1, p.life * 2);
     X.font = '400 28px "Pixelify Sans", system-ui, sans-serif'; X.textAlign = 'center';
     X.lineWidth = 5; X.strokeStyle = '#1c2133'; X.strokeText(p.text, W / 2, y); X.fillStyle = p.color; X.fillText(p.text, W / 2, y);
@@ -5857,6 +5938,7 @@ function drivePointer(e) {
   if (paused || D.phase === 'over') return;
   const x = e.clientX, y = e.clientY;
   if (dist(L.pause, x, y) < 30) { pauseGame(); return; }
+  if (tutTapDrive(x, y)) return;
   if (dist(L.btnA, x, y) < L.ctrlR * 1.3) { D.hand = true; D.handId = e.pointerId; return; }
   if (input.joy.id === null && stickSide(x, 0.62)) Object.assign(input.joy, { id: e.pointerId, bx: x, by: y, x, y });
 }
@@ -5891,6 +5973,8 @@ function openDriveIntro(k) {
   $('intro-tip').textContent = run.blurb + ' Drag on the left to drive: up is gas, down is brake, left and right steer. Hold Drift to slide round corners. Follow the arrow and stop in the green ring to hand over a bag. Every delivery adds time, and after three bags head back to the truck. Drifts, ramps, near misses and knocking over cones all pay coins.';
   $('intro-note').hidden = true; $('helper-box').hidden = true;
   $('intro-stars').textContent = 'Stars at ' + run.stars.join(' / ') + ' coins';
+  $('btn-drive-tut').hidden = k !== 0 || !save.driveTut;
+  $('btn-intro-go').textContent = k === 0 && !save.driveTut ? 'Start the lesson' : 'Start driving';
   show('scr-intro');
 }
 
@@ -5988,7 +6072,7 @@ let introIdx = 0;
 function openIntro(i) {
   introIdx = i;
   const lv = lvOf(i);
-  $('intro-menu-label').hidden = false;
+  $('intro-menu-label').hidden = false; $('btn-drive-tut').hidden = true; $('btn-intro-go').textContent = 'Open kitchen';
   $('intro-no').textContent = lv.daily ? 'Daily challenge · ' + dailyDate() : STOPS[lv.stop].name + ' · No.' + String(i + 1).padStart(2, '0');
   $('intro-time').textContent = fmtTime(lv.time) + ' service';
   $('intro-name').textContent = lv.name;
@@ -6154,6 +6238,7 @@ function syncMute() {
 for (const [id, get, set] of SETTINGS) $(id).onclick = () => { set(!get()); persist(); syncMute(); audioInit(); sfx('pick'); };
 let settingsBack = 'scr-title';
 function openSettings(back) { settingsBack = back; syncMute(); show('scr-settings'); }
+$('btn-drive-tut').onclick = () => { audioInit(); startDrive(0, { tutorial: true }); };
 $('btn-settings').onclick = () => { audioInit(); openSettings('scr-title'); };
 $('btn-pause-settings').onclick = () => openSettings('scr-pause');
 $('btn-settings-close').onclick = () => show(settingsBack);
