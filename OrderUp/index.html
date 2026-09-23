@@ -255,6 +255,7 @@ const STOPS = [
   { name: 'Route 66 Breakfast', blurb: 'Griddles, coffee and a sink full of dishes.', needStars: 3 },
   { name: 'Drive-In Burgers', blurb: 'Hot fryers, cold shakes and a lot of patties.', needStars: 4 },
   { name: 'Texas BBQ Smokehouse', blurb: 'Low and slow. Get the smokers going before the orders come in.', needStars: 5 },
+  { name: 'Tex-Mex Border Town', blurb: 'Every order is built their way. Read the ticket carefully.', needStars: 5 },
 ];
 
 // Map legend:
@@ -269,6 +270,7 @@ const STOPS = [
 //  Y  deep fryer      V    blender
 //  U I W J    crates: potato, ice cream, strawberry, cheese
 //  s  smoker          a b m c  crates: ribs, brisket, macaroni, cornmeal
+//  t r e h v  crates: tortilla, rice, beans, chips, avocado
 //
 // New kitchens go at the end of the list: best scores are saved by index.
 const LEVELS = [
@@ -454,6 +456,48 @@ const LEVELS = [
       '#J#cR##G#s#',
     ],
   },
+  {
+    stop: 4, name: 'Taco Truck', time: 180, stars: [70, 150, 230], maxOrders: 4, interval: [10, 15], plates: 4, fire: true, dishes: true,
+    recipes: ['taco', 'nachos'],
+    tip: 'Every ticket lists its own toppings. Warm a tortilla on the griddle, add the meat, then exactly the toppings shown. Extra toppings pay more, and a wrong build gets sent back.',
+    map: [
+      '#X#H#K#P#',
+      't.......G',
+      'C..1.2..#',
+      '#..#h#..G',
+      'C.......v',
+      'M.......Z',
+      '#L#J#R#T#',
+    ],
+  },
+  {
+    stop: 4, name: 'Burrito Bar', time: 210, stars: [90, 190, 290], maxOrders: 4, interval: [11, 16], plates: 4, fire: true, dishes: true,
+    recipes: ['burrito', 'taco'],
+    tip: 'Burritos need rice and beans. Each takes two scoops in its own pot. Keep both pots going and chop avocado for guacamole.',
+    map: [
+      '#X##H#K#P##',
+      't.........S',
+      'C.1.#r#.2.S',
+      '#...#e#...#',
+      'C.........G',
+      'M....Z....G',
+      '#J#v#R#L#T#',
+    ],
+  },
+  {
+    stop: 4, name: 'Fiesta Night', time: 240, stars: [110, 230, 350], maxOrders: 5, interval: [9, 14], plates: 5, fire: true, dishes: true,
+    recipes: ['taco', 'burrito', 'nachos'],
+    tip: 'Everything, all built to order. Build and serve on the left, cook on the right, and read every ticket.',
+    map: [
+      '#XZPK#H##S#',
+      't....#....S',
+      'C.1..#..2.G',
+      'M.........G',
+      'C....#....r',
+      'v....#....e',
+      '#J#hR##L#T#',
+    ],
+  },
 ];
 
 // Ingredient keys are "kind:state". Soups are "soup:<flavour>".
@@ -478,6 +522,10 @@ const RECIPES = {
   brisket:      { name: 'Brisket Plate',      items: ['brisket:sliced', 'cornmeal:cooked'],                    reward: 44, time: 120 },
   mac:          { name: 'Mac & Cheese',       items: ['mac:cheese'],                                           reward: 26, time: 85 },
   platter:      { name: 'Pitmaster Platter',  items: ['ribs:cooked', 'brisket:sliced', 'cornmeal:cooked'],   reward: 62, time: 150 },
+  // Build-your-own: each order adds `pick` random extras, worth `extraReward` each.
+  taco:    { name: 'Taco',    items: ['tortilla:cooked', 'meat:cooked'], extras: ['cheese:raw', 'lettuce:chopped', 'tomato:chopped'], pick: [1, 2], reward: 22, extraReward: 5, time: 70 },
+  burrito: { name: 'Burrito', items: ['tortilla:cooked', 'rice:cooked', 'beans:cooked'], extras: ['meat:cooked', 'cheese:raw', 'avocado:chopped'], pick: [1, 2], reward: 30, extraReward: 6, time: 100 },
+  nachos:  { name: 'Nachos',  items: ['chips:raw', 'cheese:raw'], extras: ['tomato:chopped', 'avocado:chopped', 'meat:cooked'], pick: [0, 2], reward: 16, extraReward: 5, time: 70 },
 };
 
 // What a pot makes. It only takes ingredients on the way to one of these (and only ones on the menu).
@@ -485,13 +533,15 @@ const POT_RECIPES = [
   { needs: ['tomato:chopped', 'tomato:chopped', 'tomato:chopped'], result: 'soup:tomato', color: '#e5552f' },
   { needs: ['onion:chopped', 'onion:chopped', 'onion:chopped'], result: 'soup:onion', color: '#d69a3a' },
   { needs: ['macaroni:raw', 'macaroni:raw', 'cheese:raw'], result: 'mac:cheese', color: '#f2c14e' },
+  { needs: ['rice:raw', 'rice:raw'], result: 'rice:cooked', color: '#f4f0e0' },
+  { needs: ['beans:raw', 'beans:raw'], result: 'beans:cooked', color: '#7a3a20' },
 ];
 
-const CRATES = { T: 'tomato', L: 'lettuce', O: 'onion', M: 'meat', B: 'bun', E: 'egg', N: 'bacon', D: 'batter', U: 'potato', I: 'icecream', W: 'strawberry', J: 'cheese', a: 'ribs', b: 'brisket', m: 'macaroni', c: 'cornmeal' };
+const CRATES = { T: 'tomato', L: 'lettuce', O: 'onion', M: 'meat', B: 'bun', E: 'egg', N: 'bacon', D: 'batter', U: 'potato', I: 'icecream', W: 'strawberry', J: 'cheese', a: 'ribs', b: 'brisket', m: 'macaroni', c: 'cornmeal', t: 'tortilla', r: 'rice', e: 'beans', h: 'chips', v: 'avocado' };
 // Heat tiles cook food placed straight on them: [state it goes in as, seconds to cook].
 // Cooked food starts burning; it's on fire `burn` seconds later.
 const HEAT = {
-  griddle: { burn: 8, foods: { egg: ['raw', 5], bacon: ['raw', 6], batter: ['raw', 6], meat: ['chopped', 6], cornmeal: ['raw', 7] } },
+  griddle: { burn: 8, foods: { egg: ['raw', 5], bacon: ['raw', 6], batter: ['raw', 6], meat: ['chopped', 6], cornmeal: ['raw', 7], tortilla: ['raw', 3] } },
   fryer:   { burn: 6, foods: { potato: ['chopped', 6] } },
   smoker:  { burn: 14, foods: { ribs: ['raw', 15], brisket: ['raw', 20] } },
 };
@@ -503,7 +553,7 @@ const WASH_TIME = 1.5;
 const FIRE_SPREAD = 4.5;    // seconds between a fire jumping to a neighbouring counter
 const SPRAY_RANGE = 2.7;
 const FIREPROOF = ['floor', 'serve', 'sink', 'hatch'];
-const CHOPPABLE = ['tomato', 'lettuce', 'onion', 'meat', 'potato'];
+const CHOPPABLE = ['tomato', 'lettuce', 'onion', 'meat', 'potato', 'avocado'];
 const CHOP_TIME = 2.0;
 const POT_COOK = 9, POT_BURN = 10;
 const PAN_COOK = 7, PAN_BURN = 9;
@@ -1320,6 +1370,91 @@ const SPR = {
     '.kkkkkkkkkkkkkk.',
   ],
 
+  tortilla: [
+    '............',
+    '...kkkkkk...',
+    '.kk111111kk.',
+    '.k11211111k.',
+    'k1111111211k',
+    'k1211111111k',
+    'k1111121111k',
+    '.k11111112k.',
+    '.kk111111kk.',
+    '...kkkkkk...',
+  ],
+  riceSack: [
+    '............',
+    '....kkkk....',
+    '...kWkkWk...',
+    '..kWWWWWWk..',
+    '.kWWwWWWWWk.',
+    '.kWWWWWWWWk.',
+    '.kWWWbWWWWk.',
+    '.kWWWWWWWqk.',
+    '..kqqqqqqk..',
+    '...kkkkkk...',
+  ],
+  mound: [
+    '............',
+    '............',
+    '....kkkk....',
+    '..kkwwwwkk..',
+    '.kwwwWwwwwk.',
+    '.kwWwwwwWwk.',
+    'kwwwwwWwwwWk',
+    'kWwwwwwwwWWk',
+    '.kWWWWWWWWk.',
+    '..kkkkkkkk..',
+  ],
+  beanCan: [
+    '............',
+    '...kkkkkk...',
+    '..kggggggk..',
+    '..kGGGGGGk..',
+    '..krrrrrrk..',
+    '..krwwwwrk..',
+    '..krwbbwrk..',
+    '..krwwwwrk..',
+    '..krrrrrrk..',
+    '..kGGGGGGk..',
+    '...kkkkkk...',
+  ],
+  chips: [
+    '............',
+    '.....k......',
+    '....kyk.....',
+    '..k.kyyk.k..',
+    '.kyk.kyk.kyk',
+    'kyyykkkkkyyk',
+    'kyoyyykyyyok',
+    '.kkyyyyyoykk',
+    '...kkkkkkk..',
+  ],
+  avocado: [
+    '............',
+    '....kkkk....',
+    '...kNNNNk...',
+    '..kNlllllk..',
+    '.kNlllllllk.',
+    '.kNllbbllNk.',
+    '.kNlbBBbllk.',
+    '.kNllbbllNk.',
+    '..kNllllNk..',
+    '...kNNNNk...',
+    '....kkkk....',
+  ],
+  guac: [
+    '............',
+    '.kkk...kkk..',
+    'klllk.klllk.',
+    'kllNk.kllNk.',
+    '.kkk...kkk..',
+    '....kkk.....',
+    '...klllk....',
+    '...kllNk....',
+    '....kkk.....',
+  ],
+
   // ---- UI bits
   coin: [
     '..kkkk..',
@@ -1477,6 +1612,11 @@ function ingSprite(kind, state) {
     case 'brisket': return state === 'sliced' ? ['brisketSliced', { 1: '#c46a5a', 2: '#4a2418', 3: '#f0d8b8' }] : ['brisket', SMOKED[state]];
     case 'macaroni': return ['macaroni'];
     case 'mac': return ['bowl', { 1: '#f2c14e' }];
+    case 'tortilla': return ['tortilla', state === 'raw' ? { 1: '#f3e6c4', 2: '#e0cc9c' } : state === 'burnt' ? { 1: '#3a3d48', 2: '#2b1d2a' } : { 1: '#f0cf8a', 2: '#b8762e' }];
+    case 'rice': return state === 'raw' ? ['riceSack'] : ['mound'];
+    case 'beans': return state === 'raw' ? ['beanCan'] : ['mound', { w: '#8a3a20', W: '#5a2410' }];
+    case 'chips': return ['chips'];
+    case 'avocado': return state === 'raw' ? ['avocado'] : ['guac'];
     case 'cornmeal': return state === 'raw' ? ['batter', { Y: '#e8c060' }] : ['cornbread', state === 'burnt' ? { 1: '#3a3d48', 2: '#2b1d2a', 3: '#2b1d2a' } : { 1: '#f2c14e', 2: '#d9953f', 3: '#b8762e' }];
   }
   return ['plate'];
@@ -1496,6 +1636,17 @@ function drawPlate(items, x, y, px) {
     return;
   }
   if (keys.length === 1) { drawKey(keys[0], x, y - px, px * 0.84); return; }
+  // Tortillas and chips sit in the middle with the toppings around them.
+  const base = keys.find(k => k === 'tortilla:cooked' || k === 'chips:raw');
+  if (base) {
+    drawKey(base, x, y - px, px * 0.84);
+    const rest = keys.slice(); rest.splice(rest.indexOf(base), 1);
+    rest.forEach((k, i) => {
+      const a = -Math.PI / 2 + i * 2 * Math.PI / rest.length;
+      drawKey(k, x + Math.cos(a) * px * 3, y - px + Math.sin(a) * px * 2.6, px * 0.5);
+    });
+    return;
+  }
   keys.forEach((k, i) => {
     const a = -Math.PI / 2 + i * 2 * Math.PI / keys.length;
     drawKey(k, x + Math.cos(a) * px * 2.6, y - px + Math.sin(a) * px * 2.2, px * 0.6);
@@ -1687,7 +1838,9 @@ function findTarget(c) {
 /* ---------- combining rules ---------- */
 
 // Mug drinks never go on plates.
-function menuItems() { return G.lv.recipes.filter(k => !RECIPES[k].mug).map(k => RECIPES[k].items); }
+function menuItems() { return G.lv.recipes.filter(k => !RECIPES[k].mug).map(k => RECIPES[k].items.concat(RECIPES[k].extras || [])); }
+function orderItems(o) { return o.items || RECIPES[o.recipe].items; }
+function orderReward(o) { return o.reward ?? RECIPES[o.recipe].reward; }
 // A plate may hold a set of items only if it's on the way to something on the menu.
 function canPlate(plate, key) {
   const next = plate.items.concat(key);
@@ -1780,6 +1933,9 @@ function grabPlan(c) {
     if (it || t.blending || h.type !== 'ing' || h.state !== 'raw' || !BLENDABLE.includes(h.kind) || t.jar.includes(h.kind)) return null;
     return { label: 'Add', run() { t.jar.push(h.kind); c.held = null; sfx('drop'); } };
   }
+  // Holding a plate at a crate of something ready to eat (chips, cheese, buns): straight onto the plate.
+  if (t.type === 'crate' && !it && h.type === 'plate' && canPlate(h, t.kind + ':raw'))
+    return { label: 'Plate', run() { h.items.push(t.kind + ':raw'); sfx('pick'); } };
   if (!it) {
     if (t.type === 'stove' && !isCookware(h)) return null;
     if (HEAT[t.type] && !heatAccepts(t, h)) return null;
@@ -1829,11 +1985,11 @@ function sameItems(a, b) { return a.length === b.length && a.slice().sort().join
 function serve(c) {
   const h = c.held;
   const items = h.type === 'plate' ? h.items : [ingKey(h)];
-  const idx = G.orders.findIndex(o => sameItems(RECIPES[o.recipe].items, items));
+  const idx = G.orders.findIndex(o => sameItems(orderItems(o), items));
   if (idx < 0) { say(c, 'Nobody ordered that'); sfx('nope'); return; }
   const o = G.orders[idx];
   const tip = Math.round(TIP_MAX * o.timeLeft / o.total);
-  const earned = RECIPES[o.recipe].reward + tip;
+  const earned = orderReward(o) + tip;
   G.score += earned; G.tips += tip; G.served++;
   G.orders.splice(idx, 1);
   c.held = null;
@@ -1856,8 +2012,15 @@ function spawnOrder() {
   let r = opts[Math.floor(Math.random() * opts.length)];
   if (r === G.lastRecipe && opts.length > 1 && Math.random() < 0.5) r = opts[Math.floor(Math.random() * opts.length)];
   G.lastRecipe = r;
-  const total = RECIPES[r].time;
-  G.orders.push({ id: ++G.orderSeq, recipe: r, total, timeLeft: total, slide: 0, x: null });
+  const R = RECIPES[r], total = R.time;
+  const items = R.items.slice();
+  let reward = R.reward;
+  if (R.extras) {
+    const pool = R.extras.slice();
+    const n = R.pick[0] + Math.floor(Math.random() * (R.pick[1] - R.pick[0] + 1));
+    for (let i = 0; i < n; i++) { items.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]); reward += R.extraReward; }
+  }
+  G.orders.push({ id: ++G.orderSeq, recipe: r, items, reward, total, timeLeft: total, x: null });
   sfx('order');
 }
 
@@ -2389,9 +2552,9 @@ function drawKitchen() {
 
 function fmtTime(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 
-function recipeIngredients(key) {
+function recipeIngredients(items) {
   const out = [];
-  for (const k of RECIPES[key].items) {
+  for (const k of items) {
     const [kind, state] = k.split(':');
     if (kind === 'coffee') continue;
     if (kind === 'shake') { out.push('icecream'); if (state === 'strawberry') out.push('strawberry'); continue; }
@@ -2439,11 +2602,13 @@ function drawHUD(dt) {
     X.fillStyle = '#e8dcbc'; X.fillRect(px + 5, y + 5, cw - 10, 6);
     X.fillStyle = col; X.fillRect(px + 5, y + 5, Math.max(3, Math.round((cw - 10) * frac / 3) * 3), 6);
     // ingredients row at the bottom, dish in the space above it
-    const ings = recipeIngredients(o.recipe);
-    const ipx = (cw - 10) / ings.length >= 24 && ch > 80 ? 2 : 1;
+    const ings = recipeIngredients(orderItems(o));
+    // Icons as big as the ticket allows (in half-pixel steps): build-your-own orders live or die by these.
+    const ipx = Math.max(1, Math.min(ch > 80 ? 2 : 1.5, Math.floor((cw - 8) / (Math.max(1, ings.length) * 13) * 2) / 2));
     const is = 13 * ipx;
     const dpx = Math.max(2, Math.floor(Math.min(ch - 16 - (ings.length ? is + 6 : 0), cw * 0.6) / 12));
-    drawDish(o.recipe, px + cw / 2, y + 14 + dpx * 6, dpx);
+    if (RECIPES[o.recipe].mug) drawKey(orderItems(o)[0], px + cw / 2, y + 14 + dpx * 6, dpx);
+    else drawPlate(orderItems(o), px + cw / 2, y + 14 + dpx * 6, dpx);
     ings.forEach((k, j) => drawIng(k, 'raw', px + cw / 2 + (j - (ings.length - 1) / 2) * is, y + ch - is / 2 - 4, ipx));
   });
 
@@ -2709,7 +2874,7 @@ function snapshot() {
     t: 'snap',
     tl: G.netTiles.map(t => [t.item, +t.fire.toFixed(2), t.count, t.dirty, +(t.wash || 0).toFixed(2), +(t.brew || 0).toFixed(2), !!t.brewing, t.jar, +(t.blend || 0).toFixed(2), !!t.blending]),
     ch: G.chefs.map(c => [+c.x.toFixed(3), +c.y.toFixed(3), +c.fx.toFixed(2), +c.fy.toFixed(2), c.held, c.task ? [c.task.kind, ci(c.task.tile)] : null, c.moving, +c.walk.toFixed(2), c.toast, +c.toastT.toFixed(2), c.spraying]),
-    or: G.orders.map(o => [o.id, o.recipe, o.total, +o.timeLeft.toFixed(2)]),
+    or: G.orders.map(o => [o.id, o.recipe, o.total, +o.timeLeft.toFixed(2), orderItems(o), orderReward(o)]),
     g: [G.score, G.tips, G.served, G.failed, +G.time.toFixed(2), G.phase, +G.countdown.toFixed(2), +G.endT.toFixed(2)],
     ev: NET.events.splice(0),
   };
@@ -2737,9 +2902,9 @@ function applySnapshot(m) {
       c.tx = x; c.ty = y; c.fx = fx; c.fy = fy; c.moving = moving; c.walk = walk;
     }
   });
-  G.orders = m.or.map(([id, recipe, total, timeLeft]) => {
+  G.orders = m.or.map(([id, recipe, total, timeLeft, items, reward]) => {
     const old = G.orders.find(o => o.id === id);
-    return { id, recipe, total, timeLeft, x: old ? old.x : null };
+    return { id, recipe, total, timeLeft, items, reward, x: old ? old.x : null };
   });
   const prevPhase = G.phase;
   [G.score, G.tips, G.served, G.failed, G.time, G.phase, G.countdown, G.endT] = m.g;
@@ -2839,7 +3004,7 @@ function openIntro(i) {
     const d = document.createElement('div'); d.className = 'dish';
     d.appendChild(dishCanvas(r, 64));
     const n = document.createElement('span'); n.className = 'dname'; n.textContent = RECIPES[r].name;
-    const p = document.createElement('span'); p.className = 'dprice'; p.textContent = RECIPES[r].reward + ' + tip';
+    const p = document.createElement('span'); p.className = 'dprice'; p.textContent = RECIPES[r].extras ? RECIPES[r].reward + '+ · your way' : RECIPES[r].reward + ' + tip';
     d.append(n, p); m.appendChild(d);
   });
   show('scr-intro');

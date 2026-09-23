@@ -74,7 +74,9 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 ## Later
 - ~~Stop 2: Drive-In Burgers~~ Done: 3 kitchens with the deep fryer, blender, griddle patties and cheese.
 - ~~Stop 3: Texas BBQ Smokehouse~~ Done: 3 kitchens with the smoker, brisket slicing, recipe-driven pots (mac & cheese) and griddle cornbread.
-- Stops 4–9.
+- ~~Stop 4: Tex-Mex Border Town~~ Done: 3 kitchens with build-your-own tickets (tacos, burritos, nachos), rice and bean pots, and guacamole.
+- Stops 5–9.
+- Polish: with 5 tickets on a portrait phone, 5-ingredient builds show their icons at the smallest size. Could use a two-row icon layout or a tap-to-zoom ticket.
 - Versus mode.
 - Driving mini-game.
 - Unity port: iOS and Android builds, between-level ads with the Remove Ads purchase, and online play through Netcode or Photon.
