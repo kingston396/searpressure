@@ -32,9 +32,11 @@ Up to four phones, one kitchen. On the title screen, tap **Play with a friend**.
 | Drag on the left half | WASD / arrows | Walk. You act on the counter you're facing, which gets a white outline |
 | **Grab** (yellow) | Space | Pick up, put down, plate, serve, bin. The label changes to show what it will do |
 | **Chop** (red) | E | Chop raw food on a board, or wash dirty plates at the sink. The chef keeps going until done or until you walk away. While holding the extinguisher it becomes **Spray**: hold it down to spray |
-| **Swap** (green) | Q | Switch to the other chef |
+| **Swap** (green) | Q | Switch to the other chef. It pulses yellow when your other chef finishes chopping or washing. If you swap to a chef who's mid-chop with your thumb still on the stick, they keep chopping until you let go. Your own two chefs never block each other: an idle chef steps aside, and you can slip past one who's working |
 | Pause button | Esc | Pause |
 | Tap a ticket | Click a ticket | Zoom in: the dish, each item by name, time left and whether it's a delivery. Tap again or wait 4 seconds to close |
+
+The results screen shows what missed orders cost, next to the count (for example `4 (−40)`), and the same for people knocked over on a Delivery Run.
 
 Tickets with four or more items wrap their icons onto two rows when the rail is crowded.
 
@@ -150,7 +152,7 @@ Coins you earn go into a wallet, spent in the **Shop**. The economy is built so 
 - **First-try bonus:** three stars on your very first attempt pays an extra half of the three-star target, on top of the budget. Every start counts as an attempt, restarts and quits too.
 - **Daily quest:** the day's kitchen and twist, plus a goal: reach the day's three-star score **and** one extra challenge picked by the date (no missed orders, no fires, 5 speedy tips, never use the bin, or serve a set number of orders). Completing it pays **400 coins**, once a day. It's the only renewable income besides 20% replays.
 - **Supply vs cost:** all 38 levels' budgets add up to about 14,000 coins plus first-try bonuses; the shop costs about 38,000, so a thorough player affords roughly half of it.
-- **Every purchase is permanent** (no refunds). Owned gear can be swapped between slots and chefs freely.
+- **Gear is yours for good** (no refunds). Owned gear can be swapped between slots and chefs freely.
 
 **Chef gear:** four slots (hat, apron, gloves, shoes), four items each; every bonus is under 10% and some have a small downside. Each chef wears one item per slot (Wardrobe, or **Wear gear** in the shop); bonuses from different slots add up. Online, your chef wears your gear.
 
@@ -161,7 +163,7 @@ Coins you earn go into a wallet, spent in the **Shop**. The economy is built so 
 | Gloves | Dish Gloves (wash +7%, 500) · Oven Mitts (food they put on the heat burns 8% slower, 900) · Grip Gloves (chop +5%, 600) · Fire Gloves (fires out 7% faster, longer reach, 500) |
 | Shoes | Running Shoes (walk +6%, 1,000) · Kitchen Clogs (walk +3%, chop +3%, 900) · Roller Skates (walk +9%, chop −5%, 1,500) · Slip-On Loafers (walk +3%, wash +4%, 700) |
 
-**Kitchen upgrades and forks.** Paired upgrades are a permanent choice: buying one locks the other forever (the shop asks you to tap twice).
+**Kitchen upgrades and forks.** The Kitchen tab is grouped by equipment (Fryer, Griddle, Pots and pans, Oven, Smoker, Blender, Coffee machine, Plates, Outside the truck), and each group only appears once you've unlocked a kitchen that has that equipment. Paired upgrades are a choice: buying one greys out the other (the shop asks you to tap twice). To switch, sell your pick back for 25% of its price (also two taps), and the other one opens up again.
 
 | Station | Option A | Option B | Price each |
 | --- | --- | --- | --- |
@@ -171,7 +173,7 @@ Coins you earn go into a wallet, spent in the **Shop**. The economy is built so 
 | Oven | Convection: cooks 15% faster | Stone Oven: burns 25% slower | 2,100 |
 | Van | Turbo Engine: top speed +10% (1,600) | Grippy Tyres: better grip and drifts (1,200) | |
 
-Single upgrades: Smoker Pro (20% faster, 1,800), Industrial Blender (30% faster, 900), Espresso Machine (30% faster, 750), Extra Plate Rack (+1 plate, 1,500), Comfy Booths (customers wait 10% longer, 3,600), Bigger Cargo Box (4 bags, 2,000). The **Delivery van** tab only appears in the shop once the first Delivery Run has been found.
+Single upgrades: Smoker Pro (20% faster, 1,800), Industrial Blender (30% faster, 900), Espresso Machine (30% faster, 750), Extra Plate Rack (+1 plate, 1,500), Street Performer (a busker plays to the line outside the truck, so customers wait 10% longer, 3,600), Bigger Cargo Box (4 bags, 2,000). The **Delivery van** tab only appears in the shop once the first Delivery Run has been found.
 
 Gear and upgrades are off in online versus and the daily quest. In co-op the host's kitchen upgrades apply and each player's gear applies to their chef.
 

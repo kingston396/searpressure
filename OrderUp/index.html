@@ -194,8 +194,10 @@
   .shop-item button { font: 400 16px "Pixelify Sans", system-ui, sans-serif; border: 0; border-radius: 8px; padding: 8px 10px; background: var(--mustard); color: var(--text); box-shadow: 0 3px 0 var(--mustard-dk); cursor: pointer; white-space: nowrap; }
   .shop-item button:disabled { background: var(--paper-2); box-shadow: none; color: var(--muted); cursor: default; }
   .shop-item.owned { border-color: #3f9b45; }
+  .shop-item.passed { opacity: .45; filter: grayscale(1); }
   .shop-item .fork { color: #a8301d; }
   .rate-row.shop-tabs { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
+  .shop-item button.sell { background: #fff; box-shadow: 0 3px 0 var(--line); border: 2px solid var(--line); }
   .shop-item button.confirm { background: var(--tomato); color: #fff; box-shadow: 0 3px 0 var(--tomato-dk); }
   .shop-slot { font: 500 12px "DM Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
   .ward-gear { display: flex; flex-direction: column; gap: 6px; }
@@ -2944,10 +2946,19 @@ function moveChef(c, mx, my, dt) {
   const ny = c.y + my / Math.max(1, mag) * sp;
   if (!collides(c.x, ny)) c.y = ny;
   else c.y = my > 0 ? Math.floor(ny + CHEF_R) - CHEF_R - 0.001 : Math.floor(ny - CHEF_R) + 1 + CHEF_R + 0.001;
-  // Don't walk through the other chef.
+  // Don't walk through the other chef. Solo, you slip past your own other chef instead of
+  // getting stuck behind them; if they're idle (not chopping or washing) they step aside.
   for (const o of G.chefs) {
     if (o === c) continue;
     const dx = c.x - o.x, dy = c.y - o.y, d = Math.hypot(dx, dy), min = CHEF_R * 2;
+    if (d < min && !NET.role && !o.ai && c === G.chefs[G.active]) {
+      if (!o.task) {
+        const ux = mx / mag, uy = my / mag, side = (o.x - c.x) * -uy + (o.y - c.y) * ux >= 0 ? 1 : -1;
+        const st = sp * 1.2 * side, nx2 = o.x - uy * st, ny2 = o.y + ux * st;
+        if (!collides(nx2, ny2)) { o.x = nx2; o.y = ny2; }
+      }
+      continue;
+    }
     if (d < min && d > 0.0001) {
       const px = c.x + dx / d * (min - d), py = c.y + dy / d * (min - d);
       if (!collides(px, c.y)) c.x = px;
@@ -3156,10 +3167,16 @@ function doChop(c) {
   if (p.kind === 'blend') { p.tile.blending = true; p.tile.blend = 0; sfx('blend'); return; }
   c.task = { kind: p.kind, tile: p.tile };
 }
+// Your other chef just finished chopping or washing: the Swap button pulses to say they're free.
+function freedUp(ch) { if (!NET.role && ch !== G.chefs[G.active] && !ch.ai) G.swapPing = 2.4; }
 function doSwap() {
   const humans = G.chefs.map((c, i) => i).filter(i => !G.chefs[i].ai);
   if (humans.length < 2 || (NET.role && !G.versus)) return;
   G.active = humans[(humans.indexOf(G.active) + 1) % humans.length];
+  // Swapping to a chef who's chopping or washing: a thumb still on the stick doesn't walk them
+  // off the job. Movement comes back once the stick is let go.
+  G.swapGuard = !!G.chefs[G.active].task;
+  G.swapPing = 0;
   G.swapFx = 1;
   sfx('swap');
 }
@@ -3355,7 +3372,9 @@ function readMove() {
 // Who drives which chef this frame. Offline, the player drives the active chef.
 // Hosting online, the player drives chef 0 and the guest's inputs drive chef 1.
 function controllers(dt) {
-  const local = { chef: G.chefs[G.active], move: readMove(), grab: input.grab, chop: input.chop, swap: input.swap, held: input.chopHeld };
+  let move = readMove();
+  if (G.swapGuard) { if (!move[0] && !move[1]) G.swapGuard = false; else move = [0, 0]; }
+  const local = { chef: G.chefs[G.active], move, grab: input.grab, chop: input.chop, swap: input.swap, held: input.chopHeld };
   input.grab = input.chop = input.swap = false;
   if (NET.role !== 'host' || G.versus) return [local].concat(G.chefs.filter(c => c.ai).map(c => helperControl(c, dt)));
   const out = [local];
@@ -3375,6 +3394,7 @@ function update(dt) {
   if (!G || paused) return;
   if (NET.role === 'guest' && !G.versus) { updateGuest(dt); return; }
   G.swapFx = Math.max(0, G.swapFx - dt * 2.5);
+  G.swapPing = Math.max(0, (G.swapPing || 0) - dt);
   if (G.judge) G.judge.t -= dt;
   G.shake = Math.max(0, (G.shake || 0) - dt);
   G.coinPulse = Math.max(0, (G.coinPulse || 0) - dt * 3);
@@ -3425,7 +3445,7 @@ function update(dt) {
       if (!into) { ch.task = null; continue; }
       it.chop += dt / CHOP_TIME * (1 + (ch.gear ? ch.gear.chop : 0));
       if (ch.taskSfx <= 0) { sfx('chop'); ch.taskSfx = 0.22; addPuff(b.x + 0.5, b.y + 0.45, '#ffffff', 0.4, 'chip'); }
-      if (it.chop >= 1) { it.state = into; it.chop = 0; ch.task = null; sfx('chopped'); }
+      if (it.chop >= 1) { it.state = into; it.chop = 0; ch.task = null; sfx('chopped'); freedUp(ch); }
     } else {
       if (b.dirty <= 0) { ch.task = null; continue; }
       b.wash += dt / WASH_TIME * (1 + (ch.gear ? ch.gear.wash : 0));
@@ -3434,7 +3454,7 @@ function update(dt) {
         b.wash = 0; b.dirty--;
         if (G.plateTile) G.plateTile.count++;
         sfx('clean');
-        if (b.dirty <= 0) ch.task = null;
+        if (b.dirty <= 0) { ch.task = null; freedUp(ch); }
       }
     }
   }
@@ -3526,7 +3546,7 @@ function update(dt) {
       G.orders.splice(i, 1);
       G.failed++;
       const lost = Math.min(G.score, MISS_PENALTY);
-      G.score -= lost;
+      G.score -= lost; G.missLoss = (G.missLoss || 0) + lost;
       addFloat('hud', 0, 0, lost ? '-' + lost : 'Missed', '#ff6b57', lost ? 'Missed' : null);
       strike('late');
       sfx('fail'); buzz([40, 60, 40]);
@@ -3788,10 +3808,19 @@ function drawTruck() {
   for (let i = 1; i < C; i++) { X.fillRect(i - P / 2, by + 0.03, P, P); X.fillRect(i - P / 2, by + bh - 0.03 - P, P, P); }
   for (let j = 1; j < R; j++) { X.fillRect(bx + 0.03, j - P / 2, P, P); X.fillRect(bx + bw - 0.03 - P, j - P / 2, P, P); }
 }
+// The Street Performer upgrade: a busker playing to the line.
+function drawBusker() {
+  const tl = truckLayout(); if (!tl.serve || tl.serve.type !== 'serve' || !upOn('booths')) return;
+  const [x, y] = queueSpot(6.3), bob = Math.floor(T * 4) % 2 ? P : 0;
+  drawPerson({ x, y, shirt: '#9a6ab3', hair: '#5a3620', moving: false, walk: 0 });
+  X.fillStyle = '#8a5a36'; X.fillRect(x - 0.2, y - 0.2, 0.26, 0.14); X.fillRect(x + 0.04, y - 0.18, 0.18, 2 * P);   // guitar
+  X.fillStyle = PAL.k; const nx = x + 0.28, ny = y - 0.75 - bob;
+  X.fillRect(nx, ny, P, 5 * P); X.fillRect(nx - 2 * P, ny + 4 * P, 3 * P, 2 * P); X.fillRect(nx + P, ny, 2 * P, P);   // music note
+}
 // A chalkboard menu sign on the sidewalk at the back of the line.
 function drawMenuBoard() {
   const tl = truckLayout(); if (!tl.serve || tl.serve.type !== 'serve') return;
-  const [x, y] = queueSpot(4.6);
+  const [x, y] = queueSpot(5.2);
   X.fillStyle = 'rgba(0,0,0,.25)'; X.fillRect(x - 0.28, y + 0.2, 0.62, 0.12);
   X.fillStyle = PAL.k; X.fillRect(x - 0.3, y - 0.42, 0.6, 0.66);
   X.fillStyle = '#8a5a36'; X.fillRect(x - 0.3 + P, y - 0.42 + P, 0.6 - 2 * P, 0.66 - 2 * P);
@@ -3822,6 +3851,7 @@ function drawTruckOutside(dt) {
     }
   };
   drawMenuBoard();
+  drawBusker();
   if (tl.serve && tl.serve.type === 'serve') awning(tl.serve, tl.ss, '#e8472f', '#fff5de');
   awning(tl.pick, tl.ps, '#3a86d4', '#fff5de');
   updateCrowd(dt);
@@ -4277,6 +4307,10 @@ function drawControls() {
   if (humans.length < 2) return;   // Short-Staffed: nobody to swap to
   const other = humans[(humans.indexOf(G.chefs[G.active]) + 1) % humans.length];
   const sr = r * 0.62;
+  if (G.swapPing > 0) {
+    const k = (G.swapPing * 2.5) % 1;
+    X.globalAlpha = 1 - k; pixCircle(L.btnS.x, L.btnS.y, sr + 4 + k * 16, '#f5d33e'); X.globalAlpha = 1;
+  }
   drawButton(L.btnS, sr, '#3f9b45', '#2a6e2f', 'Swap', null, false, input.flash.S);
   pixCircle(L.btnS.x + sr * 0.72, L.btnS.y - sr * 0.72, sr * 0.3 + 3, '#fff');
   pixCircle(L.btnS.x + sr * 0.72, L.btnS.y - sr * 0.72, sr * 0.3, other.color);
@@ -4549,7 +4583,7 @@ function snapshot() {
     xe: G.evt ? [G.evt.kind, G.evt.name, +G.evt.t.toFixed(1)] : null,
     ch: G.chefs.map(c => [+c.x.toFixed(3), +c.y.toFixed(3), +c.fx.toFixed(2), +c.fy.toFixed(2), c.held, c.task ? [c.task.kind, ci(c.task.tile)] : null, c.moving, +c.walk.toFixed(2), c.toast, +c.toastT.toFixed(2), c.spraying]),
     or: G.orders.map(o => [o.id, o.recipe, o.total, +o.timeLeft.toFixed(2), orderItems(o), orderReward(o), o.delivery ? (o.late ? 2 : 1) : 0, !!o.vip]),
-    g: [G.score, G.tips, G.served, G.failed, +G.time.toFixed(2), G.phase, +G.countdown.toFixed(2), +G.endT.toFixed(2)],
+    g: [G.score, G.tips, G.served, G.failed, +G.time.toFixed(2), G.phase, +G.countdown.toFixed(2), +G.endT.toFixed(2), G.missLoss || 0],
     ev: NET.events.splice(0),
     jd: [G.strikes || 0, G.judge ? G.judge.text : null, G.judge ? +G.judge.t.toFixed(1) : 0, G.judge ? G.judge.mood : 0, !!G.kicked, +(G.clock || 0).toFixed(1), G.judge ? G.judge.who : null],
   };
@@ -4589,7 +4623,7 @@ function applySnapshot(m) {
     G.judge = text ? { text, t, mood, who } : null;
   }
   const prevPhase = G.phase;
-  [G.score, G.tips, G.served, G.failed, G.time, G.phase, G.countdown, G.endT] = m.g;
+  [G.score, G.tips, G.served, G.failed, G.time, G.phase, G.countdown, G.endT, G.missLoss] = m.g;
   if (G.phase === 'over' && prevPhase !== 'over') { for (const c of G.chefs) c.task = null; }
   for (const e of m.ev) {
     if (e[0] === 's') { try { SFX[e[1]](); } catch (err) {} }
@@ -5187,11 +5221,21 @@ const UPGRADES = [
   { id: 'blender', group: 'kitchen', name: 'Industrial Blender', text: 'Blending 30% faster', price: 900, icon: ['shake', { 1: '#f4a3b8' }] },
   { id: 'espresso', group: 'kitchen', name: 'Espresso Machine', text: 'Coffee brews 30% faster', price: 750, icon: ['mug'] },
   { id: 'plates', group: 'kitchen', name: 'Extra Plate Rack', text: '+1 clean plate in every kitchen', price: 1500, icon: ['plate'] },
-  { id: 'booths', group: 'kitchen', name: 'Comfy Booths', text: 'Customers wait 10% longer', price: 3600, icon: ['person', { 1: '#9a6ab3' }] },
+  { id: 'booths', group: 'kitchen', name: 'Street Performer', text: 'A busker plays to the line outside: customers wait 10% longer', price: 3600, icon: ['person', { 1: '#9a6ab3' }] },
   { id: 'engine', fork: 'van', group: 'van', name: 'Turbo Engine', text: 'Top speed +10% on Delivery Runs', price: 1600, icon: ['car', { 1: '#e8472f', 2: '#fff5de' }] },
   { id: 'tyres', fork: 'van', group: 'van', name: 'Grippy Tyres', text: 'Better grip; drifts are easier to control', price: 1200, icon: ['car', { 1: '#3a3d48', 2: '#8a8f9c' }] },
   { id: 'cargo', group: 'van', name: 'Bigger Cargo Box', text: 'Carry 4 bags instead of 3', price: 2000, icon: ['bag'] },
 ];
+// Kitchen upgrades are grouped by the equipment they improve, and only show once a kitchen
+// you've unlocked has that equipment (map letters in LEVELS). Plates and the busker suit every kitchen.
+const EQUIP = [
+  ['Fryer', 'Y', ['fryer', 'safefryer']], ['Griddle', 'G', ['griddle', 'nonstick']], ['Pots and pans', 'SF', ['pots', 'heavypots']],
+  ['Oven', 'o', ['oven', 'stoneoven']], ['Smoker', 's', ['smoker']], ['Blender', 'V', ['blender']], ['Coffee machine', 'Q', ['espresso']],
+  ['Plates', '', ['plates']], ['Outside the truck', '', ['booths']],
+];
+function equipOpen(chars) {
+  return !chars || unlockAll() || LEVELS.some((l, i) => unlocked(i) && l.map.some(row => [...chars].some(ch => row.includes(ch))));
+}
 // The other half of a fork this player already owns, if any.
 function forkTaken(it) { return it.fork ? UPGRADES.find(u => u.fork === it.fork && u.id !== it.id && owns(u.id)) : null; }
 // Slower burning from the "safe" half of each fork.
@@ -5381,13 +5425,13 @@ function buildShop() {
   $('shop-wallet').textContent = fmtCoins(save.wallet || 0) + ' coins';
   for (const t of ['gear', 'kitchen', 'van']) $('shop-t-' + t).setAttribute('aria-pressed', String(shopTab === t));
   $('shop-note').textContent = shopTab === 'gear' ? 'Gear is personal: each chef wears one item per slot (pick in Wear gear), and bonuses from different slots add up.'
-    : shopTab === 'kitchen' ? 'Kitchen upgrades are always on once bought (not in versus or the daily quest). Paired upgrades are a choice: buy one and the other is gone for good.'
-    : 'Van upgrades help on the secret Delivery Runs. Engine or tyres: you only get one.';
-  $('shop-note').textContent += ' Every purchase is permanent: no refunds.';
+    : shopTab === 'kitchen' ? 'Kitchen upgrades are always on once bought (not in versus or the daily quest). Paired upgrades are a choice: you can only own one of the two.'
+    : 'Van upgrades help on the secret Delivery Runs. Engine or tyres: you can only own one.';
+  $('shop-note').textContent += shopTab === 'gear' ? ' Gear is yours for good: no refunds.' : ' A paired upgrade can be sold back for 25% of its price if you want to switch.';
   const list = $('shop-list'); list.innerHTML = '';
   const row = (icon, it) => {
     const own = owns(it.id), el = document.createElement('div');
-    el.className = 'shop-item' + (own ? ' owned' : '');
+    el.className = 'shop-item' + (own ? ' owned' : '') + (!own && forkTaken(it) ? ' passed' : '');
     const txt = document.createElement('div');
     txt.append(Object.assign(document.createElement('div'), { className: 'iname', textContent: it.name }), Object.assign(document.createElement('div'), { className: 'itext', textContent: it.text }));
     const b = document.createElement('button'); b.type = 'button'; b.id = 'buy-' + it.id;
@@ -5395,9 +5439,20 @@ function buildShop() {
     const confirming = shopConfirm === it.id && !own && !rival && short <= 0;
     b.textContent = own ? 'Owned' : rival ? 'Locked' : confirming ? 'Confirm' : short > 0 ? `${fmtCoins(it.price)}` : `Buy ${fmtCoins(it.price)}`;
     if (confirming) b.classList.add('confirm');
-    b.disabled = own || !!rival || short > 0;
-    if (rival) txt.appendChild(Object.assign(document.createElement('div'), { className: 'itext', textContent: `You chose ${rival.name} instead.` }));
-    else if (it.fork && !own) { const other = UPGRADES.find(u => u.fork === it.fork && u.id !== it.id); txt.appendChild(Object.assign(document.createElement('div'), { className: 'itext fork', textContent: confirming ? `Tap Confirm to buy. ${other.name} will be locked forever.` : `Or ${other.name}: pick one.` })); }
+    b.disabled = (own && !it.fork) || !!rival || (!own && short > 0);
+    // A paired upgrade you own can be sold back for a quarter of its price, to switch to the other one.
+    if (own && it.fork) {
+      const selling = shopConfirm === 'sell:' + it.id;
+      b.textContent = selling ? 'Confirm' : `Sell ${fmtCoins(sellPrice(it))}`;
+      b.classList.add(selling ? 'confirm' : 'sell');
+      const other = UPGRADES.find(u => u.fork === it.fork && u.id !== it.id);
+      txt.appendChild(Object.assign(document.createElement('div'), { className: 'itext fork', textContent: selling ? `Tap Confirm to sell for ${fmtCoins(sellPrice(it))} coins. ${other.name} opens up again.` : `Sell back for 25% to switch to ${other.name}.` }));
+      b.onclick = () => sellBack(it);
+      el.append(icon, txt, b); list.appendChild(el);
+      return;
+    }
+    if (rival) txt.appendChild(Object.assign(document.createElement('div'), { className: 'itext', textContent: `You chose ${rival.name}. Sell it back to switch.` }));
+    else if (it.fork && !own) { const other = UPGRADES.find(u => u.fork === it.fork && u.id !== it.id); txt.appendChild(Object.assign(document.createElement('div'), { className: 'itext fork', textContent: confirming ? `Tap Confirm to buy. ${other.name} will be locked unless you sell this back (25% refund).` : `Or ${other.name}: pick one.` })); }
     if (!own && short > 0) b.title = `${fmtCoins(short)} more coins`;
     b.onclick = () => buy(it);
     el.append(icon, txt, b);
@@ -5408,7 +5463,25 @@ function buildShop() {
       list.appendChild(Object.assign(document.createElement('div'), { className: 'shop-slot', textContent: label + 's' }));
       for (const g of GEAR.filter(q => q.slot === slot)) row(gearIcon(g, 40), g);
     }
+  } else if (shopTab === 'kitchen') {
+    for (const [label, chars, ids] of EQUIP) {
+      if (!equipOpen(chars)) continue;
+      list.appendChild(Object.assign(document.createElement('div'), { className: 'shop-slot', textContent: label }));
+      for (const id of ids) { const u = UPGRADES.find(q => q.id === id); row(iconCanvas(u.icon[0], u.icon[1], 40), u); }
+    }
+    list.appendChild(Object.assign(document.createElement('p'), { className: 'small shop-more', textContent: 'More upgrades appear as you unlock kitchens with new equipment.' }));
   } else for (const u of UPGRADES.filter(q => q.group === shopTab)) row(iconCanvas(u.icon[0], u.icon[1], 40), u);
+}
+const SELL_RATE = 0.25;
+function sellPrice(it) { return Math.round(it.price * SELL_RATE); }
+function sellBack(it) {
+  if (!owns(it.id) || !it.fork) return;
+  if (shopConfirm !== 'sell:' + it.id) { shopConfirm = 'sell:' + it.id; sfx('warn'); buildShop(); return; }
+  shopConfirm = null;
+  delete save.owned[it.id];
+  save.wallet = (save.wallet || 0) + sellPrice(it);
+  persist(); sfx('pick'); buzz(25);
+  buildShop(); syncShopButton();
 }
 function buy(it) {
   if (owns(it.id) || (save.wallet || 0) < it.price || forkTaken(it)) return;
@@ -6361,7 +6434,7 @@ function updatePeds(dt) {
     p.down = 3; p.dvx = c.vx * 0.8; p.dvy = c.vy * 0.8; p.tried = false;
     c.vx *= 0.8; c.vy *= 0.8;
     const lost = Math.min(D.coins, PED_PENALTY);
-    D.coins -= lost; D.hits = (D.hits || 0) + 1;
+    D.coins -= lost; D.hits = (D.hits || 0) + 1; D.hitLoss = (D.hitLoss || 0) + lost;
     drivePop(lost ? '-' + lost : 'Watch out!', 'You hit someone!', '#ff6b57');
     sfx('fail'); buzz([40, 30, 40]); D.shake = 0.3;
   }
@@ -6580,7 +6653,7 @@ function driveResults() {
   $('res-name').textContent = run.name;
   $('res-stars').innerHTML = starHTML(stars);
   $('res-l1').textContent = 'Deliveries'; $('res-served').textContent = D.delivered;
-  $('res-l2').textContent = 'People knocked over'; $('res-failed').textContent = D.hits || 0;
+  $('res-l2').textContent = 'People knocked over'; $('res-failed').textContent = (D.hits || 0) + (D.hitLoss ? ` (−${D.hitLoss})` : '');
   $('res-tips').textContent = D.tips;
   $('res-score').textContent = D.coins;
   $('res-next').textContent = (best && D.coins ? 'New best! ' : `Best: ${save.drive[k]}. `) + (stars < 3 ? `${run.stars[stars]} coins for the next star.` : 'Three stars!');
@@ -6805,7 +6878,7 @@ function showResults() {
   $('res-name').textContent = lv.name;
   $('res-stars').innerHTML = starHTML(stars);
   $('res-served').textContent = G.served;
-  $('res-failed').textContent = G.failed;
+  $('res-failed').textContent = G.failed + (G.missLoss ? ` (−${G.missLoss})` : '');
   $('res-tips').textContent = G.tips;
   $('res-score').textContent = G.score;
   const nextOk = !lv.daily && i + 1 < LEVELS.length && unlocked(i + 1);
