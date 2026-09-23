@@ -57,8 +57,11 @@ The campaign is a food truck road trip (see `ROADMAP.md`). Kitchens are grouped 
 | 20 | New York Deli & Pizza | Corner Slice | Cheese Slice, Pepperoni Slice | Oven; stretch, top, bake, slice |
 | 21 | New York Deli & Pizza | Deli Counter | Pastrami on Rye, Bagel & Schmear, Cheese Slice | Slicing pastrami; toasting bagels |
 | 22 | New York Deli & Pizza | Midtown Lunch Rush | Everything | Split kitchen, three ovens |
+| 23 | New England Seafood Shack | Harbor Shack | Clam Chowder, Fish & Chips | Shucking clams, filleting and frying fish |
+| 24 | New England Seafood Shack | Lobster Pound | Lobster Roll, Clam Chowder | Live lobsters that wander off and escape |
+| 25 | New England Seafood Shack | Nor'easter | Everything | Split kitchen: pass lobsters across fast |
 
-Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers, 5 each for the Smokehouse, Tex-Mex, Cajun and New York). Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
+Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers, 5 each for the Smokehouse, Tex-Mex, Cajun, New York and New England). Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
 
 ## Kitchen systems
 
@@ -70,6 +73,7 @@ Each served order pays its menu price plus a tip of up to 10 coins, scaled by ho
 - **Plate straight from a crate:** holding a plate at a crate of something that needs no prep (chips, cheese, buns) puts it right on the plate.
 - **Ordered pots** (Cajun): gumbo goes in as onion, then sausage, then shrimp, and jambalaya as rice, then sausage, then tomato. The ticket icons show the order. Add something out of turn and the chef says what goes in next.
 - **Pizza** (New York): stretch dough on a board, then add sauce, then cheese (and pepperoni). Toppings build up on the base (`TOPPINGS`), and adding one out of order tells you what is missing. Bake it in the **oven**, then slice it on a board.
+- **Live lobsters** (New England): a raw lobster left on a counter hops to a free neighbouring counter every few seconds, and from an edge counter it can escape for good (`LOBSTER_HOP`). Take it straight to a pot.
 - **Pots follow recipes** (`POT_RECIPES`): 3 tomatoes, 3 onions, 2 macaroni + 1 cheese, 2 rice, or 2 beans. A pot only takes ingredients that lead to something on the kitchen's menu.
 - **Blender:** add a scoop of ice cream (and a strawberry for a strawberry shake), then tap **Blend**. Shakes are served in the cup, like coffee.
 - **Dishwashing** (kitchens with `dishes: true`): served plates come back dirty through the hatch. Carry the stack to the sink and wash the plates there, and clean ones appear on the plate rack.

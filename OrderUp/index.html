@@ -258,6 +258,7 @@ const STOPS = [
   { name: 'Tex-Mex Border Town', blurb: 'Every order is built their way. Read the ticket carefully.', needStars: 5 },
   { name: 'New Orleans Cajun', blurb: 'Big pots, and everything goes in the right order.', needStars: 5 },
   { name: 'New York Deli & Pizza', blurb: 'Stretch it, top it, bake it, slice it.', needStars: 5 },
+  { name: 'New England Seafood Shack', blurb: 'Chowder, fish & chips, and lobsters that will not sit still.', needStars: 5 },
 ];
 
 // Map legend:
@@ -275,6 +276,7 @@ const STOPS = [
 //  t r e h v  crates: tortilla, rice, beans, chips, avocado
 //  u p d y    crates: sausage, shrimp, dough, powdered sugar
 //  o  oven            q i w x z g k  crates: sauce, pepperoni, rye, pastrami, mustard, bagel, cream cheese
+//  l j f 3 4  crates: clams, milk, fish, live lobster, roll
 //
 // New kitchens go at the end of the list: best scores are saved by index.
 const LEVELS = [
@@ -586,6 +588,48 @@ const LEVELS = [
       '#J#iR##z#Z#',
     ],
   },
+  {
+    stop: 7, name: 'Harbor Shack', time: 210, stars: [80, 170, 260], maxOrders: 4, interval: [11, 16], plates: 4, fire: true, dishes: true,
+    recipes: ['chowder', 'fishchips'],
+    tip: 'Chowder: shucked clams, chopped potato and milk in a pot. Fish & chips: fillet the fish on a board and fry it, then fry the chips.',
+    map: [
+      '#X#H#K#P#',
+      'l.......S',
+      'C..1.2..#',
+      'f..#j#..Y',
+      'C.......Y',
+      'U.......Z',
+      '###R#S###',
+    ],
+  },
+  {
+    stop: 7, name: 'Lobster Pound', time: 210, stars: [80, 170, 260], maxOrders: 4, interval: [12, 17], plates: 4, fire: true, dishes: true,
+    recipes: ['lobsterroll', 'chowder'],
+    tip: 'Lobsters are alive! Leave one on a counter and it scuttles off, and from an edge it can escape for good. Carry it straight to a pot, then serve it in a roll.',
+    map: [
+      '#X##H#K#P##',
+      '3.........S',
+      'C.1.#4#.2.S',
+      '#...#j#...#',
+      'C.........S',
+      'l....Z....#',
+      '#U#R#######',
+    ],
+  },
+  {
+    stop: 7, name: "Nor'easter", time: 240, stars: [110, 230, 350], maxOrders: 5, interval: [10, 14], plates: 5, fire: true, dishes: true,
+    recipes: ['lobsterroll', 'fishchips', 'chowder'],
+    tip: 'The whole shack at once, split down the middle. Pass the lobsters across fast, before they walk off.',
+    map: [
+      '#XZPK#H##S#',
+      '3....#....S',
+      'C.1..#..2.Y',
+      'f.........Y',
+      'C....#....S',
+      'l....#....j',
+      '#U#4R######',
+    ],
+  },
 ];
 
 // Ingredient keys are "kind:state". Soups are "soup:<flavour>".
@@ -620,6 +664,9 @@ const RECIPES = {
   pepslice: { name: 'Pepperoni Slice', items: ['pepperonipizza:sliced'],                    reward: 36, time: 120 },
   pastrami: { name: 'Pastrami on Rye', items: ['rye:raw', 'pastrami:sliced', 'mustard:raw'], reward: 30, time: 85 },
   bagel:    { name: 'Bagel & Schmear', items: ['bagel:cooked', 'creamcheese:raw'],          reward: 20, time: 60 },
+  chowder:     { name: 'Clam Chowder',  items: ['chowder:cooked'],               reward: 30, time: 100 },
+  fishchips:   { name: 'Fish & Chips',  items: ['fish:cooked', 'potato:cooked'], reward: 34, time: 100 },
+  lobsterroll: { name: 'Lobster Roll',  items: ['roll:raw', 'lobster:cooked'],    reward: 44, time: 110 },
   nachos:  { name: 'Nachos',  items: ['chips:raw', 'cheese:raw'], extras: ['tomato:chopped', 'avocado:chopped', 'meat:cooked'], pick: [0, 2], reward: 16, extraReward: 5, time: 70 },
 };
 
@@ -642,17 +689,19 @@ const POT_RECIPES = [
   { needs: ['macaroni:raw', 'macaroni:raw', 'cheese:raw'], result: 'mac:cheese', color: '#f2c14e' },
   { needs: ['rice:raw', 'rice:raw'], result: 'rice:cooked', color: '#f4f0e0' },
   { needs: ['beans:raw', 'beans:raw'], result: 'beans:cooked', color: '#7a3a20' },
+  { needs: ['clam:chopped', 'potato:chopped', 'milk:raw'], result: 'chowder:cooked', color: '#efe4c8' },
+  { needs: ['lobster:raw'], result: 'lobster:cooked', color: '#e8472f' },
   // Ordered: ingredients must go in exactly this sequence.
   { needs: ['onion:chopped', 'sausage:chopped', 'shrimp:chopped'], result: 'gumbo:cooked', color: '#6a3a1a', ordered: true },
   { needs: ['rice:raw', 'sausage:chopped', 'tomato:chopped'], result: 'jambalaya:cooked', color: '#c8602a', ordered: true },
 ];
 
-const CRATES = { T: 'tomato', L: 'lettuce', O: 'onion', M: 'meat', B: 'bun', E: 'egg', N: 'bacon', D: 'batter', U: 'potato', I: 'icecream', W: 'strawberry', J: 'cheese', a: 'ribs', b: 'brisket', m: 'macaroni', c: 'cornmeal', t: 'tortilla', r: 'rice', e: 'beans', h: 'chips', v: 'avocado', u: 'sausage', p: 'shrimp', d: 'dough', y: 'sugar', q: 'sauce', i: 'pepperoni', w: 'rye', x: 'pastrami', z: 'mustard', g: 'bagel', k: 'creamcheese' };
+const CRATES = { T: 'tomato', L: 'lettuce', O: 'onion', M: 'meat', B: 'bun', E: 'egg', N: 'bacon', D: 'batter', U: 'potato', I: 'icecream', W: 'strawberry', J: 'cheese', a: 'ribs', b: 'brisket', m: 'macaroni', c: 'cornmeal', t: 'tortilla', r: 'rice', e: 'beans', h: 'chips', v: 'avocado', u: 'sausage', p: 'shrimp', d: 'dough', y: 'sugar', q: 'sauce', i: 'pepperoni', w: 'rye', x: 'pastrami', z: 'mustard', g: 'bagel', k: 'creamcheese', l: 'clam', j: 'milk', f: 'fish', 3: 'lobster', 4: 'roll' };
 // Heat tiles cook food placed straight on them: [state it goes in as, seconds to cook].
 // Cooked food starts burning; it's on fire `burn` seconds later.
 const HEAT = {
   griddle: { burn: 8, foods: { egg: ['raw', 5], bacon: ['raw', 6], batter: ['raw', 6], meat: ['chopped', 6], cornmeal: ['raw', 7], tortilla: ['raw', 3] } },
-  fryer:   { burn: 6, foods: { potato: ['chopped', 6], dough: ['raw', 5] } },
+  fryer:   { burn: 6, foods: { potato: ['chopped', 6], dough: ['raw', 5], fish: ['chopped', 6] } },
   smoker:  { burn: 14, foods: { ribs: ['raw', 15], brisket: ['raw', 20] } },
   oven:    { burn: 8, foods: { pizza: ['raw', 8], pepperonipizza: ['raw', 8], bagel: ['raw', 4] } },
 };
@@ -664,7 +713,9 @@ const WASH_TIME = 1.5;
 const FIRE_SPREAD = 4.5;    // seconds between a fire jumping to a neighbouring counter
 const SPRAY_RANGE = 2.7;
 const FIREPROOF = ['floor', 'serve', 'sink', 'hatch'];
-const CHOPPABLE = ['tomato', 'lettuce', 'onion', 'meat', 'potato', 'avocado', 'sausage', 'shrimp'];
+const CHOPPABLE = ['tomato', 'lettuce', 'onion', 'meat', 'potato', 'avocado', 'sausage', 'shrimp', 'clam', 'fish'];
+const LOBSTER_HOP = 3.5;          // seconds a live lobster sits still
+const HOP_TILES = ['counter', 'board'];
 const CHOP_TIME = 2.0;
 const POT_COOK = 9, POT_BURN = 10;
 const PAN_COOK = 7, PAN_BURN = 9;
@@ -753,6 +804,7 @@ const SFX = {
   splash: () => noise(0.1, 0.25, 1200),
   clean: () => tone(1480, 0.12, 'sine', 0.07, 0, 400),
   brew:  () => tone(300, 0.25, 'triangle', 0.06, 0, 120),
+  hop:   () => { tone(900, 0.05, 'square', 0.04); tone(1200, 0.05, 'square', 0.03, 0.06); },
   blend: () => { tone(180, 0.9, 'sawtooth', 0.04, 0, 220); noise(0.8, 0.12, 700); },
   go:    () => { tone(784, 0.14, 'triangle', 0.12); tone(1175, 0.3, 'triangle', 0.12, 0.14); },
   end:   () => [784, 659, 523, 392].forEach((f, i) => tone(f, 0.25, 'triangle', 0.1, i * 0.12)),
@@ -1747,6 +1799,76 @@ const SPR = {
     '.kkkkkkkkkkkkkk.',
   ],
 
+  clam: [
+    '............',
+    '............',
+    '...kkkkkk...',
+    '..k111111k..',
+    '.k12121211k.',
+    '.k11212121k.',
+    '.k12121211k.',
+    'kkkkkkkkkkkk',
+    '.k22222222k.',
+    '..kkkkkkkk..',
+  ],
+  milk: [
+    '....kkkk....',
+    '...kwwwwk...',
+    '..kwwwwwwk..',
+    '..kkkkkkkk..',
+    '..kwwwwwwk..',
+    '..kwuuuuwk..',
+    '..kwuwwuwk..',
+    '..kwuuuuwk..',
+    '..kwwwwwwk..',
+    '..kkkkkkkk..',
+  ],
+  fish: [
+    '............',
+    '............',
+    '.k....kkkkk.',
+    'k1k.kk11111k',
+    'k11k1111w1kk',
+    'k1111111111k',
+    'k11k1111111k',
+    'k1k.kk2222k.',
+    '.k....kkkk..',
+  ],
+  fillet: [
+    '............',
+    '............',
+    '..kkkkkkk...',
+    '.k1111111k..',
+    'k111211111k.',
+    'k1111121111k',
+    '.k1211111k..',
+    '..kkkkkkk...',
+  ],
+  lobster: [
+    '.k........k.',
+    'k1k......k1k',
+    'k11k.kk.k11k',
+    '.k11k11k11k.',
+    '..k111111k..',
+    '...k1w1w1k..',
+    '...k1111k...',
+    '...k2112k...',
+    '...k1111k...',
+    '...k2112k...',
+    '..k111111k..',
+    '..kkk..kkk..',
+  ],
+  roll: [
+    '............',
+    '............',
+    '.kkkkkkkkkk.',
+    'kTTTTTTTTTTk',
+    'kTwTTTTTTTtk',
+    'kttttttttttk',
+    'kbbbbbbbbbbk',
+    '.kkkkkkkkkk.',
+  ],
+
   // ---- UI bits
   coin: [
     '..kkkk..',
@@ -1936,6 +2058,12 @@ function ingSprite(kind, state) {
     case 'mustard': return ['mustard'];
     case 'bagel': return ['bagel', state === 'raw' ? { 1: '#e8c890', 2: '#c8a060' } : state === 'burnt' ? { 1: '#3a3d48', 2: '#2b1d2a' } : { 1: '#c8843a', 2: '#8a5220' }];
     case 'creamcheese': return ['tub', { 1: '#6fb0d6' }];
+    case 'clam': return state === 'raw' ? ['clam', { 1: '#c8c0b0', 2: '#8a8070' }] : ['sausageChopped', { 1: '#f0d8c0', 2: '#e8b890' }];
+    case 'milk': return ['milk'];
+    case 'fish': return state === 'raw' ? ['fish', { 1: '#8aa8c0', 2: '#5a7890' }] : state === 'chopped' ? ['fillet', { 1: '#f4e8e0', 2: '#e8c8c0' }] : state === 'burnt' ? ['fillet', { 1: '#3a3d48', 2: '#2b1d2a' }] : ['fillet', { 1: '#e8a840', 2: '#b8762e' }];
+    case 'lobster': return ['lobster', state === 'raw' ? { 1: '#3a5a78', 2: '#2a4058' } : { 1: '#e8472f', 2: '#a8301d' }];
+    case 'roll': return ['roll'];
+    case 'chowder': return ['bowl', { 1: '#efe4c8' }];
     case 'cornmeal': return state === 'raw' ? ['batter', { Y: '#e8c060' }] : ['cornbread', state === 'burnt' ? { 1: '#3a3d48', 2: '#2b1d2a', 3: '#2b1d2a' } : { 1: '#f2c14e', 2: '#d9953f', 3: '#b8762e' }];
   }
   return ['plate'];
@@ -2300,7 +2428,7 @@ function actionPlan(c) {
   if (t.type === 'blender' && t.jar.includes('icecream') && !t.blending && !t.item) return { kind: 'blend', label: 'Blend', tile: t };
   const it = t.item;
   if (t.type !== 'board' || !chopResult(it)) return null;
-  return { kind: 'chop', label: { sliced: 'Slice', stretched: 'Stretch' }[chopResult(it)] || 'Chop', tile: t, dim: !!c.held };
+  return { kind: 'chop', label: it.kind === 'clam' ? 'Shuck' : it.kind === 'fish' ? 'Fillet' : { sliced: 'Slice', stretched: 'Stretch' }[chopResult(it)] || 'Chop', tile: t, dim: !!c.held };
 }
 
 /* ---------- actions ---------- */
@@ -2566,6 +2694,27 @@ function update(dt) {
       if (cw.burn >= 1) { cw.burnt = true; burnUp(t); }
     }
   }
+  // Live lobsters left on a counter wander off, and escape from edge counters.
+  for (const t of G.tiles) {
+    const it = t.item;
+    if (!it || it.type !== 'ing' || it.kind !== 'lobster' || it.state !== 'raw' || t.fire > 0) continue;
+    it.hopT = (it.hopT ?? LOBSTER_HOP) - dt;
+    if (it.hopT > 0 || it.moved === G.frame) continue;
+    it.hopT = LOBSTER_HOP * (0.8 + Math.random() * 0.4);
+    const edge = t.x === 0 || t.y === 0 || t.x === G.cols - 1 || t.y === G.rows - 1;
+    if (edge && t.type === 'counter' && Math.random() < 0.35) {
+      t.item = null; sfx('fail');
+      addFloat('tile', t.x + 0.5, t.y + 0.3, 'Escaped!', '#ff6b57', null);
+      continue;
+    }
+    const free = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => tileAt(t.x + dx, t.y + dy)).filter(q => q && HOP_TILES.includes(q.type) && !q.item && q.fire <= 0);
+    if (!free.length) continue;
+    const to = free[Math.floor(Math.random() * free.length)];
+    to.item = it; t.item = null; it.moved = G.frame; sfx('hop');
+    for (const c of G.chefs) if (c.task && c.task.tile === t) c.task = null;
+  }
+  G.frame = (G.frame || 0) + 1;
+
   // Burnt food keeps smoking wherever it is.
   if (Math.random() < dt * 3) for (const t of G.tiles) {
     const it = t.item;
