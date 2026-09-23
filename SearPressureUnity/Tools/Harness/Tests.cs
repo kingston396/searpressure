@@ -20,6 +20,8 @@ static partial class Tests
             case "kitchen2": Kitchen2(); break;
             case "screens": Screens(); break;
             case "economy": Economy(); break;
+            case "storeart": StoreArt(); break;
+            case "storeshots": StoreShots(); break;
             default:
                 {
                     bool handled = false;

@@ -100,7 +100,10 @@ namespace SearPressure.UnityHost
             lastW = Screen.width; lastH = Screen.height; lastSafe = Screen.safeArea;
             // Logical pixels like CSS pixels: phones come out around 360-430 wide.
             double d = Screen.dpi > 0 ? Screen.dpi / 160.0 : 1;
-            d = Math.Max(1, Math.Min(4, d));
+            // Tablets: scale up so the short side is at most ~560 logical px. Otherwise the game is a
+            // phone-sized layout lost in the middle of the screen (phones are unaffected).
+            d = Math.Max(d, Math.Min(Screen.width, Screen.height) / 560.0);
+            d = Math.Max(1, Math.Min(6, d));
             if (Screen.width / d < 320) d = Math.Max(0.5, Screen.width / 320.0);
             dpr = d;
             var sa = Screen.safeArea;

@@ -13,9 +13,9 @@ static partial class Tests
     sealed class K
     {
         public Game g;
-        public K(int level, bool unlock = true)
+        public K(int level, bool unlock = true, double w = 390, double h = 844, double dpr = 2)
         {
-            g = Program.NewGame(new HarnessPlatform { unlock = unlock });
+            g = Program.NewGame(new HarnessPlatform { unlock = unlock }, w, h, dpr);
             Program.Run(g, 0.2);
             g.play(level);
             Program.Run(g, 3.6);    // countdown

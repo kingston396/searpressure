@@ -22,6 +22,9 @@ The **Sear Pressure** menu has:
 - **Testing → Add 5,000 Coins**.
 - **Testing → Reset Save**.
 
+- **Apply Store Settings**: icon, splash, version and Android release options (see below).
+- **Release → Next Build Number**: run before every store upload.
+
 Saves use PlayerPrefs key `orderup.v1` and the same JSON as the web version's localStorage.
 
 ## How it's built
@@ -81,6 +84,28 @@ design are the same as the web version's. To play online:
 2. Set `NetConfig.RelayUrl` in `Assets/SearPressure/Unity/NetConfig.cs` to its `wss://` address.
 
 Unity WebGL builds can't use `ClientWebSocket`, so online play is off in WebGL.
+
+## Releasing
+
+On load, `Editor/SearPressureRelease.cs` fills in anything still at Unity's defaults:
+- **Icon:** `Branding/Icon.png`, plus Android adaptive, round and legacy icons.
+- **Splash:** the Sear Pressure logo on navy.
+- **Version:** 1.0.0, build 1.
+- **Android:** IL2CPP, ARM64 only, target API 36, and builds as an App Bundle (`.aab`).
+
+Settings you change by hand in Player Settings are kept. Google raises the required target API every
+August, so update `TargetApi` in that file when Play Console asks.
+
+- **Android:** File → Build Profiles → Android → Switch Platform. In Player Settings → Publishing
+  Settings, create a keystore (keep it and its passwords safe: every update must be signed with it).
+  Then Build, and upload the `.aab` to Play Console.
+- **iOS** (needs a Mac with Xcode): Build Profiles → iOS → Build, open the Xcode project, set your team,
+  then Product → Archive → Distribute.
+
+Online play is hidden (`NetConfig.OnlineEnabled = false`) until a relay is deployed.
+On tablets the game scales up so the short side is at most about 560 logical pixels.
+
+Store listing text, screenshots, the feature graphic and the privacy policy are in `../store/`.
 
 ## Differences from the web version
 
