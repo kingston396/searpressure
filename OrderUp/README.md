@@ -32,7 +32,7 @@ Up to four phones, one kitchen. On the title screen, tap **Play with a friend**.
 | Drag on the left half | WASD / arrows | Walk. You act on the counter you're facing, which gets a white outline |
 | **Grab** (yellow) | Space | Pick up, put down, plate, serve, bin. The label changes to show what it will do |
 | **Chop** (red) | E | Chop raw food on a board, or wash dirty plates at the sink. The chef keeps going until done or until you walk away. While holding the extinguisher it becomes **Spray**: hold it down to spray |
-| **Swap** (green) | Q | Switch to the other chef. It pulses yellow when your other chef finishes chopping or washing. If you swap to a chef who's mid-chop with your thumb still on the stick, they keep chopping until you let go. Your own two chefs never block each other: an idle chef steps aside, and you can slip past one who's working |
+| **Swap** (green) | Q | Switch to the other chef. It pulses yellow when your other chef finishes chopping or washing. If you swap to a chef who's mid-chop with your thumb still on the stick, they keep chopping until you let go. If your other chef stands around with nothing to do for 6 seconds, Zs float up over their head. Your own two chefs never block each other: an idle chef steps aside, and you can slip past one who's working |
 | Pause button | Esc | Pause |
 | Tap a ticket | Click a ticket | Zoom in: the dish, each item by name, time left and whether it's a delivery. Tap again or wait 4 seconds to close |
 

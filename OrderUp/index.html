@@ -3168,6 +3168,8 @@ function doChop(c) {
   c.task = { kind: p.kind, tile: p.tile };
 }
 // Your other chef just finished chopping or washing: the Swap button pulses to say they're free.
+const IDLE_ZZZ = 6;   // seconds your other chef stands idle before dozing off
+SPR.zz = ['kkkkkkk', 'kwwwwwk', 'kkkwwkk', '.kwwkk.', 'kwwkkkk', 'kwwwwwk', 'kkkkkkk'];
 function freedUp(ch) { if (!NET.role && ch !== G.chefs[G.active] && !ch.ai) G.swapPing = 2.4; }
 function doSwap() {
   const humans = G.chefs.map((c, i) => i).filter(i => !G.chefs[i].ai);
@@ -3395,6 +3397,11 @@ function update(dt) {
   if (NET.role === 'guest' && !G.versus) { updateGuest(dt); return; }
   G.swapFx = Math.max(0, G.swapFx - dt * 2.5);
   G.swapPing = Math.max(0, (G.swapPing || 0) - dt);
+  // Your other chef dozes off (zzz) after a while with nothing to do: a nudge to use both.
+  if (G.phase === 'play') for (const [i, c] of G.chefs.entries()) {
+    const napping = !NET.role && !c.ai && !c.task && i !== G.active && G.chefs.filter(o => !o.ai).length > 1;
+    c.idle = napping ? (c.idle || 0) + dt : 0;
+  }
   if (G.judge) G.judge.t -= dt;
   G.shake = Math.max(0, (G.shake || 0) - dt);
   G.coinPulse = Math.max(0, (G.coinPulse || 0) - dt * 3);
@@ -4036,6 +4043,16 @@ function drawChef(c, idx) {
     X.fillStyle = PAL.k; X.fillRect(c.x - 5 * P, cy - 0.78, 10 * P, 10 * P);
     X.fillStyle = '#e9e0f8'; X.fillRect(c.x - 4 * P, cy - 0.78 + P, 8 * P, 8 * P);
     spr(name, c.x, cy - 0.78 + 5 * P, P * 0.55, sw);
+  }
+  if (c.idle > IDLE_ZZZ) {
+    // Three Zs drift up and fade, one after another.
+    for (let k = 0; k < 3; k++) {
+      const f = ((c.idle - IDLE_ZZZ) * 0.6 + k / 3) % 1, s = P;
+      const zx = c.x + 0.25 + f * 0.45 + Math.sin(f * 6) * 0.06, zy = cy - 0.62 - f * 1.1;
+      X.globalAlpha = Math.min(1, (1 - f) * 2) * Math.min(1, (c.idle - IDLE_ZZZ) * 2);
+      spr('zz', zx, zy, s);
+    }
+    X.globalAlpha = 1;
   }
   if (idx === G.active) {
     const bob = (Math.floor(T * 3) % 2) * P + G.swapFx * 0.2;
