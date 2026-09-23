@@ -5468,7 +5468,7 @@ const RD = 0, WALK = 1, BLDG = 2, GRASS = 3, TREE = 4, DIRT = 5, BARR = 6;   // 
 const CAR_MAX = 9, CAR_REV = 3, CAR_ACC = 7, CAR_BRAKE = 14, CAR_TURN = 2.7, CAR_R = 0.32;
 const PED_PENALTY = 10;
 function CALM_DRIVE() { try { return /[?&]calm\b/.test(location.search); } catch (e) { return false; } }
-// Delivery-van upgrades from the shop (the standalone test build has no shop, so they stay off there).
+// Delivery-van upgrades from the shop.
 function vanUp(id) { return !!(save.owned && save.owned[id]); }
 const DIRV = { E: [1, 0], W: [-1, 0], N: [0, -1], S: [0, 1] };
 const ROOFS = ['#b24f5b', '#9a6ab3', '#3f6f8f', '#8a5a36', '#5a5f6e', '#c98b52', '#2e6e34', '#a86f3e', '#6a4a9a'];

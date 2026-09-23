@@ -132,7 +132,6 @@ A driving mini-game in the spirit of Crazy Taxi and The Simpsons: Hit & Run. It 
 - **Obstacles:** potholes (a jolt and lost speed), oil slicks (you spin and lose grip for a moment), and solid dumpsters on the sidewalks, as well as the cones, hydrants, bins and mailboxes you can smash.
 - **Pedestrians** (60 / 110 / 170) walk the sidewalks and use crosswalks. About half dive out of the way when you come at them fast. Knocking one over costs **10 coins**; they get up a few seconds later, dizzy. The results screen counts how many you hit.
 - Offline only. Best coins are saved per run.
-- **Test it on its own:** `drive-test.html` is a small standalone page (about 50 KB) with only the driving game, all three runs open, and its own save, so it never touches the main game's progress. Rebuild it after changing the game with `node OrderUp/tools/build-drive.js`. It copies the driving code straight out of `index.html` and wraps it in `tools/drive-shell.html`.
 
 ## Wallet and shop
 
