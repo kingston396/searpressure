@@ -164,6 +164,11 @@
   .helper .hblurb { font: 600 12px/1.25 "Nunito", system-ui, sans-serif; color: var(--muted); }
   .helper[aria-pressed="true"] { border-color: #8a5ad4; background: #f3ecff; box-shadow: 0 0 0 2px #8a5ad4; }
   .helper:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
+  .rate-box { display: flex; flex-direction: column; gap: 6px; background: var(--paper-2); border-radius: 8px; padding: 10px 12px; }
+  .rate-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .rate-btn { font: 700 14px/1.1 "Pixelify Sans", "Courier New", monospace; color: var(--text); background: #fff; border: 2px solid var(--line); border-radius: 8px; padding: 9px 4px; cursor: pointer; }
+  .rate-btn[aria-pressed="true"] { border-color: var(--tomato); background: #fff0ec; }
+  .rate-btn:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
 </style>
 </head>
@@ -273,6 +278,15 @@
       <span>Total</span><span id="res-score" class="total">0</span>
     </div>
     <p id="res-next" class="small"></p>
+    <div id="rate-box" class="rate-box" hidden>
+      <span class="mono">How did that feel?</span>
+      <div class="rate-row">
+        <button class="rate-btn" data-rating="easy" type="button" aria-pressed="false">Too easy</button>
+        <button class="rate-btn" data-rating="right" type="button" aria-pressed="false">Just right</button>
+        <button class="rate-btn" data-rating="hard" type="button" aria-pressed="false">Too hard</button>
+      </div>
+      <p id="rate-thanks" class="small" hidden>Thanks! Your answer goes into the next balance pass.</p>
+    </div>
     <div class="btn-row">
       <button id="btn-retry" class="btn alt" type="button">Retry</button>
       <button id="btn-next" class="btn" type="button">Next kitchen</button>
@@ -4269,6 +4283,44 @@ function spawnHelper(kind) {
 }
 
 /* =========================================================================
+   Playtest log. On the published Claude page, every finished service is
+   recorded (privately, per tester) with an optional difficulty rating, so the
+   game can be balanced from real play. Elsewhere this quietly does nothing.
+   ========================================================================= */
+
+const PLAYTEST = { db: null, uid: null, ref: null };
+(async () => {
+  try {
+    if (!window.claude || typeof window.claude.use !== 'function') return;
+    const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    if (!db || !user) return;
+    const me = await user.me();
+    if (!me || !me.id) return;
+    PLAYTEST.db = db; PLAYTEST.uid = me.id;
+  } catch (e) {}
+})();
+
+function logRun(stars) {
+  PLAYTEST.ref = null;
+  if (!PLAYTEST.db || !G || G.lv.tutorial) return;
+  const id = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const ref = PLAYTEST.db.doc(`playtests/${PLAYTEST.uid}/runs/${id}`);
+  ref.set({
+    v: 1, at: Date.now(), level: G.lvIdx, kitchen: G.lv.name, stop: G.lv.stop, humans: G.humans || 1,
+    score: G.score, stars, targets: starTargets(G.lvIdx, G.humans), served: G.served, missed: G.failed, tips: G.tips,
+    strikes: G.strikes || 0, kicked: !!G.kicked, helpers: G.chefs.filter(c => c.ai).map(c => c.ai.kind), rating: null,
+  }).then(() => { PLAYTEST.ref = ref; }).catch(() => {});
+  PLAYTEST.ref = ref;
+}
+
+function rateRun(rating) {
+  if (!PLAYTEST.ref) return;
+  PLAYTEST.ref.update({ rating }).catch(() => {});
+  for (const b of document.querySelectorAll('.rate-btn')) b.setAttribute('aria-pressed', String(b.dataset.rating === rating));
+  $('rate-thanks').hidden = false;
+}
+
+/* =========================================================================
    Screens
    ========================================================================= */
 
@@ -4374,6 +4426,10 @@ function showResults() {
   const i = G.lvIdx, lv = G.lv, stars = G.kicked ? 0 : starsFor(i, G.score, G.humans);
   const need = starTargets(i, G.humans)[0];
   if (stars) { save.stars = save.stars || []; if (stars > (save.stars[i] || 0)) { save.stars[i] = stars; persist(); } }
+  logRun(stars);
+  $('rate-box').hidden = !PLAYTEST.db;
+  $('rate-thanks').hidden = true;
+  for (const b of document.querySelectorAll('.rate-btn')) b.setAttribute('aria-pressed', 'false');
   if (!G.kicked && G.humans === 1 && (!save.best[i] || G.score > save.best[i])) { save.best[i] = G.score; persist(); }
   $('res-no').textContent = 'Kitchen ' + String(i + 1).padStart(2, '0');
   $('res-name').textContent = lv.name;
@@ -4400,6 +4456,7 @@ function showResults() {
 }
 
 $('btn-howto').onclick = () => show('scr-howto');
+for (const b of document.querySelectorAll('.rate-btn')) b.onclick = () => rateRun(b.dataset.rating);
 $('btn-online').onclick = () => { audioInit(); setOnlineButtons(true); netStatus('Both phones need an internet connection. Once you\'re connected, the game data goes straight between your phones.'); show('scr-online'); };
 $('btn-host').onclick = () => { audioInit(); hostGame(); };
 $('btn-join').onclick = () => { audioInit(); joinGame(); };

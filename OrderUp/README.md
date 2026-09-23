@@ -129,6 +129,18 @@ Each served order pays its menu price plus a tip of up to 10 coins, scaled by ho
 - **Dishwashing** (kitchens with `dishes: true`): served plates come back dirty through the hatch. Carry the stack to the sink and wash the plates there, and clean ones appear on the plate rack.
 - **Fire** (kitchens with `fire: true`): burnt food sets its counter alight. Fire spreads to a neighbouring counter every few seconds, and you can't use a counter while it's burning. Items on it aren't destroyed. Pick up the extinguisher and hold Spray while facing the flames.
 
+## Playtest feedback
+
+When the game is opened as the published Claude artifact, every finished kitchen is logged for balancing: the kitchen, player count, score, stars, star targets, orders served and missed, tips, Judge strikes and hired helpers. The results screen asks **How did that feel?** (Too easy / Just right / Too hard), and the answer is saved with the run. No names are stored, only an anonymous per-tester id. Testers need "Can interact" access to the artifact for their runs to save. Outside the artifact (a local file, Netlify) nothing is logged and the question is hidden.
+
+To read the results, export the `playtests` collection to `runs.json` and run:
+
+```
+node OrderUp/tools/playtest.js runs.json
+```
+
+It prints each kitchen's run count, pass rate, average score against the 1-star target, 3-star rate and ratings, with a hint to ease off or push. Apply changes in `tools/tune.js` (pace and targets) and re-run it with `--write`.
+
 ## Tweaking
 
 Everything you'd want to tune is at the top of the `<script>`:
