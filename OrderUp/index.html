@@ -2775,7 +2775,7 @@ function heatAccepts(t, it) { const f = heatFood(t, it); return !!f && (it.state
 function onHeat(t) { return heatAccepts(t, t.item); }
 
 function startLevel(idx, opts = {}) {
-  const lv = idx === 'tutorial' ? TUTORIAL : idx === 'daily' ? dailyLevel(opts.dailyKey) : LEVELS[idx];
+  const lv = idx === 'tutorial' ? TUTORIAL : idx === 'daily' ? dailyLevel(opts.dailyKey, opts.dailyBase) : LEVELS[idx];
   $('tut').hidden = true;
   let map = lv.map;
   // No two services alike: a seed per service may mirror the kitchen, shuffles the crates and
@@ -4523,7 +4523,7 @@ function onNetMessage(m, from) {
     if (Array.isArray(m.fits)) NET.fits = m.fits.map(String);
     if (Array.isArray(m.gears)) NET.gears = m.gears.map(cleanGear);
     const versus = m.vs != null;
-    startLevel(m.lv, { transpose: m.tr, dailyKey: m.dk, players: m.n, versus, seed: versus ? +m.vs : undefined, vary: m.vary, events: !!m.events });
+    startLevel(m.lv, { transpose: m.tr, dailyKey: m.dk, dailyBase: m.dk ? m.db : undefined, players: m.n, versus, seed: versus ? +m.vs : undefined, vary: m.vary, events: !!m.events });
     NET.vs = {}; NET.vsT = 0;
     G.active = versus ? 0 : NET.slot;
     for (const c of G.chefs) { c.tx = c.x; c.ty = c.y; }
@@ -5625,13 +5625,20 @@ function mulberry32(a) {
   return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
 function seedOf(str) { let h = 2166136261; for (const ch of str) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; }
-function todayKey() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+// Days change at midnight UTC, so everyone in the world gets the same challenge at the same moment.
+function todayKey() { return new Date().toISOString().slice(0, 10); }
 let DAILY = null;
-function dailyLevel(key = todayKey()) {
-  if (DAILY && DAILY.key === key) return DAILY.lv;
+// The kitchen comes from the campaign kitchens this player has unlocked. It's remembered for the
+// day so unlocking a new kitchen doesn't swap it; online guests get the host's (forceBase).
+function dailyLevel(key = todayKey(), forceBase = null) {
+  if (DAILY && DAILY.key === key && (forceBase == null ? !DAILY.forced : DAILY.base === forceBase)) return DAILY.lv;
   const r = mulberry32(seedOf(key));
-  const pool = LEVELS.map((l, i) => i).filter(i => LEVELS[i].stop <= 9);
-  const base = LEVELS[pool[Math.floor(r() * pool.length)]];
+  const pool = LEVELS.map((l, i) => i).filter(i => LEVELS[i].stop <= 9 && unlocked(i));
+  if (!pool.length) pool.push(0);
+  const pick = pool[Math.floor(r() * pool.length)], kept = save.dailyPick;
+  const bi = forceBase != null ? forceBase : kept && kept.key === key && pool.includes(kept.base) ? kept.base : pick;
+  if (forceBase == null && !(kept && kept.key === key && kept.base === bi)) { save.dailyPick = { key, base: bi }; persist(); }
+  const base = LEVELS[bi];
   const twist = DAILY_TWISTS[Math.floor(r() * DAILY_TWISTS.length)];
   const lv = Object.assign({}, base, { daily: true, baseName: base.name, interval: base.interval.slice() });
   twist.apply(lv);
@@ -5639,7 +5646,7 @@ function dailyLevel(key = todayKey()) {
   lv.stars = base.stars.map(v => Math.round(v * mul / 10) * 10);
   const qs = DAILY_QUESTS.filter(q => !q.needs || q.needs(lv));
   const q = qs[Math.floor(r() * qs.length)], qn = q.n ? q.n(lv) : 0;
-  DAILY = { key, lv, twist, seed: seedOf(key + ':orders'), quest: { id: q.id, n: qn, text: q.text(qn), ok: g => q.ok(g, qn) } };
+  DAILY = { key, base: bi, forced: forceBase != null, lv, twist, seed: seedOf(key + ':orders'), quest: { id: q.id, n: qn, text: q.text(qn), ok: g => q.ok(g, qn) } };
   return lv;
 }
 function lvOf(i) { return i === 'daily' ? (G && G.lv.daily ? G.lv : dailyLevel()) : i === 'tutorial' ? TUTORIAL : LEVELS[i]; }
@@ -5649,7 +5656,7 @@ function syncDailyButton() {
   const lv = dailyLevel(), done = questDone();
   $('daily-sub').textContent = `${DAILY.twist.name} at ${lv.baseName} · ${done ? 'Quest done ✓' : 'Quest: ' + QUEST_REWARD + ' coins'}`;
 }
-function dailyDate() { return new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
+function dailyDate() { return new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' }); }
 
 /* =========================================================================
    Delivery Run: drive the orders out yourself, Crazy Taxi style.
@@ -6757,7 +6764,7 @@ function play(i) {
   if (NET.role === 'host') {
     // Chef slots are fixed for the whole service, so a friend leaving doesn't reshuffle anyone.
     NET.guests.forEach((g, k) => { g.slot = k + 1; g.remote = { mx: 0, my: 0, held: false, grab: false, chop: false }; });
-    for (const g of NET.guests) if (g.conn.open) g.conn.send({ t: 'start', lv: i, tr: G.transposed, dk: DAILY && DAILY.key, n: G.chefs.length, me: g.slot, fits: NET.fits, gears: NET.gears, vs: versus ? seed : null, vary: G.vary, events: G.eventsOn });
+    for (const g of NET.guests) if (g.conn.open) g.conn.send({ t: 'start', lv: i, tr: G.transposed, dk: DAILY && DAILY.key, db: DAILY && DAILY.base, n: G.chefs.length, me: g.slot, fits: NET.fits, gears: NET.gears, vs: versus ? seed : null, vary: G.vary, events: G.eventsOn });
   }
 }
 function syncPauseButtons() {
