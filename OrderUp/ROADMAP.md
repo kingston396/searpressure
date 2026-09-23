@@ -73,6 +73,8 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 
 ## Done since
 - Guided tutorial level (`TUT_STEPS`): 14 steps covering controls, tickets and kitchen symbols.
+- Bonus boss: The Judge's Table (strikes, cold/overcooked checks, Chef Brutus Blaze).
+- Tester unlock: `#unlockall` on the link.
 
 ## Later
 - ~~Stop 2: Drive-In Burgers~~ Done: 3 kitchens with the deep fryer, blender, griddle patties and cheese.

@@ -282,6 +282,7 @@ const STOPS = [
   { name: 'New England Seafood Shack', blurb: 'Chowder, fish & chips, and lobsters that will not sit still.', needStars: 5 },
   { name: 'California Coast', blurb: 'Fresh, fast and impatient. Short cooks, shorter tickets.', needStars: 5 },
   { name: 'Thanksgiving Finale', blurb: 'The end of the road. Everyone is coming for dinner.', needStars: 5 },
+  { name: "The Judge's Table", blurb: 'One service. One judge. No mercy.', bonus: true },
 ];
 
 // Map legend:
@@ -739,6 +740,20 @@ const LEVELS = [
       '#9#OR##j#Z#',
     ],
   },
+  {
+    stop: 10, judge: true, name: "The Judge's Table", time: 240, stars: [260, 330, 400], maxOrders: 5, interval: [7, 11], timeScale: 0.7, plates: 5, fire: true, dishes: true,
+    recipes: ['deluxe', 'tsoup', 'fishchips', 'sshake'],
+    tip: 'Chef Brutus Blaze tastes everything. Three strikes and you are out: a wrong dish, cold food (more than 15 seconds off the heat), overcooked food, anything burning, or a customer who gives up waiting. Tickets are shorter here. Plate it hot, and plate it right.',
+    map: [
+      '#XZPK#H#fY#',
+      'M....#....G',
+      'C.1..#..2.G',
+      'L.........S',
+      'C....#....S',
+      'T....#....V',
+      '#B#UR##WYI#',
+    ],
+  },
 ];
 
 // Ingredient keys are "kind:state". Soups are "soup:<flavour>".
@@ -864,8 +879,12 @@ function stopStars(s) { return LEVELS.reduce((n, lv, i) => n + (lv.stop === s ? 
 function firstOfStop(i) { return LEVELS.findIndex(l => l.stop === LEVELS[i].stop) === i; }
 // The first kitchen of a stop opens with enough stars from the previous stop;
 // the rest open one star at a time.
+// Testers: open the game with #unlockall on the end of the link to open every kitchen.
+function unlockAll() { try { return /unlockall/i.test(location.hash); } catch (e) { return false; } }
 function unlocked(i) {
+  if (unlockAll()) return true;
   const lv = LEVELS[i];
+  if (STOPS[lv.stop].bonus) return bestStars(i - 1) >= 1;
   if (!firstOfStop(i)) return bestStars(i - 1) >= 1;
   return lv.stop === 0 || stopStars(lv.stop - 1) >= STOPS[lv.stop].needStars;
 }
@@ -927,6 +946,7 @@ const SFX = {
   splash: () => noise(0.1, 0.25, 1200),
   clean: () => tone(1480, 0.12, 'sine', 0.07, 0, 400),
   brew:  () => tone(300, 0.25, 'triangle', 0.06, 0, 120),
+  strike: () => { tone(110, 0.55, 'sawtooth', 0.12, 0, -30); tone(98, 0.55, 'square', 0.06); noise(0.3, 0.3, 200); },
   hop:   () => { tone(900, 0.05, 'square', 0.04); tone(1200, 0.05, 'square', 0.03, 0.06); },
   blend: () => { tone(180, 0.9, 'sawtooth', 0.04, 0, 220); noise(0.8, 0.12, 700); },
   go:    () => { tone(784, 0.14, 'triangle', 0.12); tone(1175, 0.3, 'triangle', 0.12, 0.14); },
@@ -2043,6 +2063,31 @@ const SPR = {
     '...kkkkkk...',
   ],
 
+  judge: [
+    '...k.kk.kk.k....',
+    '..kykyykyykyk...',
+    '..kyyyyyyyyyk...',
+    '.kyyyyyyyyyyyk..',
+    '.kssssssssssk...',
+    '.kskkksssskkksk.',
+    '.ksskwksskwkssk.',
+    '.ksssssSsssssk..',
+    '.kssskkkkkssk...',
+    '.ksskRRRRRksk...',
+    '.ksskkkkkkssk...',
+    '..kssssssssk....',
+    '.kwwkssssskwwk..',
+    'kwwwwkkkkkwwwwk.',
+    'kwwwwwwwwwwwwwk.',
+  ],
+  frost: [
+    '.kkk.',
+    'kuwuk',
+    'kwwwk',
+    'kuwuk',
+    '.kkk.',
+  ],
+
   // ---- UI bits
   coin: [
     '..kkkk..',
@@ -2404,9 +2449,11 @@ function startLevel(idx, opts = {}) {
     returns: [], floats: [], puffs: [], swapFx: 0, lastSec: 99, sprayT: 0, crackleT: 0,
     plateTile: tiles.find(t => t.type === 'plates'), hatch: tiles.find(t => t.type === 'hatch'),
     transposed, netTiles: tiles.filter(t => t.type !== 'floor'),
+    strikes: 0, clock: 0, judge: null, kicked: false, shake: 0,
     crateKinds: new Set(tiles.filter(t => t.type === 'crate').map(t => t.kind)),
   };
   input.grab = input.chop = input.swap = false;
+  if (lv.judge) { judgeSay('start', 0); G.judge.t = 6; }
 }
 
 function tileAt(x, y) {
@@ -2540,15 +2587,15 @@ function combinePlan(c, t) {
     if (under && it.state === 'raw') return { label: 'Add', run() { [h.kind, h.state] = under; h.cook = 0; t.item = null; sfx('pick'); } };
   }
   if (h.type === 'ing' && it.type === 'plate' && canPlate(it, ingKey(h)))
-    return { label: 'Plate', run() { it.items.push(ingKey(h)); c.held = null; sfx('drop'); } };
+    return { label: 'Plate', run() { platePush(it, ingKey(h), h); c.held = null; sfx('drop'); } };
   if (h.type === 'ing' && canCook(it, h))
     return { label: 'Add', run() { it.items.push(ingKey(h)); c.held = null; sfx('drop'); } };
   if (h.type === 'plate' && it.type === 'ing' && canPlate(h, ingKey(it)))
-    return { label: 'Plate', run() { h.items.push(ingKey(it)); t.item = null; sfx('pick'); } };
+    return { label: 'Plate', run() { platePush(h, ingKey(it), it); t.item = null; sfx('pick'); } };
   if (h.type === 'plate' && cookResult(it) && canPlate(h, cookResult(it)))
-    return { label: 'Plate', run() { h.items.push(cookResult(it)); emptyCookware(it); sfx('pick'); } };
+    return { label: 'Plate', run() { platePush(h, cookResult(it), it); emptyCookware(it); sfx('pick'); } };
   if (isCookware(h) && it.type === 'plate' && cookResult(h) && canPlate(it, cookResult(h)))
-    return { label: 'Plate', run() { it.items.push(cookResult(h)); emptyCookware(h); sfx('drop'); } };
+    return { label: 'Plate', run() { platePush(it, cookResult(h), h); emptyCookware(h); sfx('drop'); } };
   if (isCookware(h) && canCook(h, it))
     return { label: 'Add', run() { h.items.push(ingKey(it)); t.item = null; sfx('pick'); } };
   return null;
@@ -2573,7 +2620,7 @@ function grabPlan(c) {
     if (h.type === 'ing') return { label: 'Bin', run() { c.held = null; sfx('trash'); } };
     if (h.type === 'dirty') return { label: 'Bin', dim: true, run() { say(c, 'Wash them in the sink'); sfx('nope'); } };
     if (h.type === 'ext') return null;
-    if (h.items.length) return { label: 'Bin', run() { if (isCookware(h)) emptyCookware(h); else h.items = []; sfx('trash'); } };
+    if (h.items.length) return { label: 'Bin', run() { if (isCookware(h)) emptyCookware(h); else { h.items = []; delete h.hotAt; delete h.over; } sfx('trash'); } };
     return null;
   }
   if (t.type === 'serve') {
@@ -2595,7 +2642,7 @@ function grabPlan(c) {
   }
   // Holding a plate at a crate of something ready to eat (chips, cheese, buns): straight onto the plate.
   if (t.type === 'crate' && !it && h.type === 'plate' && canPlate(h, t.kind + ':raw'))
-    return { label: 'Plate', run() { h.items.push(t.kind + ':raw'); sfx('pick'); } };
+    return { label: 'Plate', run() { platePush(h, t.kind + ':raw', null); sfx('pick'); } };
   if (!it) {
     if (t.type === 'stove' && !isCookware(h)) return null;
     if (HEAT[t.type] && !heatAccepts(t, h)) return null;
@@ -2649,7 +2696,12 @@ function serve(c) {
   const h = c.held;
   const items = h.type === 'plate' ? h.items : [ingKey(h)];
   const idx = G.orders.findIndex(o => sameItems(orderItems(o), items));
-  if (idx < 0) { say(c, 'Nobody ordered that'); sfx('nope'); return; }
+  if (idx < 0) {
+    if (G.lv.judge) { judgeReject(c, h, 'wrong'); return; }
+    say(c, 'Nobody ordered that'); sfx('nope'); return;
+  }
+  const flaw = judgeFlaw(h);
+  if (flaw) { judgeReject(c, h, flaw); return; }
   const o = G.orders[idx];
   const tip = Math.round(TIP_MAX * o.timeLeft / o.total);
   const earned = orderReward(o) + tip;
@@ -2661,7 +2713,17 @@ function serve(c) {
   addFloat('tile', st.x + 0.5, st.y + 0.2, '+' + earned, '#f5b82e', tip >= 7 ? 'Speedy!' : null);
   G.coinPulse = 1;
   sfx('serve'); buzz(25);
+  if (G.lv.judge && (!G.judge || G.judge.t <= 0 || G.judge.mood === 0) && Math.random() < 0.7) judgeSay('good', 0);
   if (G.orders.length === 0) G.nextOrder = Math.min(G.nextOrder, 1.2);
+}
+
+// The judge sends a plate back: it goes in the bin and you take a strike.
+function judgeReject(c, h, kind) {
+  c.held = null;
+  if (h.type === 'plate') G.returns.push(PLATE_RETURN);
+  const st = c.target;
+  addFloat('tile', st.x + 0.5, st.y + 0.2, 'Rejected!', '#ff6b57', kind === 'wrong' ? 'Wrong dish' : kind === 'cold' ? 'Cold' : 'Overcooked');
+  strike(kind);
 }
 
 // Floating text anchored to a kitchen tile ('tile', in tiles) or under the tickets ('hud').
@@ -2675,7 +2737,7 @@ function spawnOrder() {
   let r = opts[Math.floor(Math.random() * opts.length)];
   if (r === G.lastRecipe && opts.length > 1 && Math.random() < 0.5) r = opts[Math.floor(Math.random() * opts.length)];
   G.lastRecipe = r;
-  const R = RECIPES[r], total = R.time;
+  const R = RECIPES[r], total = Math.round(R.time * (G.lv.timeScale || 1));
   const items = R.items.slice();
   let reward = R.reward;
   if (R.extras) {
@@ -2689,6 +2751,8 @@ function spawnOrder() {
 }
 
 function endLevel() {
+  if (G.phase === 'over') return;
+  if (G.lv.judge && !G.kicked) judgeSay(starsFor(G.lvIdx, G.score) ? 'pass' : 'out', starsFor(G.lvIdx, G.score) ? 0 : 2);
   G.phase = 'over'; G.endT = 0;
   for (const c of G.chefs) { c.task = null; c.spraying = false; }
   sfx('end');
@@ -2784,6 +2848,8 @@ function update(dt) {
   if (!G || paused) return;
   if (NET.role === 'guest') { updateGuest(dt); return; }
   G.swapFx = Math.max(0, G.swapFx - dt * 2.5);
+  if (G.judge) G.judge.t -= dt;
+  G.shake = Math.max(0, (G.shake || 0) - dt);
   G.coinPulse = Math.max(0, (G.coinPulse || 0) - dt * 3);
   updateFx(dt);
 
@@ -2803,6 +2869,7 @@ function update(dt) {
   }
 
   if (!G.lv.tutorial) G.time -= dt;
+  G.clock += dt;
   const sec = G.lv.tutorial ? 99 : Math.ceil(G.time);
   if (sec <= 10 && sec < G.lastSec && sec > 0) sfx('tick');
   G.lastSec = sec;
@@ -2873,9 +2940,10 @@ function update(dt) {
     if (cw.cook < 1) {
       cw.cook += dt / cook;
       if (Math.random() < dt * 3) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(255,255,255,.55)', 0.9, 'steam');
-      if (cw.cook >= 1) { cw.cook = 1; sfx('ding'); }
+      if (cw.cook >= 1) { cw.cook = 1; cw.hotAt = G.clock; sfx('ding'); }
     } else {
       cw.burn += dt / burn;
+      cw.hotAt = G.clock;
       warnBeep(cw, dt);
       if (Math.random() < dt * 4 * cw.burn) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(90,90,90,.6)', 1.2, 'steam');
       if (cw.burn >= 1) { cw.burnt = true; burnUp(t); }
@@ -2924,6 +2992,7 @@ function update(dt) {
       const lost = Math.min(G.score, MISS_PENALTY);
       G.score -= lost;
       addFloat('hud', 0, 0, lost ? '-' + lost : 'Missed', '#ff6b57', lost ? 'Missed' : null);
+      strike('late');
       sfx('fail'); buzz([40, 60, 40]);
     }
   }
@@ -2951,8 +3020,9 @@ function cookHeat(t, dt) {
     it.cook += dt / secs;
     if (t.type === 'smoker') { if (Math.random() < dt * 3) addPuff(t.x + 0.72, t.y - 0.05, 'rgba(200,200,200,.5)', 1.4, 'steam'); }
     else if (Math.random() < dt * 4) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(255,255,255,.5)', 0.7, 'steam');
-    if (it.cook >= 1) { it.cook = 1; it.state = 'cooked'; sfx('ding'); }
+    if (it.cook >= 1) { it.cook = 1; it.state = 'cooked'; it.hotAt = G.clock; sfx('ding'); }
   } else if (it.state === 'cooked') {
+    it.hotAt = G.clock;
     it.burn += dt / HEAT[t.type].burn;
     warnBeep(it, dt);
     if (Math.random() < dt * 4 * it.burn) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(90,90,90,.6)', 1.2, 'steam');
@@ -2963,6 +3033,7 @@ function cookHeat(t, dt) {
 // Food burning: smoke, and in kitchens with fire, the counter goes up in flames.
 function burnUp(t) {
   sfx('burn');
+  strike('burn');
   for (let i = 0; i < 8; i++) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(40,40,40,.7)', 1.6, 'steam');
   ignite(t);
 }
@@ -3046,11 +3117,12 @@ function updateFx(dt) {
 // Tile size is chosen so every sprite pixel lands on whole device pixels.
 function kitchenGeom() {
   const res = tutReserve();
+  const shake = G.shake > 0 ? (Math.random() - 0.5) * 10 * G.shake : 0;
   const k = res ? { x: L.kitchen.x, y: L.kitchen.y + res, w: L.kitchen.w, h: L.kitchen.h - res } : L.kitchen;
   const raw = Math.min(k.w / G.cols, k.h / G.rows, 96);
   const ts = Math.max(16, Math.floor(raw * DPR / 16) * 16) / DPR;
   const snap = v => Math.round(v * DPR) / DPR;
-  return { ts, ox: snap(k.x + (k.w - G.cols * ts) / 2), oy: snap(k.y + (k.h - G.rows * ts) / 2) };
+  return { ts, ox: snap(k.x + (k.w - G.cols * ts) / 2 + shake), oy: snap(k.y + (k.h - G.rows * ts) / 2) };
 }
 
 function render(dt) {
@@ -3061,6 +3133,7 @@ function render(dt) {
   if (!G) { drawBackdrop(); return; }
   drawKitchen();
   drawHUD(dt);
+  if (G.lv.judge) drawJudge();
   drawControls();
   if (G.tut) { drawTutorialUI(); $('tut').style.top = (L.kitchen.y + 2) + 'px'; }
   drawBanner();
@@ -3219,6 +3292,11 @@ function drawKitchen() {
   for (const t of G.tiles) if (t.item) drawItem(t.item, t.x + 0.5, t.y + (t.type === 'coffee' ? 0.62 : t.type === 'blender' ? 0.5 : 0.4), P);
   const order = G.chefs.map((c, i) => i).sort((a, b) => G.chefs[a].y - G.chefs[b].y);
   for (const i of order) drawChef(G.chefs[i], i);
+  // Frost on anything that's gone cold (only the judge cares).
+  if (G.lv.judge) {
+    for (const t of G.tiles) if (isCold(t.item)) spr('frost', t.x + 0.82, t.y + 0.12, P);
+    for (const c of G.chefs) if (isCold(c.held)) spr('frost', c.x + 0.3, c.y - 0.7, P);
+  }
   for (const t of G.tiles) drawTileOverlay(t);
   for (const t of G.tiles) if (t.fire > 0) drawFire(t);
   for (const p of G.puffs) {
@@ -3383,7 +3461,7 @@ function drawBanner() {
     text = n > 3 ? null : String(n);
     if (G.countdown > 3) text = 'Ready?';
   } else if (G.phase === 'play' && !G.lv.tutorial && G.time > G.lv.time - 0.8) text = 'Go!';
-  else if (G.phase === 'over') { text = "Time's up!"; size = 52; }
+  else if (G.phase === 'over') { text = G.kicked ? 'Kicked out!' : "Time's up!"; size = 52; }
   if (!text) return;
   const k = L.kitchen;
   X.font = `400 ${size}px "Pixelify Sans", system-ui, sans-serif`; X.textAlign = 'center'; X.textBaseline = 'middle';
@@ -3578,6 +3656,7 @@ function snapshot() {
     or: G.orders.map(o => [o.id, o.recipe, o.total, +o.timeLeft.toFixed(2), orderItems(o), orderReward(o)]),
     g: [G.score, G.tips, G.served, G.failed, +G.time.toFixed(2), G.phase, +G.countdown.toFixed(2), +G.endT.toFixed(2)],
     ev: NET.events.splice(0),
+    jd: [G.strikes || 0, G.judge ? G.judge.text : null, G.judge ? +G.judge.t.toFixed(1) : 0, G.judge ? G.judge.mood : 0, !!G.kicked, +(G.clock || 0).toFixed(1)],
   };
 }
 
@@ -3607,6 +3686,12 @@ function applySnapshot(m) {
     const old = G.orders.find(o => o.id === id);
     return { id, recipe, total, timeLeft, items, reward, x: old ? old.x : null };
   });
+  if (m.jd) {
+    const [strikes, text, t, mood, kicked, clock] = m.jd;
+    if (strikes > (G.strikes || 0)) G.shake = 0.4;
+    G.strikes = strikes; G.kicked = kicked; G.clock = clock;
+    G.judge = text ? { text, t, mood } : null;
+  }
   const prevPhase = G.phase;
   [G.score, G.tips, G.served, G.failed, G.time, G.phase, G.countdown, G.endT] = m.g;
   if (G.phase === 'over' && prevPhase !== 'over') { for (const c of G.chefs) c.task = null; }
@@ -3842,6 +3927,98 @@ function syncTutorialButton() {
 }
 
 /* =========================================================================
+   The Judge's Table: Chef Brutus Blaze inspects every plate.
+   Three strikes (wrong, cold, overcooked, burnt, or a customer left waiting)
+   and you are out of his kitchen.
+   ========================================================================= */
+
+const COLD_TIME = 15;       // seconds a cooked dish stays hot once it's off the heat
+const OVERDONE = 0.35;      // burn progress past which food counts as overcooked
+const MAX_STRIKES = 3;
+
+const JUDGE_LINES = {
+  start: ['Welcome to MY kitchen. Three mistakes and you are OUT.', 'Every plate crosses my pass. Every. Single. One.'],
+  wrong: ['That is NOT what they ordered! Read the ticket!', 'Did you even LOOK at the ticket?', 'Wrong dish! Are you cooking blindfolded?'],
+  cold: ['It is stone cold! Were you saving it for tomorrow?', 'Cold! My freezer is warmer than this plate!', 'This went cold while you were daydreaming!'],
+  overcooked: ['Overcooked! This is charcoal with a garnish!', 'Dry as a desert! Start again!', 'I could build a house with this!'],
+  burn: ['Something is burning, and it had better not be MY kitchen!', 'Smoke? SMOKE?! Get that off the heat!', 'You burnt it! Unbelievable!'],
+  late: ['The customer LEFT. Can you blame them?', 'Too slow! They grew a beard waiting!', 'Table four walked out. Wonderful.'],
+  good: ['Hmm. Acceptable.', 'Finally. Something edible.', 'Not bad. Do not let it go to your head.', 'Yes! That is how it is done!', 'Good. Now do it again. Faster.'],
+  out: ['That is it. Get OUT of my kitchen!', 'Three strikes! Take off that apron. You are DONE!'],
+  pass: ['...Fine. You can cook. Now get out before I change my mind.'],
+};
+
+function judgeSay(kind, mood) {
+  const lines = JUDGE_LINES[kind];
+  G.judge = { text: lines[Math.floor(Math.random() * lines.length)], t: 3.2, mood };
+}
+
+function strike(kind) {
+  if (!G.lv.judge || G.phase !== 'play') return;
+  G.strikes = (G.strikes || 0) + 1;
+  G.shake = 0.4;
+  sfx('strike'); buzz([60, 40, 60]);
+  if (G.strikes >= MAX_STRIKES) {
+    G.kicked = true;
+    judgeSay('out', 2);
+    endLevel();
+  } else judgeSay(kind, 1);
+}
+
+// Quality travels with a plate: when its hot parts came off the heat, and whether any were overdone.
+function platePush(plate, key, src) {
+  plate.items.push(key);
+  if (!src) return;
+  if (src.hotAt != null) plate.hotAt = Math.min(plate.hotAt ?? Infinity, src.hotAt);
+  if ((src.burn || 0) > OVERDONE) plate.over = true;
+}
+function isCold(x) { return G.lv.judge && x && x.hotAt != null && G.clock - x.hotAt > COLD_TIME; }
+
+// The judge's verdict on a served plate or cup that matched an order: null means perfect.
+function judgeFlaw(h) {
+  if (!G.lv.judge) return null;
+  if (h.over || (h.type === 'ing' && (h.burn || 0) > OVERDONE)) return 'overcooked';
+  if (isCold(h)) return 'cold';
+  return null;
+}
+
+// Blaze's portrait and speech bubble, over the top of the kitchen.
+function drawJudge() {
+  const j = G.judge;
+  const k = L.kitchen, x = k.x + 6, y = k.y + 4;
+  // Strikes, under the timer.
+  const bw = 22, gap = 6, sx = W / 2 - 60 - (bw * 3 + gap * 2), sy = L.bar.y + 8;
+  for (let i = 0; i < MAX_STRIKES; i++) {
+    const on = i < (G.strikes || 0);
+    X.fillStyle = PAL.k; X.fillRect(sx + i * (bw + gap) - 2, sy - 2, bw + 4, bw + 4);
+    X.fillStyle = on ? '#e8472f' : '#2a3150'; X.fillRect(sx + i * (bw + gap), sy, bw, bw);
+    X.fillStyle = on ? '#fff' : '#4a5270';
+    X.font = '700 16px "Pixelify Sans", monospace'; X.textAlign = 'center'; X.textBaseline = 'middle';
+    X.fillText('X', sx + i * (bw + gap) + bw / 2, sy + bw / 2 + 1);
+  }
+  if (!j || j.t <= 0) return;
+  X.globalAlpha = Math.min(1, j.t * 3);
+  const face = j.mood === 0 ? '#f2c9a0' : j.mood === 1 ? '#f0a080' : '#e8604a';
+  X.fillStyle = PAL.k; X.fillRect(x - 3, y - 3, 58, 58);
+  X.fillStyle = '#2a3150'; X.fillRect(x, y, 52, 52);
+  spr('judge', x + 26, y + 26 + (j.mood ? Math.round(Math.sin(T * 30)) : 0), 3, { s: face, S: mix(face, '#000000', 0.2) });
+  // bubble
+  const bx = x + 62, maxW = Math.min(300, W - bx - 12);
+  X.font = '700 15px "Pixelify Sans", "Courier New", monospace';
+  const words = j.text.split(' '), lines = [];
+  let line = '';
+  for (const w of words) { const t = line ? line + ' ' + w : w; if (X.measureText(t).width > maxW - 20 && line) { lines.push(line); line = w; } else line = t; }
+  lines.push(line);
+  const bh = lines.length * 19 + 14;
+  X.fillStyle = PAL.k; X.fillRect(bx - 3, y - 3, maxW + 6, bh + 6);
+  X.fillStyle = j.mood ? '#fff0ec' : '#fff5de'; X.fillRect(bx, y, maxW, bh);
+  X.fillStyle = PAL.k; X.beginPath(); X.moveTo(bx - 3, y + 16); X.lineTo(bx - 12, y + 24); X.lineTo(bx - 3, y + 30); X.fill();
+  X.fillStyle = j.mood === 2 ? '#c0301d' : '#2b2230'; X.textAlign = 'left'; X.textBaseline = 'top';
+  lines.forEach((l, i) => X.fillText(l, bx + 10, y + 8 + i * 19));
+  X.globalAlpha = 1;
+}
+
+/* =========================================================================
    Screens
    ========================================================================= */
 
@@ -3859,8 +4036,8 @@ function buildLevelList() {
     const head = document.createElement('div');
     head.className = 'stop-head';
     const open = LEVELS.some((l, i) => l.stop === si && unlocked(i));
-    const need = si > 0 && !open ? `Collect ${stop.needStars} stars in ${STOPS[si - 1].name} to get here.` : stop.blurb;
-    head.innerHTML = `<span class="mono">Stop ${si}</span><h3>${stop.name}</h3><p class="small">${need}</p>`;
+    const need = si > 0 && !open ? (stop.bonus ? `Earn a star on ${LEVELS[LEVELS.findIndex(l => l.stop === si) - 1].name} to earn a seat.` : `Collect ${stop.needStars} stars in ${STOPS[si - 1].name} to get here.`) : stop.blurb;
+    head.innerHTML = `<span class="mono">${stop.bonus ? 'Bonus challenge' : 'Stop ' + si}</span><h3>${stop.name}</h3><p class="small">${need}</p>`;
     box.appendChild(head);
     LEVELS.forEach((lv, i) => {
       if (lv.stop !== si) return;
@@ -3922,8 +4099,8 @@ function toMenu() {
 }
 
 function showResults() {
-  const i = G.lvIdx, lv = G.lv, stars = starsFor(i, G.score);
-  if (!save.best[i] || G.score > save.best[i]) { save.best[i] = G.score; persist(); }
+  const i = G.lvIdx, lv = G.lv, stars = G.kicked ? 0 : starsFor(i, G.score);
+  if (!G.kicked && (!save.best[i] || G.score > save.best[i])) { save.best[i] = G.score; persist(); }
   $('res-no').textContent = 'Kitchen ' + String(i + 1).padStart(2, '0');
   $('res-name').textContent = lv.name;
   $('res-stars').innerHTML = starHTML(stars);
@@ -3941,6 +4118,9 @@ function showResults() {
   else if (nextOk) $('res-next').textContent = '';
   else if (next.stop !== lv.stop) $('res-next').textContent = `Collect ${STOPS[next.stop].needStars} stars in ${STOPS[lv.stop].name} to drive on to ${STOPS[next.stop].name}. You have ${stopStars(lv.stop)}.`;
   else $('res-next').textContent = 'Earn ' + lv.stars[0] + ' coins to unlock ' + next.name + '.';
+  if (lv.finale && stars && nextOk) $('res-next').textContent = "You made it to Thanksgiving. The road trip is complete! A bonus challenge has opened: The Judge's Table.";
+  else if (next && STOPS[next.stop].bonus && !nextOk) $('res-next').textContent = "Earn a star here to earn a seat at The Judge's Table.";
+  if (lv.judge) $('res-next').textContent = G.kicked ? `Chef Blaze threw you out after ${MAX_STRIKES} strikes. "${G.judge ? G.judge.text : ''}"` : stars ? 'Chef Blaze grunts. From him, that is a standing ovation. You passed!' : `Not enough. Chef Blaze wants ${lv.stars[0]} coins with no more than two strikes.`;
   if (guest) $('res-next').textContent = 'Your friend is picking what to play next.';
   show('scr-results');
 }
@@ -3972,6 +4152,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && G &
    ========================================================================= */
 
 window.addEventListener('resize', resize);
+window.addEventListener('hashchange', () => { if (!G) buildLevelList(); });
 window.addEventListener('orientationchange', () => setTimeout(resize, 150));
 resize();
 syncMute();
