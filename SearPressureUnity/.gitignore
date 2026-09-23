@@ -21,4 +21,6 @@
 Tools/**/bin/
 Tools/**/obj/
 !Tools/Harness/Harness.csproj
+!Tools/UnityCheck/UnityCheck.csproj
+!Tools/EditorCheck/EditorCheck.csproj
 Server/node_modules/

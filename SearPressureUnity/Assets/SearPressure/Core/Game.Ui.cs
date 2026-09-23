@@ -190,14 +190,28 @@ namespace SearPressure
         // An uppercase DM Mono label; `right` puts a second label on the same line.
         void Mono(string text, string right = null, bool gapAfter = true, string color = MUTED)
         {
-            double h = 16;
+            double h = 16, sp = 12 * 0.08;
+            X.font = F_MONO;
+            // A long label wraps onto more lines (only when nothing sits on its right).
+            var lines = new List<string>();
+            if (right != null) lines.Add(text.ToUpperInvariant());
+            else
+            {
+                string line = "";
+                foreach (var w in text.ToUpperInvariant().Split(' '))
+                {
+                    string t = line.Length > 0 ? line + " " + w : w;
+                    if (line.Length > 0 && SpacedWidth(t, sp) > cw) { lines.Add(line); line = w; } else line = t;
+                }
+                lines.Add(line);
+            }
             if (uiDraw)
             {
-                X.font = F_MONO; X.fillStyle = color; X.textBaseline = "middle";
-                SpacedText(text.ToUpperInvariant(), cx0, cy + h / 2, 12 * 0.08);
-                if (right != null) { string r = right.ToUpperInvariant(); SpacedText(r, cx0 + cw - SpacedWidth(r, 12 * 0.08), cy + h / 2, 12 * 0.08); }
+                X.fillStyle = color; X.textBaseline = "middle";
+                for (int i = 0; i < lines.Count; i++) SpacedText(lines[i], cx0, cy + h / 2 + i * 18, sp);
+                if (right != null) { string r = right.ToUpperInvariant(); SpacedText(r, cx0 + cw - SpacedWidth(r, sp), cy + h / 2, sp); }
             }
-            cy += h; if (gapAfter) Gap();
+            cy += h + (lines.Count - 1) * 18; if (gapAfter) Gap();
         }
         // Mono label on the left, a small text button on the right (Settings on the title card).
         bool MonoWithLink(string text, string id, string link)

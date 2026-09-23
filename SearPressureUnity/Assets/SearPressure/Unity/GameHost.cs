@@ -66,6 +66,7 @@ namespace SearPressure.UnityHost
         }
 
         void OnDestroy() { if (Instance == this) Instance = null; }
+        void OnApplicationQuit() => game?.AppQuit();
 
         // ---- IPlatform ----
         public string LoadSave() => PlayerPrefs.GetString(SaveData.Key, "");

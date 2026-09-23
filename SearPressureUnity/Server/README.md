@@ -19,8 +19,8 @@ npm install
 npm start               # listens on port 8080, or on $PORT
 ```
 
-`GET /` returns `ok N rooms`, which you can use for health checks. In the game, the platform's
-`CreateTransport()` returns `new WsRelayTransport("ws://<your-ip>:8080")`.
+`GET /` returns `ok N rooms`, which you can use for health checks. In the game, set
+`NetConfig.RelayUrl` (`Assets/SearPressure/Unity/NetConfig.cs`) to `"ws://<your-ip>:8080"`.
 
 ## Deploy
 
