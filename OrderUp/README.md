@@ -118,6 +118,16 @@ Each served order pays its menu price plus a tip of up to 10 coins, scaled by ho
 - **Story scenes:** before the first kitchen of each stop (and the Judge's Table), Rosa (the truck's owner) and Mo (her co-driver) have a short scene with the food truck on the road (`STORY`). Each plays once; Skip is always there. Not shown online.
 - **Bonus kitchens** (Roadside Specials): Midnight Diner, State Fair and Ghost Kitchen, opened by total stars (20 / 45 / 70). They're tuned like stops 2, 5 and 7 (`tier` in the level data).
 
+## Secret bonus: Delivery Runs
+
+A driving mini-game in the spirit of Crazy Taxi and The Simpsons: Hit & Run. It stays hidden until you earn it: three stars on **Curb Service** reveals Run 1 (Drive-In Strip), three stars on **Corner Slice** Run 2 (Big Easy Streets), and three stars on **Ghost Kitchen** Run 3 (Manhattan Rush). The results screen announces each one the first time, and a **Delivery Runs** section appears at the bottom of the kitchen list (locked runs show as ???). `#unlockall` opens them all.
+
+- **Driving:** a top-down chase camera turns with your car. Drag on the left: up is gas, down is brake then reverse, sideways steers. Hold **Drift** (or Space) to loosen the grip and slide.
+- **Deliveries:** you start with 60 seconds and 3 bags. Follow the arrow, then stop in the green ring to hand a bag over: 12 coins plus a tip for speed, and +6 seconds (+10 for a speedy one). After three bags, head back to the food truck to reload (+3 seconds).
+- **Bonus coins:** drifts, jumps off yellow ramps ("Big air!"), near misses with traffic, and knocking over cones, hydrants, bins and mailboxes.
+- **The city** is generated from the run's seed (`DRIVE_RUNS`): a grid of two-lane roads, sidewalks, buildings, and parks you can cut across (mind the trees). Traffic keeps to the right-hand lane and turns at junctions. It stops when you bump it.
+- Offline only. Best coins are saved per run.
+
 ## Difficulty
 
 - **Rising curve:** each kitchen's ticket rate is set so that "pressure" (orders per minute × work per dish, counting long cooks) rises smoothly. It goes up about 1.2 per stop, and +5 from a stop's first kitchen to its last, so each stop opens gently while it teaches its twist and ends with a rush. Star targets are 35%, 55% and 75% of every possible coin at that pace, creeping up slightly at later stops. `node OrderUp/tools/tune.js` prints the table, and `--write` applies it after you change recipes or levels.

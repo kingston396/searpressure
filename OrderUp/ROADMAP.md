@@ -98,5 +98,5 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 - ~~Stop 9: Thanksgiving Finale~~ Done: turkey (roast and carve), stuffing, mash, pumpkin pie and the Feast plate. The Big Feast is the 5-minute boss service. **The road trip campaign is complete: 31 kitchens across 10 stops.**
 - ~~Polish: ticket readability~~ Done: long tickets wrap their icons onto two rows, and tapping a ticket zooms it with every item named.
 - ~~Versus mode~~ Done: online, 2–4 players, each racing their own copy of the kitchen with the same seeded tickets and a live score board.
-- Driving mini-game.
+- ~~Driving mini-game~~ Done: Delivery Runs, a secret Crazy Taxi-style bonus. Three runs, each found by three-starring a delivery kitchen.
 - Unity port: iOS and Android builds, between-level ads with the Remove Ads purchase, and online play through Netcode or Photon.
