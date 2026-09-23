@@ -232,6 +232,7 @@
     <div class="mono">On the menu</div>
     <div id="intro-menu" class="menu-list"></div>
     <p id="intro-tip" class="tip"></p>
+    <p id="intro-note" class="small" hidden></p>
     <div id="helper-box" class="helper-box" hidden>
       <div class="mono" id="helper-title">Hire a helper for this shift</div>
       <div id="helper-list" class="helper-list"></div>
@@ -760,7 +761,8 @@ const LEVELS = [
   {
     stop: 10, judge: true, name: "The Judge's Table", time: 240, stars: [400, 520, 650], maxOrders: 5, interval: [7, 11], timeScale: 0.7, plates: 5, fire: true, dishes: true,
     recipes: ['deluxe', 'tsoup', 'fishchips', 'sshake'],
-    tip: 'Judges Ember Sterling, Nitro Spark and Yourdone Ramsey taste everything. Three strikes and you are out: a wrong dish, cold food (more than 15 seconds off the heat), overcooked food, anything burning, or a customer who gives up waiting. Tickets are shorter here. Plate it hot, and plate it right.',
+    note: 'All judges are fictional parody characters, not affiliated with or endorsed by any real chef.',
+    tip: 'Judges Nyesha Garnishton, Richard Braise and Yourdone Ramsey taste everything. Three strikes and you are out: a wrong dish, cold food (more than 15 seconds off the heat), overcooked food, anything burning, or a customer who gives up waiting. Tickets are shorter here. Plate it hot, and plate it right.',
     map: [
       '#XZPK#H#fY#',
       'M....#....G',
@@ -4008,8 +4010,8 @@ const MAX_STRIKES = 3;
 // The panel. Each judge has a portrait sprite and calls out their own kind of mistake.
 const JUDGES = {
   ramsey: { name: 'Yourdone Ramsey', sprite: 'judgeRamsey' },     // head judge: wrong dishes, walk-outs, the verdict
-  spark:  { name: 'Nitro Spark', sprite: 'judgeSpark' },          // food scientist: overcooked and burnt food
-  ember:  { name: 'Ember Sterling', sprite: 'judgeEmber' },       // perfectionist: cold food
+  spark:  { name: 'Richard Braise', sprite: 'judgeSpark' },       // heat: overcooked and burnt food
+  ember:  { name: 'Nyesha Garnishton', sprite: 'judgeEmber' },    // polish and temperature: cold food
 };
 // [who says it, lines]. Praise comes from any judge, in their own voice.
 const JUDGE_LINES = {
@@ -4311,6 +4313,8 @@ function openIntro(i) {
   $('intro-time').textContent = fmtTime(lv.time) + ' service';
   $('intro-name').textContent = lv.name;
   $('intro-tip').textContent = lv.tip;
+  $('intro-note').textContent = lv.note || '';
+  $('intro-note').hidden = !lv.note;
   const humans = NET.role ? 2 : 1;
   $('intro-stars').textContent = 'Stars at ' + starTargets(i, humans).join(' / ') + ' coins' + (humans > 1 ? ` · co-op: ${Math.round(COOP_STEP * (humans - 1) * 100)}% busier service` : '');
   // Solo players at the Judge's Table hire helpers from three random offers:
@@ -4390,7 +4394,7 @@ function showResults() {
   else $('res-next').textContent = 'Earn ' + need + ' coins to unlock ' + next.name + '.';
   if (lv.finale && stars && nextOk) $('res-next').textContent = "You made it to Thanksgiving. The road trip is complete! A bonus challenge has opened: The Judge's Table.";
   else if (next && STOPS[next.stop].bonus && !nextOk) $('res-next').textContent = "Earn a star here to earn a seat at The Judge's Table.";
-  if (lv.judge) $('res-next').textContent = G.kicked ? `Yourdone Ramsey threw you out after ${MAX_STRIKES} strikes. "${G.judge ? G.judge.text : ''}"` : stars ? 'Yourdone Ramsey grunts, Nitro Spark nods and Ember Sterling smiles. You passed the Judge\'s Table!' : `Not enough. The judges want ${need} coins with no more than two strikes.`;
+  if (lv.judge) $('res-next').textContent = G.kicked ? `Yourdone Ramsey threw you out after ${MAX_STRIKES} strikes. "${G.judge ? G.judge.text : ''}"` : stars ? 'Yourdone Ramsey grunts, Richard Braise nods and Nyesha Garnishton smiles. You passed the Judge\'s Table!' : `Not enough. The judges want ${need} coins with no more than two strikes.`;
   if (guest) $('res-next').textContent = 'Your friend is picking what to play next.';
   show('scr-results');
 }
