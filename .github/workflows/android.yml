@@ -1,0 +1,156 @@
+# Builds Sear Pressure for Android on every push to main, and on demand (Actions tab → Android build →
+# Run workflow). Setup, secrets and how to download the builds: .github/workflows/README.md
+name: Android build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'SearPressureUnity/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+    inputs:
+      apk:
+        description: 'Also build an .apk to install straight on a phone'
+        type: boolean
+        default: true
+      play_track:
+        description: 'Upload the .aab to Google Play as a draft on this track (needs PLAY_SERVICE_ACCOUNT_JSON)'
+        type: choice
+        options: [none, internal, alpha]
+        default: none
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The whole game runs headless in .NET: kitchens, menus, economy, Delivery Runs and online play.
+  tests:
+    name: Game tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+      - name: Install the relay server (for the online tests)
+        working-directory: SearPressureUnity/Server
+        run: npm ci
+      - name: Build the test harness
+        working-directory: SearPressureUnity/Tools/Harness
+        run: dotnet build -v q
+      - name: Run every scenario
+        working-directory: SearPressureUnity/Tools/Harness
+        run: |
+          set -o pipefail
+          status=0
+          for t in smoke kitchen kitchen2 screens economy driveall net relay; do
+            echo "::group::$t"
+            dotnet run --no-build -- "$t" "$RUNNER_TEMP/shots" 2>&1 | tee "$RUNNER_TEMP/$t.log"
+            echo "::endgroup::"
+            if grep -qE '(^|\s)FAIL\s|[1-9][0-9]* (failed|FAILED)$' "$RUNNER_TEMP/$t.log"; then
+              echo "::error::$t has failing checks"; status=1
+            fi
+          done
+          exit $status
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-screenshots
+          path: ${{ runner.temp }}/shots
+          retention-days: 7
+
+  build:
+    name: Android (.aab${{ github.event_name == 'workflow_dispatch' && inputs.apk && ' + .apk' || '' }})
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      HAS_UNITY: ${{ secrets.UNITY_LICENSE != '' }}
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - name: Check the Unity licence secrets
+        if: env.HAS_UNITY != 'true'
+        run: |
+          echo "::error::Add the UNITY_LICENSE, UNITY_EMAIL and UNITY_PASSWORD secrets first (see .github/workflows/README.md)."
+          exit 1
+      - name: Note about signing
+        if: env.HAS_KEYSTORE != 'true'
+        run: echo "::warning::No ANDROID_KEYSTORE_BASE64 secret, so this build is signed with a debug key. It installs on a phone but Google Play won't accept it."
+
+      - uses: jlumbroso/free-disk-space@v2
+        with:
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: true
+          swap-storage: false
+
+      - uses: actions/checkout@v7
+
+      - name: Version code
+        id: version
+        # Google Play needs a bigger number for every upload. CI builds use 100 + the run number, so
+        # they never clash with builds 1-99 made by hand in Unity.
+        run: echo "code=$((100 + ${{ github.run_number }}))" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v6
+        with:
+          path: SearPressureUnity/Library
+          key: Library-Android-${{ hashFiles('SearPressureUnity/Assets/**', 'SearPressureUnity/Packages/**', 'SearPressureUnity/ProjectSettings/**') }}
+          restore-keys: Library-Android-
+
+      - name: Build with Unity
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: SearPressureUnity
+          targetPlatform: Android
+          buildName: SearPressure
+          buildMethod: SearPressure.EditorTools.CiBuild.Android
+          versioning: None
+          androidExportType: androidAppBundle
+          androidVersionCode: ${{ steps.version.outputs.code }}
+          androidKeystoreName: upload.keystore
+          androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+          customParameters: -spAlsoApk ${{ github.event_name == 'workflow_dispatch' && inputs.apk && 'true' || 'false' }}
+
+      - name: Name the files
+        run: |
+          sudo chown -R "$(id -u)" build || true
+          cd build/Android
+          for f in SearPressure.*; do [ -f "$f" ] && mv "$f" "SearPressure-1.0.0-${{ steps.version.outputs.code }}.${f##*.}"; done
+          ls -lh
+
+      - name: Upload the builds
+        uses: actions/upload-artifact@v7
+        with:
+          name: SearPressure-android-${{ steps.version.outputs.code }}
+          path: |
+            build/Android/*.aab
+            build/Android/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload to Google Play (draft)
+        if: github.event_name == 'workflow_dispatch' && inputs.play_track != 'none' && env.HAS_KEYSTORE == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.kingstongames.searpressure
+          releaseFiles: build/Android/*.aab
+          track: ${{ inputs.play_track }}
+          status: draft

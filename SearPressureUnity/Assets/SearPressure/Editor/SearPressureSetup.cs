@@ -27,7 +27,7 @@ namespace SearPressure.EditorTools
         [MenuItem("Sear Pressure/Set Up Project", priority = 0)]
         public static void SetupMenu() => Setup(true);
 
-        static void Setup(bool verbose)
+        internal static void Setup(bool verbose)
         {
             SessionState.SetBool(DoneKey, true);
             if (!File.Exists(ScenePath))
@@ -90,7 +90,7 @@ namespace SearPressure.EditorTools
             {
                 p.intValue = 2;
                 so.ApplyModifiedProperties();
-                EditorUtility.DisplayDialog("Sear Pressure", "Active Input Handling was set to \"Both\" so the game can read touches and keys. Unity needs a restart for this to take effect.", "OK");
+                if (!Application.isBatchMode) EditorUtility.DisplayDialog("Sear Pressure", "Active Input Handling was set to \"Both\" so the game can read touches and keys. Unity needs a restart for this to take effect.", "OK");
             }
         }
 

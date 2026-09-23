@@ -43,6 +43,10 @@ Google signs the app for the store. You sign each upload with your own **upload 
 1. **Sear Pressure → Release → Next Build Number** before every upload except the very first (build 1).
 2. Build Profiles → Android → tick **Build App Bundle (Google Play)** → **Build**. Save as `SearPressure-1.0.0.aab`.
 
+**Or let GitHub build it:** every push to `main` builds a signed `.aab` automatically once the secrets are set up
+(see `.github/workflows/README.md`). Download it from the run's **Artifacts**. CI builds are numbered 101, 102, …,
+so if you use them, don't mix in hand-made builds with higher numbers.
+
 ## 4. Google Play Console
 
 1. Sign up at **play.google.com/console** ($25 once, identity verification can take a few days).

@@ -33,7 +33,7 @@ namespace SearPressure.EditorTools
         [MenuItem("Sear Pressure/Apply Store Settings", priority = 2)]
         public static void ApplyMenu() => Apply(true);
 
-        static void Apply(bool force)
+        internal static void Apply(bool force)
         {
             var icon = AssetDatabase.LoadAssetAtPath<Texture2D>(Dir + "Icon.png");
             if (icon == null) return;   // still importing; runs again next load
