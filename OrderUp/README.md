@@ -45,14 +45,19 @@ The campaign is a food truck road trip (see `ROADMAP.md`). Kitchens are grouped 
 | 8 | Drive-In Burgers | Curb Service | Burger, Cheeseburger, Fries | Deep fryer, patties on the griddle |
 | 9 | Drive-In Burgers | Shake Shack | + Vanilla & Strawberry Shakes | Blender (served in the cup) |
 | 10 | Drive-In Burgers | Friday Night Rush | + Burger & Fries | Split kitchen, everything at once |
+| 11 | Texas BBQ Smokehouse | Low & Slow | Smoked Ribs, Cornbread | Smoker (long cooks, so plan ahead) |
+| 12 | Texas BBQ Smokehouse | Brisket Board | Brisket Plate, Ribs, Mac & Cheese | Slicing smoked brisket; pot recipes |
+| 13 | Texas BBQ Smokehouse | Pitmaster Showdown | + Pitmaster Platter, Cornbread | Three smokers, split kitchen |
 
-Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers). Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
+Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers, 5 for the Smokehouse). Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
 
 ## Kitchen systems
 
-- **Griddle:** put eggs, bacon, batter or chopped meat (patties) straight on it. They cook and then start to burn, with a flashing warning and beeps first.
+- **Griddle:** put eggs, bacon, batter, cornmeal or chopped meat (patties) straight on it. They cook and then start to burn, with a flashing warning and beeps first.
 - **Coffee machine:** tap Grab to brew a mug.
 - **Deep fryer:** chop potatoes, then drop them in. Fryers burn faster than griddles.
+- **Smoker:** ribs (15s) and brisket (20s) go in whole. It's slow, but there's a long window before they burn, and smoked meat keeps once it's off the heat. Smoked brisket gets **sliced** on a board before plating.
+- **Pots follow recipes** (`POT_RECIPES`): 3 tomatoes, 3 onions, or 2 macaroni + 1 cheese. A pot only takes ingredients that lead to something on the kitchen's menu.
 - **Blender:** add a scoop of ice cream (and a strawberry for a strawberry shake), then tap **Blend**. Shakes are served in the cup, like coffee.
 - **Dishwashing** (kitchens with `dishes: true`): served plates come back dirty through the hatch. Carry the stack to the sink and wash the plates there, and clean ones appear on the plate rack.
 - **Fire** (kitchens with `fire: true`): burnt food sets its counter alight. Fire spreads to a neighbouring counter every few seconds, and you can't use a counter while it's burning. Items on it aren't destroyed. Pick up the extinguisher and hold Spray while facing the flames.

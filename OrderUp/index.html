@@ -254,6 +254,7 @@ const STOPS = [
   { name: 'Hometown Diner', blurb: 'Where the truck starts out.' },
   { name: 'Route 66 Breakfast', blurb: 'Griddles, coffee and a sink full of dishes.', needStars: 3 },
   { name: 'Drive-In Burgers', blurb: 'Hot fryers, cold shakes and a lot of patties.', needStars: 4 },
+  { name: 'Texas BBQ Smokehouse', blurb: 'Low and slow. Get the smokers going before the orders come in.', needStars: 5 },
 ];
 
 // Map legend:
@@ -267,6 +268,7 @@ const STOPS = [
 //  E N D      crates: egg, bacon, pancake batter
 //  Y  deep fryer      V    blender
 //  U I W J    crates: potato, ice cream, strawberry, cheese
+//  s  smoker          a b m c  crates: ribs, brisket, macaroni, cornmeal
 //
 // New kitchens go at the end of the list: best scores are saved by index.
 const LEVELS = [
@@ -410,6 +412,48 @@ const LEVELS = [
       '#B#G#R#G#Y#',
     ],
   },
+  {
+    stop: 3, name: 'Low & Slow', time: 180, stars: [60, 140, 210], maxOrders: 4, interval: [12, 17], plates: 4, fire: true, dishes: true,
+    recipes: ['ribs', 'cornbread'],
+    tip: 'Ribs take a long time in the smoker, so load them before the orders arrive. Smoked meat keeps once it is off the heat. Cornbread goes on the griddle.',
+    map: [
+      '#X#H#K#P#',
+      'a.......s',
+      '#..1.2..#',
+      'c..###..s',
+      '#.......#',
+      'G.......Z',
+      '###R#G###',
+    ],
+  },
+  {
+    stop: 3, name: 'Brisket Board', time: 200, stars: [80, 170, 260], maxOrders: 4, interval: [12, 17], plates: 4, fire: true, dishes: true,
+    recipes: ['brisket', 'ribs', 'mac'],
+    tip: 'Smoked brisket has to be sliced on a board before it goes on a plate. Mac & cheese: two macaroni and one cheese in a pot.',
+    map: [
+      '#X##H#K#P##',
+      'b.........s',
+      'C.1.#S#.2.s',
+      '#...#m#...#',
+      'C.........G',
+      'a....Z....S',
+      '#J#c#R#G###',
+    ],
+  },
+  {
+    stop: 3, name: 'Pitmaster Showdown', time: 240, stars: [110, 230, 350], maxOrders: 5, interval: [10, 15], plates: 5, fire: true, dishes: true,
+    recipes: ['platter', 'brisket', 'mac', 'ribs', 'cornbread'],
+    tip: 'The Pitmaster Platter needs ribs, sliced brisket and cornbread on one plate. Keep all three smokers full.',
+    map: [
+      '#XZPK#H##s#',
+      'b....#....s',
+      'C.1..#..2.#',
+      'a.........S',
+      'C....#....S',
+      'm....#....G',
+      '#J#cR##G#s#',
+    ],
+  },
 ];
 
 // Ingredient keys are "kind:state". Soups are "soup:<flavour>".
@@ -429,14 +473,27 @@ const RECIPES = {
   combo:        { name: 'Burger & Fries',   items: ['bun:raw', 'meat:cooked', 'potato:cooked'],  reward: 40, time: 95 },
   vshake:       { name: 'Vanilla Shake',    items: ['shake:vanilla'],                            reward: 14, time: 50, mug: true },
   sshake:       { name: 'Strawberry Shake', items: ['shake:strawberry'],                         reward: 18, time: 55, mug: true },
+  ribs:         { name: 'Smoked Ribs',        items: ['ribs:cooked'],                                          reward: 34, time: 100 },
+  cornbread:    { name: 'Cornbread',          items: ['cornmeal:cooked'],                                      reward: 14, time: 55 },
+  brisket:      { name: 'Brisket Plate',      items: ['brisket:sliced', 'cornmeal:cooked'],                    reward: 44, time: 120 },
+  mac:          { name: 'Mac & Cheese',       items: ['mac:cheese'],                                           reward: 26, time: 85 },
+  platter:      { name: 'Pitmaster Platter',  items: ['ribs:cooked', 'brisket:sliced', 'cornmeal:cooked'],   reward: 62, time: 150 },
 };
 
-const CRATES = { T: 'tomato', L: 'lettuce', O: 'onion', M: 'meat', B: 'bun', E: 'egg', N: 'bacon', D: 'batter', U: 'potato', I: 'icecream', W: 'strawberry', J: 'cheese' };
+// What a pot makes. It only takes ingredients on the way to one of these (and only ones on the menu).
+const POT_RECIPES = [
+  { needs: ['tomato:chopped', 'tomato:chopped', 'tomato:chopped'], result: 'soup:tomato', color: '#e5552f' },
+  { needs: ['onion:chopped', 'onion:chopped', 'onion:chopped'], result: 'soup:onion', color: '#d69a3a' },
+  { needs: ['macaroni:raw', 'macaroni:raw', 'cheese:raw'], result: 'mac:cheese', color: '#f2c14e' },
+];
+
+const CRATES = { T: 'tomato', L: 'lettuce', O: 'onion', M: 'meat', B: 'bun', E: 'egg', N: 'bacon', D: 'batter', U: 'potato', I: 'icecream', W: 'strawberry', J: 'cheese', a: 'ribs', b: 'brisket', m: 'macaroni', c: 'cornmeal' };
 // Heat tiles cook food placed straight on them: [state it goes in as, seconds to cook].
 // Cooked food starts burning; it's on fire `burn` seconds later.
 const HEAT = {
-  griddle: { burn: 8, foods: { egg: ['raw', 5], bacon: ['raw', 6], batter: ['raw', 6], meat: ['chopped', 6] } },
+  griddle: { burn: 8, foods: { egg: ['raw', 5], bacon: ['raw', 6], batter: ['raw', 6], meat: ['chopped', 6], cornmeal: ['raw', 7] } },
   fryer:   { burn: 6, foods: { potato: ['chopped', 6] } },
+  smoker:  { burn: 14, foods: { ribs: ['raw', 15], brisket: ['raw', 20] } },
 };
 const CUPS = ['coffee', 'shake'];          // served in their cup, no plate
 const BLENDABLE = ['icecream', 'strawberry'];
@@ -447,7 +504,6 @@ const FIRE_SPREAD = 4.5;    // seconds between a fire jumping to a neighbouring 
 const SPRAY_RANGE = 2.7;
 const FIREPROOF = ['floor', 'serve', 'sink', 'hatch'];
 const CHOPPABLE = ['tomato', 'lettuce', 'onion', 'meat', 'potato'];
-const SOUPABLE = ['tomato', 'onion'];
 const CHOP_TIME = 2.0;
 const POT_COOK = 9, POT_BURN = 10;
 const PAN_COOK = 7, PAN_BURN = 9;
@@ -1193,6 +1249,77 @@ const SPR = {
     '...kkkkkkkkk....',
   ],
 
+  ribs: [
+    '............',
+    '............',
+    '.kkkkkkkkkk.',
+    'k1111111111k',
+    'k1313131311k',
+    'k1313131312k',
+    'k1111111122k',
+    '.k22222222k.',
+    '..kkkkkkkk..',
+  ],
+  brisket: [
+    '............',
+    '..kkkkkkkk..',
+    '.k33333333k.',
+    'k1111111111k',
+    'k1111111111k',
+    'k1111111112k',
+    'k1111111122k',
+    '.k22222222k.',
+    '..kkkkkkkk..',
+  ],
+  brisketSliced: [
+    '............',
+    '............',
+    '.kk..kk..kk.',
+    'k32kk32kk32k',
+    'k12kk12kk12k',
+    'k12kk12kk12k',
+    'k12kk12kk12k',
+    '.kk..kk..kk.',
+  ],
+  macaroni: [
+    '............',
+    '..kkkkkkkk..',
+    '.kuuuuuuuuk.',
+    '.kuwwwwwwuk.',
+    '.kuwykykwuk.',
+    '.kuwkykywuk.',
+    '.kuwwwwwwuk.',
+    '.kuuuuuuuuk.',
+    '.kUUUUUUUUk.',
+    '..kkkkkkkk..',
+  ],
+  cornbread: [
+    '............',
+    '............',
+    '.kkkkkkkkkk.',
+    '.k11111111k.',
+    '.k12111211k.',
+    '.k11121111k.',
+    '.k21111112k.',
+    '.k11211111k.',
+    '.k33333333k.',
+    '.kkkkkkkkkk.',
+  ],
+  smoker: [
+    '..........kk....',
+    '..........kDk...',
+    '..........kDk...',
+    '..kkkkkkkkkDkk..',
+    '.kDDDDDDDDDDDDk.',
+    '.kD1111111111Dk.',
+    '.kDDDDDDDDDDDDk.',
+    '.kDddddddddddDk.',
+    '.kDDDDDDDDDDDDk.',
+    '.kDdGddddddGdDk.',
+    '.kDDDDDDDDDDDDk.',
+    '.kkkkkkkkkkkkkk.',
+  ],
+
   // ---- UI bits
   coin: [
     '..kkkk..',
@@ -1325,6 +1452,7 @@ function sprTL(name, x, y, px, swaps) { const c = sprite(name, swaps); X.drawIma
 const PATTY = { chopped: { 1: '#ec8a92', 2: '#b24f5b', 3: '#f7c0c6' }, cooked: { 1: '#8a5a36', 2: '#5a3620', 3: '#5a3620' }, burnt: { 1: '#3a3d48', 2: '#2b1d2a', 3: '#2b1d2a' } };
 const FRIED = { cooked: { 1: '#ffffff', 2: '#f5b82e' }, burnt: { 1: '#4a4040', 2: '#2b1d2a' } };
 const BACON = { raw: { 1: '#ec8a92', 2: '#f8e0da' }, cooked: { 1: '#a3492f', 2: '#e8b27a' }, burnt: { 1: '#3a3d48', 2: '#5a5f6e' } };
+const SMOKED = { raw: { 1: '#d95a66', 2: '#9e3440', 3: '#f7e6d8' }, cooked: { 1: '#6a2e1c', 2: '#3a160c', 3: '#e8c8a0' }, burnt: { 1: '#3a3d48', 2: '#2b1d2a', 3: '#5a5f6e' } };
 const PANCAKE = { cooked: { 1: '#e8b060', 2: '#b8762e', 3: '#fff0a0', 4: '#8a4a16' }, burnt: { 1: '#3a3d48', 2: '#2b1d2a', 3: '#4a4040', 4: '#2b1d2a' } };
 
 // Which sprite (and swaps) shows an ingredient in a given state.
@@ -1345,6 +1473,11 @@ function ingSprite(kind, state) {
     case 'strawberry': return ['strawberry'];
     case 'cheese': return ['cheese'];
     case 'shake': return ['shake', { 1: state === 'strawberry' ? '#f4a3b8' : '#fff1c8' }];
+    case 'ribs': return ['ribs', SMOKED[state]];
+    case 'brisket': return state === 'sliced' ? ['brisketSliced', { 1: '#c46a5a', 2: '#4a2418', 3: '#f0d8b8' }] : ['brisket', SMOKED[state]];
+    case 'macaroni': return ['macaroni'];
+    case 'mac': return ['bowl', { 1: '#f2c14e' }];
+    case 'cornmeal': return state === 'raw' ? ['batter', { Y: '#e8c060' }] : ['cornbread', state === 'burnt' ? { 1: '#3a3d48', 2: '#2b1d2a', 3: '#2b1d2a' } : { 1: '#f2c14e', 2: '#d9953f', 3: '#b8762e' }];
   }
   return ['plate'];
 }
@@ -1378,14 +1511,14 @@ function drawDish(recipeKey, x, y, px) {
 function potColor(p) {
   if (p.burnt) return '#1e1a1c';
   if (!p.items.length) return '#3a3d48';
-  const base = p.items[0] === 'tomato' ? '#e5552f' : '#d69a3a';
-  if (p.items.length < 3) return '#8fc0d6';
+  const r = potTarget(p), base = r ? r.color : '#e5552f';
+  if (!potFull(p)) return '#8fc0d6';
   return mix('#8fc0d6', base, Math.round(Math.min(1, p.cook) * 6) / 6);
 }
 function drawPot(p, x, y, px) {
   spr('pot', x, y, px, { 1: potColor(p) });
   if (!p.burnt && p.items.length && p.cook < 1) {
-    p.items.forEach((k, i) => drawIng(k, 'chopped', x - px * 2.5 + i * px * 2.5, y - px, px * 0.4));
+    p.items.forEach((k, i) => drawKey(k, x - px * 2.5 + i * px * 2.5, y - px, px * 0.4));
   }
 }
 function drawPan(p, x, y, px) {
@@ -1465,6 +1598,7 @@ function startLevel(idx, opts = {}) {
     else if (ch === 'F') { t.type = 'stove'; t.item = newPan(); }
     else if (ch === 'G') t.type = 'griddle';
     else if (ch === 'Y') t.type = 'fryer';
+    else if (ch === 's') t.type = 'smoker';
     else if (ch === 'V') { t.type = 'blender'; t.jar = []; t.blend = 0; t.blending = false; }
     else if (ch === 'Q') { t.type = 'coffee'; t.brew = 0; t.brewing = false; }
     else if (ch === 'K') { t.type = 'sink'; t.dirty = 0; t.wash = 0; }
@@ -1562,14 +1696,31 @@ function canPlate(plate, key) {
     return next.every(k => { const i = pool.indexOf(k); if (i < 0) return false; pool.splice(i, 1); return true; });
   });
 }
+function subMultiset(small, big) {
+  const pool = big.slice();
+  return small.every(k => { const i = pool.indexOf(k); if (i < 0) return false; pool.splice(i, 1); return true; });
+}
+// Pot recipes whose result this kitchen's menu uses.
+function potRecipes() { const want = new Set(menuItems().flat()); return POT_RECIPES.filter(r => want.has(r.result)); }
+function potTarget(p) { return potRecipes().find(r => subMultiset(p.items, r.needs)); }
+function potFull(p) { return potRecipes().find(r => sameItems(r.needs, p.items)); }
+function cookwareFull(cw) { return cw.type === 'pot' ? !!potFull(cw) : cw.items.length === 1; }
 function cookResult(cw) {
   if (!isCookware(cw) || cw.burnt || cw.cook < 1) return null;
-  return cw.type === 'pot' ? 'soup:' + cw.items[0] : 'meat:cooked';
+  if (cw.type === 'pot') { const r = potFull(cw); return r ? r.result : null; }
+  return 'meat:cooked';
 }
 function canCook(cw, ing) {
-  if (!isCookware(cw) || !ing || ing.type !== 'ing' || cw.burnt || ing.state !== 'chopped') return false;
-  if (cw.type === 'pot') return SOUPABLE.includes(ing.kind) && cw.items.length < 3 && (!cw.items.length || cw.items[0] === ing.kind);
-  return ing.kind === 'meat' && cw.items.length === 0;
+  if (!isCookware(cw) || !ing || ing.type !== 'ing' || cw.burnt || cw.cook > 0) return false;
+  if (cw.type === 'pot') { const next = cw.items.concat(ingKey(ing)); return potRecipes().some(r => subMultiset(next, r.needs)); }
+  return ing.kind === 'meat' && ing.state === 'chopped' && cw.items.length === 0;
+}
+// What chopping turns a food into, or null if it can't be chopped.
+function chopResult(it) {
+  if (!it || it.type !== 'ing') return null;
+  if (it.state === 'raw' && CHOPPABLE.includes(it.kind)) return 'chopped';
+  if (it.kind === 'brisket' && it.state === 'cooked') return 'sliced';
+  return null;
 }
 function emptyCookware(cw) { cw.items = []; cw.cook = 0; cw.burn = 0; cw.burnt = false; }
 
@@ -1578,7 +1729,7 @@ function combinePlan(c, t) {
   if (h.type === 'ing' && it.type === 'plate' && canPlate(it, ingKey(h)))
     return { label: 'Plate', run() { it.items.push(ingKey(h)); c.held = null; sfx('drop'); } };
   if (h.type === 'ing' && canCook(it, h))
-    return { label: 'Add', run() { it.items.push(h.kind); c.held = null; sfx('drop'); } };
+    return { label: 'Add', run() { it.items.push(ingKey(h)); c.held = null; sfx('drop'); } };
   if (h.type === 'plate' && it.type === 'ing' && canPlate(h, ingKey(it)))
     return { label: 'Plate', run() { h.items.push(ingKey(it)); t.item = null; sfx('pick'); } };
   if (h.type === 'plate' && cookResult(it) && canPlate(h, cookResult(it)))
@@ -1586,7 +1737,7 @@ function combinePlan(c, t) {
   if (isCookware(h) && it.type === 'plate' && cookResult(h) && canPlate(it, cookResult(h)))
     return { label: 'Plate', run() { it.items.push(cookResult(h)); emptyCookware(h); sfx('drop'); } };
   if (isCookware(h) && canCook(h, it))
-    return { label: 'Add', run() { h.items.push(it.kind); t.item = null; sfx('pick'); } };
+    return { label: 'Add', run() { h.items.push(ingKey(it)); t.item = null; sfx('pick'); } };
   return null;
 }
 
@@ -1645,8 +1796,8 @@ function actionPlan(c) {
   if (t.type === 'sink' && t.dirty > 0) return { kind: 'wash', label: 'Wash', tile: t, dim: !!c.held };
   if (t.type === 'blender' && t.jar.includes('icecream') && !t.blending && !t.item) return { kind: 'blend', label: 'Blend', tile: t };
   const it = t.item;
-  if (t.type !== 'board' || !it || it.type !== 'ing' || it.state !== 'raw' || !CHOPPABLE.includes(it.kind)) return null;
-  return { kind: 'chop', label: 'Chop', tile: t, dim: !!c.held };
+  if (t.type !== 'board' || !chopResult(it)) return null;
+  return { kind: 'chop', label: it.state === 'cooked' ? 'Slice' : 'Chop', tile: t, dim: !!c.held };
 }
 
 /* ---------- actions ---------- */
@@ -1849,10 +2000,11 @@ function update(dt) {
     ch.taskSfx -= dt;
     if (ch.task.kind === 'chop') {
       const it = b.item;
-      if (!it || it.type !== 'ing' || it.state !== 'raw') { ch.task = null; continue; }
+      const into = chopResult(it);
+      if (!into) { ch.task = null; continue; }
       it.chop += dt / CHOP_TIME;
       if (ch.taskSfx <= 0) { sfx('chop'); ch.taskSfx = 0.22; addPuff(b.x + 0.5, b.y + 0.45, '#ffffff', 0.4, 'chip'); }
-      if (it.chop >= 1) { it.state = 'chopped'; it.chop = 0; ch.task = null; sfx('chopped'); }
+      if (it.chop >= 1) { it.state = into; it.chop = 0; ch.task = null; sfx('chopped'); }
     } else {
       if (b.dirty <= 0) { ch.task = null; continue; }
       b.wash += dt / WASH_TIME;
@@ -1887,7 +2039,7 @@ function update(dt) {
       continue;
     }
     if (t.type !== 'stove' || !isCookware(t.item)) continue;
-    const cw = t.item, full = cw.type === 'pot' ? cw.items.length === 3 : cw.items.length === 1;
+    const cw = t.item, full = cookwareFull(cw);
     if (!full || cw.burnt) continue;
     const cook = cw.type === 'pot' ? POT_COOK : PAN_COOK, burn = cw.type === 'pot' ? POT_BURN : PAN_BURN;
     if (cw.cook < 1) {
@@ -1947,7 +2099,8 @@ function cookHeat(t, dt) {
   const it = t.item, [from, secs] = heatFood(t, it);
   if (it.state === from) {
     it.cook += dt / secs;
-    if (Math.random() < dt * 4) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(255,255,255,.5)', 0.7, 'steam');
+    if (t.type === 'smoker') { if (Math.random() < dt * 3) addPuff(t.x + 0.72, t.y - 0.05, 'rgba(200,200,200,.5)', 1.4, 'steam'); }
+    else if (Math.random() < dt * 4) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(255,255,255,.5)', 0.7, 'steam');
     if (it.cook >= 1) { it.cook = 1; it.state = 'cooked'; sfx('ding'); }
   } else if (it.state === 'cooked') {
     it.burn += dt / HEAT[t.type].burn;
@@ -2074,7 +2227,7 @@ function drawBackdrop() {
 }
 
 const P = 1 / 16;   // one sprite pixel, in tiles
-const STEEL = ['stove', 'serve', 'trash', 'griddle', 'sink', 'hatch', 'coffee', 'fryer', 'blender'];
+const STEEL = ['stove', 'serve', 'trash', 'griddle', 'sink', 'hatch', 'coffee', 'fryer', 'blender', 'smoker'];
 
 function drawTile(t) {
   const { x, y } = t;
@@ -2088,7 +2241,7 @@ function drawTile(t) {
     sprTL('board', x, y, P);
     if (!t.item) spr('knife', x + 0.5, y + 0.4, P);
   } else if (t.type === 'stove') {
-    const hot = isCookware(t.item) && !t.item.burnt && t.fire <= 0 && (t.item.type === 'pot' ? t.item.items.length === 3 : t.item.items.length === 1);
+    const hot = isCookware(t.item) && !t.item.burnt && t.fire <= 0 && cookwareFull(t.item);
     sprTL('burner', x, y, P, hot ? { 1: flick ? PAL.o : PAL.r, 2: PAL.R } : { 1: PAL.d, 2: PAL.D });
   } else if (t.type === 'griddle') {
     const hot = onHeat(t) && t.item.state !== 'burnt' && t.fire <= 0;
@@ -2096,6 +2249,9 @@ function drawTile(t) {
   } else if (t.type === 'fryer') {
     const hot = onHeat(t) && t.item.state !== 'burnt' && t.fire <= 0;
     sprTL('fryer', x, y, P, { 1: hot ? (flick ? PAL.o : PAL.y) : '#b8862a' });
+  } else if (t.type === 'smoker') {
+    const hot = onHeat(t) && t.item.state !== 'burnt' && t.fire <= 0;
+    sprTL('smoker', x, y, P, { 1: hot ? (flick ? PAL.o : PAL.r) : '#5a3a2a' });
   } else if (t.type === 'blender') {
     const has = t.jar || [];
     const col = has.includes('strawberry') ? '#f4a3b8' : has.includes('icecream') ? '#fff1c8' : PAL.g;
@@ -2144,7 +2300,7 @@ function drawTileOverlay(t) {
   if (t.type === 'blender' && t.blending) drawBar(cx, top + 0.06, t.blend, '#f4a3b8');
   const it = t.item;
   if (!it) return;
-  if (it.type === 'ing' && it.chop > 0 && it.state === 'raw') drawBar(cx, top + 0.06, it.chop, PAL.l);
+  if (it.type === 'ing' && it.chop > 0 && chopResult(it)) drawBar(cx, top + 0.06, it.chop, PAL.l);
   // Griddle food shares the cookware progress/warning/done markers.
   const heat = onHeat(t) && it.state !== 'burnt' ? { cook: it.state === 'cooked' ? 1 : it.cook, burn: it.burn } : isCookware(it) && t.type === 'stove' && !it.burnt ? it : null;
   if (heat) {
@@ -2154,12 +2310,13 @@ function drawTileOverlay(t) {
     } else if (heat.cook >= 1) spr('check', cx + 0.34, top + 0.08, P);
   }
   // Pot contents bubble while it's still being filled.
-  if (it.type === 'pot' && !it.burnt && it.cook < 1 && it.items.length && it.items.length < 3) {
+  const need = it.type === 'pot' ? (potTarget(it) || { needs: [1, 2, 3] }).needs.length : 0;
+  if (it.type === 'pot' && !it.burnt && it.cook < 1 && it.items.length && it.items.length < need) {
     X.fillStyle = PAL.k; X.fillRect(cx - 7 * P, top - 5 * P, 14 * P, 6 * P);
     X.fillStyle = '#fff5de'; X.fillRect(cx - 6 * P, top - 4 * P, 12 * P, 4 * P);
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < need; i++) {
       const sx = cx - 4 * P + i * 4 * P;
-      if (it.items[i]) drawIng(it.items[i], 'raw', sx, top - 2 * P, P * 0.33);
+      if (it.items[i]) drawIng(it.items[i].split(':')[0], 'raw', sx, top - 2 * P, P * 0.33);
       else { X.fillStyle = PAL.q; X.fillRect(sx - P / 2, top - 2.5 * P, P, P); }
     }
   }
@@ -2238,6 +2395,7 @@ function recipeIngredients(key) {
     const [kind, state] = k.split(':');
     if (kind === 'coffee') continue;
     if (kind === 'shake') { out.push('icecream'); if (state === 'strawberry') out.push('strawberry'); continue; }
+    if (kind === 'mac') { out.push('macaroni', 'macaroni', 'cheese'); continue; }
     if (kind === 'soup') out.push(state, state, state);
     else out.push(kind);
   }
