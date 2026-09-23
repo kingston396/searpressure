@@ -1077,8 +1077,11 @@ function firstOfStop(i) { return LEVELS.findIndex(l => l.stop === LEVELS[i].stop
 function unlockAll() { try { return /unlockall/i.test(location.hash); } catch (e) { return false; } }
 function totalStars() { return LEVELS.reduce((n, lv, i) => n + bestStars(i), 0); }
 // A campaign stop only shows up in the list once the last kitchen of the stop before it is open.
+// The Judge's Table and the bonus kitchens stay hidden until they're unlocked.
+function hiddenBonus(i) { const st = STOPS[LEVELS[i].stop]; return (st.bonus || st.extra) && !unlocked(i); }
 function stopVisible(si) {
-  if (si === 0 || unlockAll() || STOPS[si].extra) return true;
+  if (si === 0 || unlockAll()) return true;
+  if (STOPS[si].bonus || STOPS[si].extra) return LEVELS.some((l, i) => l.stop === si && unlocked(i));
   let last = -1; LEVELS.forEach((l, i) => { if (l.stop === si - 1) last = i; });
   return last < 0 || unlocked(last);
 }
@@ -5481,7 +5484,7 @@ function buildWardrobe() {
     const cv = chefCanvas(o, wardSlot);
     if (!ok) cv.style.opacity = '0.35';
     b.append(cv, Object.assign(document.createElement('span'), { className: 'hname', textContent: o.name }),
-      Object.assign(document.createElement('span'), { className: 'hblurb', textContent: ok ? (save.outfits[wardSlot] === o.id ? 'Wearing' : 'Tap to wear') : o.judge ? "Pass the Judge's Table" : `★ ${o.need}` }));
+      Object.assign(document.createElement('span'), { className: 'hblurb', textContent: ok ? (save.outfits[wardSlot] === o.id ? 'Wearing' : 'Tap to wear') : o.judge ? (hiddenBonus(LEVELS.findIndex(l => l.judge)) ? 'Secret' : "Pass the Judge's Table") : `★ ${o.need}` }));
     b.onclick = () => {
       save.outfits[wardSlot] = o.id; persist(); sfx('pick'); buildWardrobe();
       if (NET.role === 'guest' && wardSlot === 0) netSend({ t: 'fit', o: o.id, g: myLoadout(0) });
@@ -6654,7 +6657,7 @@ function buildLevelList() {
     head.innerHTML = `<span class="mono">${stop.bonus ? 'Bonus challenge' : stop.extra ? 'Bonus kitchens' : 'Stop ' + si}</span><h3>${stop.name}</h3><p class="small">${need}</p>`;
     box.appendChild(head);
     LEVELS.forEach((lv, i) => {
-      if (lv.stop !== si) return;
+      if (lv.stop !== si || hiddenBonus(i)) return;
       const b = document.createElement('button');
       b.className = 'lvl'; b.type = 'button'; b.id = 'lvl-' + i;
       const ok = unlocked(i);
@@ -6777,6 +6780,7 @@ function toMenu() {
 function showResults() {
   const i = G.lvIdx, lv = G.lv, stars = G.kicked ? 0 : starsFor(i, G.score, G.humans);
   const need = starTargets(i, G.humans)[0];
+  const wasHidden = LEVELS.map((l, k) => hiddenBonus(k));
   if (stars && !lv.daily) { save.stars = save.stars || []; if (stars > (save.stars[i] || 0)) { save.stars[i] = stars; persist(); } }
   logRun(stars);
   const pay = lv.daily ? settleQuest() : settle(G.attempt, G.score, stars, starTargets(i, G.humans)[2]);
@@ -6800,14 +6804,15 @@ function showResults() {
   $('btn-retry').hidden = guest;
   $('btn-res-menu').textContent = guest ? 'Leave' : NET.role ? 'Pick another kitchen' : 'All kitchens';
   const next = LEVELS[i + 1];
-  if (!next) $('res-next').textContent = stars ? (lv.finale ? 'You made it to Thanksgiving. The road trip is complete! Go back for three stars everywhere.' : 'You cleared every kitchen on the road so far. Go for three stars.') : 'Earn ' + need + ' coins for your first star.';
+  if (!next || (hiddenBonus(i + 1) && !lv.judge)) $('res-next').textContent = stars || lv.finale ? (lv.finale ? 'You made it to Thanksgiving. The road trip is complete! Go back for three stars everywhere.' : 'You cleared every kitchen on the road so far. Go for three stars.') : 'Earn ' + need + ' coins for your first star.';
   else if (nextOk) $('res-next').textContent = '';
   else if (next.stop !== lv.stop) $('res-next').textContent = `Collect ${STOPS[next.stop].needStars} stars in ${STOPS[lv.stop].name} to drive on to ${STOPS[next.stop].name}. You have ${stopStars(lv.stop)}.`;
   else $('res-next').textContent = 'Earn ' + need + ' coins to unlock ' + next.name + '.';
   if (lv.finale && stars && nextOk) $('res-next').textContent = "You made it to Thanksgiving. The road trip is complete! A bonus challenge has opened: The Judge's Table.";
-  else if (next && STOPS[next.stop].bonus && !nextOk) $('res-next').textContent = "Earn a star here to earn a seat at The Judge's Table.";
   if (lv.judge) $('res-next').textContent = G.kicked ? `Yourdone Ramsey threw you out after ${MAX_STRIKES} strikes. "${G.judge ? G.judge.text : ''}"` : stars ? 'Yourdone Ramsey grunts, Richard Braise nods and Nyesha Garnishton smiles. You passed the Judge\'s Table!' : `Not enough. The judges want ${need} coins with no more than two strikes.`;
-  else if (next && next.needTotal && !nextOk && !lv.daily) $('res-next').textContent = `Collect ${next.needTotal} stars in total to open ${next.name}. You have ${totalStars()}.`;
+  // Newly opened bonus kitchens are announced here, the first time only.
+  const opened = LEVELS.map((l, k) => k).filter(k => wasHidden[k] && !hiddenBonus(k) && !STOPS[LEVELS[k].stop].bonus);
+  if (opened.length && !lv.daily && !NET.role) $('res-next').textContent = `Bonus kitchen unlocked: ${opened.map(k => LEVELS[k].name).join(' and ')}! Find it under Roadside Specials. ` + $('res-next').textContent;
   if (lv.daily) {
     const d = save.daily && save.daily.key === DAILY.key ? save.daily : { key: DAILY.key, best: 0, plays: 0 };
     const isBest = G.score > d.best;

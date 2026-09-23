@@ -91,7 +91,7 @@ Every kitchen is drawn as the inside of the truck. It has a diamond-plate steel 
 
 ### The Judge's Table (bonus boss)
 
-Unlocked by earning a star on The Big Feast. A panel of three parody TV-chef judges inspects every plate, each calling out their specialty with their own pixel portrait and name on the speech bubble:
+Unlocked (and only then shown) by earning a star on The Big Feast. A panel of three parody TV-chef judges inspects every plate, each calling out their specialty with their own pixel portrait and name on the speech bubble:
 
 - **Yourdone Ramsey** (head judge): wrong dishes, walk-outs, the opening and the final verdict.
 - **Richard Braise** (heat): overcooked and burnt food.
@@ -118,7 +118,7 @@ Helpers find their way around with grid pathfinding and use the same Grab and Ch
 
 **Testers:** add `#unlockall` to the end of the game's link to open every kitchen, including this one.
 
-Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers, 5 each for every stop from the Smokehouse on, including the Thanksgiving Finale). A stop stays out of the kitchen list until the last kitchen of the stop before it is open, so the road ahead is a surprise. The Judge's Table follows the same rule. Roadside Specials is always listed. Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
+Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers, 5 each for every stop from the Smokehouse on, including the Thanksgiving Finale). A stop stays out of the kitchen list until the last kitchen of the stop before it is open, so the road ahead is a surprise. The Judge's Table and each Roadside Specials kitchen stay completely hidden until they're unlocked, and the results screen announces them when they open. Finishing The Big Feast completes the road trip even with 0 stars, but only a star there opens The Judge's Table, so the ending doesn't guarantee the bonus challenge. Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
 
 ## Rewards
 
