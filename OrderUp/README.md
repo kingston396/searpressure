@@ -51,8 +51,11 @@ The campaign is a food truck road trip (see `ROADMAP.md`). Kitchens are grouped 
 | 14 | Tex-Mex Border Town | Taco Truck | Tacos, Nachos (built to order) | Build-your-own tickets; tortillas on the griddle |
 | 15 | Tex-Mex Border Town | Burrito Bar | Burritos, Tacos | Rice and bean pots, guacamole |
 | 16 | Tex-Mex Border Town | Fiesta Night | Tacos, Burritos, Nachos | Split kitchen, everything built to order |
+| 17 | New Orleans Cajun | Bayou Kitchen | Gumbo, Beignets | Ordered pots; frying dough |
+| 18 | New Orleans Cajun | Jazz Brunch | + Jambalaya | Two ordered stews sharing sausage |
+| 19 | New Orleans Cajun | Mardi Gras | Gumbo, Jambalaya, Beignets | Split kitchen, three pots |
 
-Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers, 5 each for the Smokehouse and Tex-Mex). Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
+Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers, 5 each for the Smokehouse, Tex-Mex and Cajun). Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
 
 ## Kitchen systems
 
@@ -62,6 +65,7 @@ Each served order pays its menu price plus a tip of up to 10 coins, scaled by ho
 - **Smoker:** ribs (15s) and brisket (20s) go in whole. It's slow, but there's a long window before they burn, and smoked meat keeps once it's off the heat. Smoked brisket gets **sliced** on a board before plating.
 - **Build-your-own orders** (Tex-Mex): a recipe with `extras` gets a random set of them on each ticket (`pick` = min/max), and each extra adds `extraReward`. The ticket's icon row shows the exact build, and the pass only accepts that exact combination.
 - **Plate straight from a crate:** holding a plate at a crate of something that needs no prep (chips, cheese, buns) puts it right on the plate.
+- **Ordered pots** (Cajun): gumbo goes in as onion, then sausage, then shrimp, and jambalaya as rice, then sausage, then tomato. The ticket icons show the order. Add something out of turn and the chef says what goes in next.
 - **Pots follow recipes** (`POT_RECIPES`): 3 tomatoes, 3 onions, 2 macaroni + 1 cheese, 2 rice, or 2 beans. A pot only takes ingredients that lead to something on the kitchen's menu.
 - **Blender:** add a scoop of ice cream (and a strawberry for a strawberry shake), then tap **Blend**. Shakes are served in the cup, like coffee.
 - **Dishwashing** (kitchens with `dishes: true`): served plates come back dirty through the hatch. Carry the stack to the sink and wash the plates there, and clean ones appear on the plate rack.

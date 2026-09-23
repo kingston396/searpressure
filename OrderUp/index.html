@@ -256,6 +256,7 @@ const STOPS = [
   { name: 'Drive-In Burgers', blurb: 'Hot fryers, cold shakes and a lot of patties.', needStars: 4 },
   { name: 'Texas BBQ Smokehouse', blurb: 'Low and slow. Get the smokers going before the orders come in.', needStars: 5 },
   { name: 'Tex-Mex Border Town', blurb: 'Every order is built their way. Read the ticket carefully.', needStars: 5 },
+  { name: 'New Orleans Cajun', blurb: 'Big pots, and everything goes in the right order.', needStars: 5 },
 ];
 
 // Map legend:
@@ -271,6 +272,7 @@ const STOPS = [
 //  U I W J    crates: potato, ice cream, strawberry, cheese
 //  s  smoker          a b m c  crates: ribs, brisket, macaroni, cornmeal
 //  t r e h v  crates: tortilla, rice, beans, chips, avocado
+//  u p d y    crates: sausage, shrimp, dough, powdered sugar
 //
 // New kitchens go at the end of the list: best scores are saved by index.
 const LEVELS = [
@@ -498,6 +500,48 @@ const LEVELS = [
       '#J#hR##L#T#',
     ],
   },
+  {
+    stop: 5, name: 'Bayou Kitchen', time: 200, stars: [80, 170, 260], maxOrders: 4, interval: [11, 16], plates: 4, fire: true, dishes: true,
+    recipes: ['gumbo', 'beignets'],
+    tip: 'Gumbo goes in the pot in order: onion, then sausage, then shrimp. The ticket shows the order. Beignets are dough fried in the fryer, then dusted with sugar on the plate.',
+    map: [
+      '#X#H#K#P#',
+      'O.......S',
+      'C..1.2..#',
+      'u..#d#..S',
+      'C.......Y',
+      'p.......Z',
+      '#y#R#Y###',
+    ],
+  },
+  {
+    stop: 5, name: 'Jazz Brunch', time: 210, stars: [90, 190, 290], maxOrders: 4, interval: [11, 16], plates: 4, fire: true, dishes: true,
+    recipes: ['jambalaya', 'gumbo', 'beignets'],
+    tip: 'Jambalaya: rice first, then sausage, then tomato. Both stews share sausage, so chop plenty.',
+    map: [
+      '#X##H#K#P##',
+      'r.........S',
+      'C.1.#u#.2.S',
+      '#...#T#...#',
+      'C.........Y',
+      'O....Z....S',
+      '#p#d#R#y#Y#',
+    ],
+  },
+  {
+    stop: 5, name: 'Mardi Gras', time: 240, stars: [110, 230, 350], maxOrders: 5, interval: [10, 14], plates: 5, fire: true, dishes: true,
+    recipes: ['gumbo', 'jambalaya', 'beignets'],
+    tip: 'Chop on the left, stew and fry on the right. Three pots and two fryers: keep them all moving.',
+    map: [
+      '#XZPK#H##S#',
+      'O....#....S',
+      'C.1..#..2.S',
+      'u.........Y',
+      'C....#....Y',
+      'p....#....r',
+      '#T#dR##y#Z#',
+    ],
+  },
 ];
 
 // Ingredient keys are "kind:state". Soups are "soup:<flavour>".
@@ -525,6 +569,9 @@ const RECIPES = {
   // Build-your-own: each order adds `pick` random extras, worth `extraReward` each.
   taco:    { name: 'Taco',    items: ['tortilla:cooked', 'meat:cooked'], extras: ['cheese:raw', 'lettuce:chopped', 'tomato:chopped'], pick: [1, 2], reward: 22, extraReward: 5, time: 70 },
   burrito: { name: 'Burrito', items: ['tortilla:cooked', 'rice:cooked', 'beans:cooked'], extras: ['meat:cooked', 'cheese:raw', 'avocado:chopped'], pick: [1, 2], reward: 30, extraReward: 6, time: 100 },
+  gumbo:     { name: 'Gumbo',     items: ['gumbo:cooked'],              reward: 36, time: 110 },
+  jambalaya: { name: 'Jambalaya', items: ['jambalaya:cooked'],          reward: 36, time: 110 },
+  beignets:  { name: 'Beignets',  items: ['dough:cooked', 'sugar:raw'], reward: 20, time: 60 },
   nachos:  { name: 'Nachos',  items: ['chips:raw', 'cheese:raw'], extras: ['tomato:chopped', 'avocado:chopped', 'meat:cooked'], pick: [0, 2], reward: 16, extraReward: 5, time: 70 },
 };
 
@@ -535,14 +582,17 @@ const POT_RECIPES = [
   { needs: ['macaroni:raw', 'macaroni:raw', 'cheese:raw'], result: 'mac:cheese', color: '#f2c14e' },
   { needs: ['rice:raw', 'rice:raw'], result: 'rice:cooked', color: '#f4f0e0' },
   { needs: ['beans:raw', 'beans:raw'], result: 'beans:cooked', color: '#7a3a20' },
+  // Ordered: ingredients must go in exactly this sequence.
+  { needs: ['onion:chopped', 'sausage:chopped', 'shrimp:chopped'], result: 'gumbo:cooked', color: '#6a3a1a', ordered: true },
+  { needs: ['rice:raw', 'sausage:chopped', 'tomato:chopped'], result: 'jambalaya:cooked', color: '#c8602a', ordered: true },
 ];
 
-const CRATES = { T: 'tomato', L: 'lettuce', O: 'onion', M: 'meat', B: 'bun', E: 'egg', N: 'bacon', D: 'batter', U: 'potato', I: 'icecream', W: 'strawberry', J: 'cheese', a: 'ribs', b: 'brisket', m: 'macaroni', c: 'cornmeal', t: 'tortilla', r: 'rice', e: 'beans', h: 'chips', v: 'avocado' };
+const CRATES = { T: 'tomato', L: 'lettuce', O: 'onion', M: 'meat', B: 'bun', E: 'egg', N: 'bacon', D: 'batter', U: 'potato', I: 'icecream', W: 'strawberry', J: 'cheese', a: 'ribs', b: 'brisket', m: 'macaroni', c: 'cornmeal', t: 'tortilla', r: 'rice', e: 'beans', h: 'chips', v: 'avocado', u: 'sausage', p: 'shrimp', d: 'dough', y: 'sugar' };
 // Heat tiles cook food placed straight on them: [state it goes in as, seconds to cook].
 // Cooked food starts burning; it's on fire `burn` seconds later.
 const HEAT = {
   griddle: { burn: 8, foods: { egg: ['raw', 5], bacon: ['raw', 6], batter: ['raw', 6], meat: ['chopped', 6], cornmeal: ['raw', 7], tortilla: ['raw', 3] } },
-  fryer:   { burn: 6, foods: { potato: ['chopped', 6] } },
+  fryer:   { burn: 6, foods: { potato: ['chopped', 6], dough: ['raw', 5] } },
   smoker:  { burn: 14, foods: { ribs: ['raw', 15], brisket: ['raw', 20] } },
 };
 const CUPS = ['coffee', 'shake'];          // served in their cup, no plate
@@ -553,7 +603,7 @@ const WASH_TIME = 1.5;
 const FIRE_SPREAD = 4.5;    // seconds between a fire jumping to a neighbouring counter
 const SPRAY_RANGE = 2.7;
 const FIREPROOF = ['floor', 'serve', 'sink', 'hatch'];
-const CHOPPABLE = ['tomato', 'lettuce', 'onion', 'meat', 'potato', 'avocado'];
+const CHOPPABLE = ['tomato', 'lettuce', 'onion', 'meat', 'potato', 'avocado', 'sausage', 'shrimp'];
 const CHOP_TIME = 2.0;
 const POT_COOK = 9, POT_BURN = 10;
 const PAN_COOK = 7, PAN_BURN = 9;
@@ -1455,6 +1505,75 @@ const SPR = {
     '....kkk.....',
   ],
 
+  sausage: [
+    '............',
+    '............',
+    '.kkk....kkk.',
+    'k111k..k111k',
+    'k1211kk1121k',
+    '.k111111111k',
+    '..k1112111k.',
+    '...kkkkkkk..',
+  ],
+  sausageChopped: [
+    '............',
+    '.kkk...kkk..',
+    'k121k.k121k.',
+    'k212k.k212k.',
+    '.kkk...kkk..',
+    '....kkk.....',
+    '...k121k....',
+    '...k212k....',
+    '....kkk.....',
+  ],
+  shrimp: [
+    '............',
+    '...kkkk.....',
+    '..k1111k....',
+    '.k12k211k...',
+    '.k1k..k21k..',
+    '.k1k...k1k..',
+    '..k1k.k21k..',
+    '...k1121kkk.',
+    '....kk1k11k.',
+    '......kkkk..',
+  ],
+  dough: [
+    '............',
+    '............',
+    '....kkkk....',
+    '..kkWWWWkk..',
+    '.kWWwWWWWWk.',
+    '.kWWWWWWWWk.',
+    'kWWWWWWWWWqk',
+    'kqWWWWWWWqqk',
+    '.kqqqqqqqqk.',
+    '..kkkkkkkk..',
+  ],
+  beignets: [
+    '............',
+    '..kkk..kkk..',
+    '.k212kk212k.',
+    '.k121kk121k.',
+    '.k112kk211k.',
+    '..kkkkkkkk..',
+    '...k2121k...',
+    '...k1212k...',
+    '....kkkk....',
+  ],
+  sugar: [
+    '....kkkk....',
+    '....kGGk....',
+    '...kkkkkk...',
+    '..kwwwwwwk..',
+    '..kwWwwwwk..',
+    '..kwwwwwwk..',
+    '..kwwwwwWk..',
+    '..kwwwwwWk..',
+    '..kWWWWWWk..',
+    '...kkkkkk...',
+  ],
+
   // ---- UI bits
   coin: [
     '..kkkk..',
@@ -1617,6 +1736,12 @@ function ingSprite(kind, state) {
     case 'beans': return state === 'raw' ? ['beanCan'] : ['mound', { w: '#8a3a20', W: '#5a2410' }];
     case 'chips': return ['chips'];
     case 'avocado': return state === 'raw' ? ['avocado'] : ['guac'];
+    case 'sausage': return state === 'raw' ? ['sausage', { 1: '#b8483a', 2: '#e07a60' }] : ['sausageChopped', { 1: '#b8483a', 2: '#f0a890' }];
+    case 'shrimp': return ['shrimp', state === 'raw' ? { 1: '#f0a0a0', 2: '#c86060' } : { 1: '#f8c8b8', 2: '#e88a70' }];
+    case 'dough': return state === 'raw' ? ['dough'] : state === 'burnt' ? ['beignets', { 1: '#3a3d48', 2: '#2b1d2a' }] : ['beignets', { 1: '#e8b060', 2: '#c8883a' }];
+    case 'sugar': return ['sugar'];
+    case 'gumbo': return ['bowl', { 1: '#6a3a1a' }];
+    case 'jambalaya': return ['bowl', { 1: '#c8602a' }];
     case 'cornmeal': return state === 'raw' ? ['batter', { Y: '#e8c060' }] : ['cornbread', state === 'burnt' ? { 1: '#3a3d48', 2: '#2b1d2a', 3: '#2b1d2a' } : { 1: '#f2c14e', 2: '#d9953f', 3: '#b8762e' }];
   }
   return ['plate'];
@@ -1636,6 +1761,7 @@ function drawPlate(items, x, y, px) {
     return;
   }
   if (keys.length === 1) { drawKey(keys[0], x, y - px, px * 0.84); return; }
+  if (keys.length === 2 && keys[0] === 'dough:cooked' && keys[1] === 'sugar:raw') { spr('beignets', x, y - px, px * 0.84, { 1: '#fff8e8', 2: '#e8b060' }); return; }
   // Tortillas and chips sit in the middle with the toppings around them.
   const base = keys.find(k => k === 'tortilla:cooked' || k === 'chips:raw');
   if (base) {
@@ -1855,8 +1981,15 @@ function subMultiset(small, big) {
 }
 // Pot recipes whose result this kitchen's menu uses.
 function potRecipes() { const want = new Set(menuItems().flat()); return POT_RECIPES.filter(r => want.has(r.result)); }
-function potTarget(p) { return potRecipes().find(r => subMultiset(p.items, r.needs)); }
-function potFull(p) { return potRecipes().find(r => sameItems(r.needs, p.items)); }
+function potFits(items, r) { return r.ordered ? items.every((k, i) => r.needs[i] === k) && items.length <= r.needs.length : subMultiset(items, r.needs); }
+function potTarget(p) { return potRecipes().find(r => potFits(p.items, r)); }
+function potFull(p) { return potRecipes().find(r => r.needs.length === p.items.length && potFits(p.items, r)); }
+// For ordered pots: tell the chef what goes in next instead of a generic refusal.
+function potHint(p, ing) {
+  if (!p || p.type !== 'pot' || !ing || ing.type !== 'ing' || p.cook > 0) return null;
+  const r = potRecipes().find(r => r.ordered && potFits(p.items, r) && r.needs.includes(ingKey(ing)));
+  return r && p.items.length < r.needs.length ? 'Add the ' + r.needs[p.items.length].split(':')[0] + ' next' : null;
+}
 function cookwareFull(cw) { return cw.type === 'pot' ? !!potFull(cw) : cw.items.length === 1; }
 function cookResult(cw) {
   if (!isCookware(cw) || cw.burnt || cw.cook < 1) return null;
@@ -1865,7 +1998,7 @@ function cookResult(cw) {
 }
 function canCook(cw, ing) {
   if (!isCookware(cw) || !ing || ing.type !== 'ing' || cw.burnt || cw.cook > 0) return false;
-  if (cw.type === 'pot') { const next = cw.items.concat(ingKey(ing)); return potRecipes().some(r => subMultiset(next, r.needs)); }
+  if (cw.type === 'pot') { const next = cw.items.concat(ingKey(ing)); return potRecipes().some(r => potFits(next, r)); }
   return ing.kind === 'meat' && ing.state === 'chopped' && cw.items.length === 0;
 }
 // What chopping turns a food into, or null if it can't be chopped.
@@ -1963,7 +2096,10 @@ function say(c, text) { c.toast = text; c.toastT = 1.6; }
 function doGrab(c) {
   const p = grabPlan(c);
   if (p) { p.run(); c.task = null; }
-  else { sfx('nope'); if (c.held && c.target) say(c, "Can't put that there"); }
+  else {
+    sfx('nope');
+    if (c.held && c.target) say(c, potHint(c.target.item, c.held) || potHint(c.held, c.target.item) || "Can't put that there");
+  }
 }
 function doChop(c) {
   const p = actionPlan(c);
@@ -2558,9 +2694,9 @@ function recipeIngredients(items) {
     const [kind, state] = k.split(':');
     if (kind === 'coffee') continue;
     if (kind === 'shake') { out.push('icecream'); if (state === 'strawberry') out.push('strawberry'); continue; }
-    if (kind === 'mac') { out.push('macaroni', 'macaroni', 'cheese'); continue; }
-    if (kind === 'soup') out.push(state, state, state);
-    else out.push(kind);
+    const pr = POT_RECIPES.find(r => r.result === k);
+    if (pr && pr.needs.some(n => n.split(':')[0] !== kind)) { for (const n of pr.needs) out.push(n.split(':')[0]); continue; }
+    out.push(kind);
   }
   return out;
 }
