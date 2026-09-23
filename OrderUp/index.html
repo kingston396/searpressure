@@ -260,6 +260,7 @@ const STOPS = [
   { name: 'New York Deli & Pizza', blurb: 'Stretch it, top it, bake it, slice it.', needStars: 5 },
   { name: 'New England Seafood Shack', blurb: 'Chowder, fish & chips, and lobsters that will not sit still.', needStars: 5 },
   { name: 'California Coast', blurb: 'Fresh, fast and impatient. Short cooks, shorter tickets.', needStars: 5 },
+  { name: 'Thanksgiving Finale', blurb: 'The end of the road. Everyone is coming for dinner.', needStars: 5 },
 ];
 
 // Map legend:
@@ -279,6 +280,7 @@ const STOPS = [
 //  o  oven            q i w x z g k  crates: sauce, pepperoni, rye, pastrami, mustard, bagel, cream cheese
 //  l j f 3 4  crates: clams, milk, fish, live lobster, roll
 //  5 6 7      crates: banana, bread, granola
+//  8 9        crates: turkey, pumpkin pie
 //
 // New kitchens go at the end of the list: best scores are saved by index.
 const LEVELS = [
@@ -674,6 +676,48 @@ const LEVELS = [
       '#6#LR##W#7#',
     ],
   },
+  {
+    stop: 9, name: 'Family Dinner', time: 240, stars: [90, 190, 290], maxOrders: 4, interval: [13, 18], plates: 4, fire: true, dishes: true,
+    recipes: ['turkeydinner', 'pie'],
+    tip: 'The turkey takes a long time in the oven, so get it in early. Carve it on a board. Mash: two chopped potatoes and milk in a pot. Pies bake, then get sliced.',
+    map: [
+      '#X#H#K#P#',
+      '8.......o',
+      'C..1.2..#',
+      'U..#j#..o',
+      'C.......S',
+      '9.......Z',
+      '###R#S###',
+    ],
+  },
+  {
+    stop: 9, name: "Grandma's Kitchen", time: 270, stars: [120, 250, 380], maxOrders: 4, interval: [12, 17], plates: 4, fire: true, dishes: true,
+    recipes: ['feast', 'stuffing', 'pie'],
+    tip: 'The Feast is carved turkey, stuffing and mash on one plate. Stuffing: chopped bread and onion in a pot.',
+    map: [
+      '#X##H#K#P##',
+      '8.........o',
+      'C.1.#6#.2.o',
+      '#...#O#...S',
+      'C.........S',
+      'U....Z....S',
+      '#9#j#R#####',
+    ],
+  },
+  {
+    stop: 9, name: 'The Big Feast', time: 300, stars: [150, 320, 480], maxOrders: 5, interval: [10, 14], plates: 5, fire: true, dishes: true, finale: true,
+    recipes: ['feast', 'turkeydinner', 'stuffing', 'pie'],
+    tip: 'The last service of the road trip: five minutes, the whole family, and every oven and pot you have. Good luck, chef.',
+    map: [
+      '#XZPK#H##o#',
+      '8....#....o',
+      'C.1..#..2.o',
+      'U.........S',
+      'C....#....S',
+      '6....#....S',
+      '#9#OR##j#Z#',
+    ],
+  },
 ];
 
 // Ingredient keys are "kind:state". Soups are "soup:<flavour>".
@@ -714,6 +758,10 @@ const RECIPES = {
   fishtaco:     { name: 'Fish Taco',     items: ['tortilla:cooked', 'fish:cooked'], extras: ['avocado:chopped', 'lettuce:chopped', 'tomato:chopped'], pick: [1, 2], reward: 22, extraReward: 5, time: 55 },
   avotoast:     { name: 'Avocado Toast', items: ['bread:cooked', 'avocado:chopped'], extras: ['egg:cooked', 'tomato:chopped'], pick: [0, 1], reward: 20, extraReward: 6, time: 45 },
   smoothiebowl: { name: 'Smoothie Bowl', items: ['smoothie:berry', 'granola:raw'], reward: 26, time: 50 },
+  turkeydinner: { name: 'Turkey Dinner',  items: ['turkey:sliced', 'mash:cooked'],                     reward: 50, time: 150 },
+  feast:        { name: 'The Feast',      items: ['turkey:sliced', 'stuffing:cooked', 'mash:cooked'],  reward: 74, time: 180 },
+  stuffing:     { name: 'Stuffing',       items: ['stuffing:cooked'],                                  reward: 24, time: 90 },
+  pie:          { name: 'Pumpkin Pie',    items: ['pie:sliced'],                                       reward: 28, time: 110 },
   nachos:  { name: 'Nachos',  items: ['chips:raw', 'cheese:raw'], extras: ['tomato:chopped', 'avocado:chopped', 'meat:cooked'], pick: [0, 2], reward: 16, extraReward: 5, time: 70 },
 };
 
@@ -738,19 +786,21 @@ const POT_RECIPES = [
   { needs: ['beans:raw', 'beans:raw'], result: 'beans:cooked', color: '#7a3a20' },
   { needs: ['clam:chopped', 'potato:chopped', 'milk:raw'], result: 'chowder:cooked', color: '#efe4c8' },
   { needs: ['lobster:raw'], result: 'lobster:cooked', color: '#e8472f' },
+  { needs: ['bread:chopped', 'onion:chopped'], result: 'stuffing:cooked', color: '#a0703a' },
+  { needs: ['potato:chopped', 'potato:chopped', 'milk:raw'], result: 'mash:cooked', color: '#f4ecd0' },
   // Ordered: ingredients must go in exactly this sequence.
   { needs: ['onion:chopped', 'sausage:chopped', 'shrimp:chopped'], result: 'gumbo:cooked', color: '#6a3a1a', ordered: true },
   { needs: ['rice:raw', 'sausage:chopped', 'tomato:chopped'], result: 'jambalaya:cooked', color: '#c8602a', ordered: true },
 ];
 
-const CRATES = { T: 'tomato', L: 'lettuce', O: 'onion', M: 'meat', B: 'bun', E: 'egg', N: 'bacon', D: 'batter', U: 'potato', I: 'icecream', W: 'strawberry', J: 'cheese', a: 'ribs', b: 'brisket', m: 'macaroni', c: 'cornmeal', t: 'tortilla', r: 'rice', e: 'beans', h: 'chips', v: 'avocado', u: 'sausage', p: 'shrimp', d: 'dough', y: 'sugar', q: 'sauce', i: 'pepperoni', w: 'rye', x: 'pastrami', z: 'mustard', g: 'bagel', k: 'creamcheese', l: 'clam', j: 'milk', f: 'fish', 3: 'lobster', 4: 'roll', 5: 'banana', 6: 'bread', 7: 'granola' };
+const CRATES = { T: 'tomato', L: 'lettuce', O: 'onion', M: 'meat', B: 'bun', E: 'egg', N: 'bacon', D: 'batter', U: 'potato', I: 'icecream', W: 'strawberry', J: 'cheese', a: 'ribs', b: 'brisket', m: 'macaroni', c: 'cornmeal', t: 'tortilla', r: 'rice', e: 'beans', h: 'chips', v: 'avocado', u: 'sausage', p: 'shrimp', d: 'dough', y: 'sugar', q: 'sauce', i: 'pepperoni', w: 'rye', x: 'pastrami', z: 'mustard', g: 'bagel', k: 'creamcheese', l: 'clam', j: 'milk', f: 'fish', 3: 'lobster', 4: 'roll', 5: 'banana', 6: 'bread', 7: 'granola', 8: 'turkey', 9: 'pie' };
 // Heat tiles cook food placed straight on them: [state it goes in as, seconds to cook].
 // Cooked food starts burning; it's on fire `burn` seconds later.
 const HEAT = {
   griddle: { burn: 8, foods: { egg: ['raw', 5], bacon: ['raw', 6], batter: ['raw', 6], meat: ['chopped', 6], cornmeal: ['raw', 7], tortilla: ['raw', 3], fish: ['chopped', 4], bread: ['raw', 3] } },
   fryer:   { burn: 6, foods: { potato: ['chopped', 6], dough: ['raw', 5], fish: ['chopped', 6] } },
   smoker:  { burn: 14, foods: { ribs: ['raw', 15], brisket: ['raw', 20] } },
-  oven:    { burn: 8, foods: { pizza: ['raw', 8], pepperonipizza: ['raw', 8], bagel: ['raw', 4] } },
+  oven:    { burn: 8, foods: { pizza: ['raw', 8], pepperonipizza: ['raw', 8], bagel: ['raw', 4], turkey: ['raw', 16], pie: ['raw', 10] } },
 };
 const CUPS = ['coffee', 'shake'];          // served in their cup, no plate
 // What the blender makes from what's in the jar.
@@ -765,7 +815,7 @@ const WASH_TIME = 1.5;
 const FIRE_SPREAD = 4.5;    // seconds between a fire jumping to a neighbouring counter
 const SPRAY_RANGE = 2.7;
 const FIREPROOF = ['floor', 'serve', 'sink', 'hatch'];
-const CHOPPABLE = ['tomato', 'lettuce', 'onion', 'meat', 'potato', 'avocado', 'sausage', 'shrimp', 'clam', 'fish'];
+const CHOPPABLE = ['tomato', 'lettuce', 'onion', 'meat', 'potato', 'avocado', 'sausage', 'shrimp', 'clam', 'fish', 'bread'];
 const LOBSTER_HOP = 3.5;          // seconds a live lobster sits still
 const HOP_TILES = ['counter', 'board'];
 const CHOP_TIME = 2.0;
@@ -1945,6 +1995,33 @@ const SPR = {
     '...kkkkkk...',
   ],
 
+  turkey: [
+    '............',
+    '.kk......kk.',
+    'k22k....k22k',
+    '.k2k....k2k.',
+    '..kkkkkkkk..',
+    '.k11111111k.',
+    'k1111w11111k',
+    'k1111111111k',
+    'k1111111111k',
+    '.k11111112k.',
+    '..k222222k..',
+    '...kkkkkk...',
+  ],
+  pie: [
+    '............',
+    '...kkkkkk...',
+    '.kk222222kk.',
+    '.k21111112k.',
+    'k2111311112k',
+    'k2113111112k',
+    'k2111113112k',
+    '.k21111112k.',
+    '.kk222222kk.',
+    '...kkkkkk...',
+  ],
+
   // ---- UI bits
   coin: [
     '..kkkk..',
@@ -2144,6 +2221,10 @@ function ingSprite(kind, state) {
     case 'banana': return ['banana'];
     case 'granola': return ['granola'];
     case 'smoothie': return ['shake', { 1: '#c05a9a' }];
+    case 'turkey': return state === 'sliced' ? ['brisketSliced', { 1: '#f0e0d0', 2: '#c8843a', 3: '#f8f0e8' }] : ['turkey', state === 'raw' ? { 1: '#f0d0c0', 2: '#e8b8a0' } : state === 'burnt' ? { 1: '#3a3d48', 2: '#2b1d2a' } : { 1: '#c8843a', 2: '#8a5220' }];
+    case 'pie': return state === 'sliced' ? ['pizzaSlice', { 1: '#c8883a', 3: '#d87a2a', 4: '#fff4e0' }] : ['pie', state === 'raw' ? { 1: '#f0b070', 2: '#f0e0c0', 3: '#e0a060' } : state === 'burnt' ? { 1: '#3a3d48', 2: '#2b1d2a', 3: '#2b1d2a' } : { 1: '#d87a2a', 2: '#c8883a', 3: '#fff4e0' }];
+    case 'stuffing': return ['bowl', { 1: '#a0703a' }];
+    case 'mash': return ['bowl', { 1: '#f4ecd0' }];
     case 'cornmeal': return state === 'raw' ? ['batter', { Y: '#e8c060' }] : ['cornbread', state === 'burnt' ? { 1: '#3a3d48', 2: '#2b1d2a', 3: '#2b1d2a' } : { 1: '#f2c14e', 2: '#d9953f', 3: '#b8762e' }];
   }
   return ['plate'];
@@ -2422,7 +2503,7 @@ function chopResult(it) {
   if (it.state === 'raw' && CHOPPABLE.includes(it.kind)) return 'chopped';
   if (it.kind === 'dough' && it.state === 'raw') return 'stretched';
   if (it.kind === 'pastrami' && it.state === 'raw') return 'sliced';
-  if (it.state === 'cooked' && ['brisket', 'pizza', 'pepperonipizza'].includes(it.kind)) return 'sliced';
+  if (it.state === 'cooked' && ['brisket', 'pizza', 'pepperonipizza', 'turkey', 'pie'].includes(it.kind)) return 'sliced';
   return null;
 }
 function emptyCookware(cw) { cw.items = []; cw.cook = 0; cw.burn = 0; cw.burnt = false; }
@@ -2510,7 +2591,7 @@ function actionPlan(c) {
   if (t.type === 'blender' && !t.blending && !t.item && BLENDS.some(b => sameItems(b.needs, t.jar))) return { kind: 'blend', label: 'Blend', tile: t };
   const it = t.item;
   if (t.type !== 'board' || !chopResult(it)) return null;
-  return { kind: 'chop', label: it.kind === 'clam' ? 'Shuck' : it.kind === 'fish' ? 'Fillet' : { sliced: 'Slice', stretched: 'Stretch' }[chopResult(it)] || 'Chop', tile: t, dim: !!c.held };
+  return { kind: 'chop', label: it.kind === 'turkey' ? 'Carve' : it.kind === 'clam' ? 'Shuck' : it.kind === 'fish' ? 'Fillet' : { sliced: 'Slice', stretched: 'Stretch' }[chopResult(it)] || 'Chop', tile: t, dim: !!c.held };
 }
 
 /* ---------- actions ---------- */
@@ -3138,17 +3219,22 @@ function drawKitchen() {
 
 function fmtTime(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 
+// The icon row on a ticket (as ingredient keys). Pot dishes are spelled out step by step
+// on single-dish tickets; on bigger plates they show as the finished side to stay readable.
 function recipeIngredients(items) {
-  const out = [];
+  const out = [], raw = k => k.split(':')[0] + ':raw';
   for (const k of items) {
-    const [kind, state] = k.split(':');
+    const kind = k.split(':')[0];
     if (kind === 'coffee') continue;
     const bl = BLENDS.find(b => b.result.join(':') === k);
-    if (bl) { out.push(...bl.needs); continue; }
-    if (BUILD_ICONS[k]) { out.push(...BUILD_ICONS[k]); continue; }
+    if (bl) { out.push(...bl.needs.map(n => n + ':raw')); continue; }
+    if (BUILD_ICONS[k]) { out.push(...BUILD_ICONS[k].map(n => n + ':raw')); continue; }
     const pr = POT_RECIPES.find(r => r.result === k);
-    if (pr && pr.needs.some(n => n.split(':')[0] !== kind)) { for (const n of pr.needs) out.push(n.split(':')[0]); continue; }
-    out.push(kind);
+    if (pr && pr.needs.some(n => n.split(':')[0] !== kind)) {
+      if (items.length === 1) out.push(...pr.needs.map(raw)); else out.push(k);
+      continue;
+    }
+    out.push(raw(k));
   }
   return out;
 }
@@ -3197,7 +3283,7 @@ function drawHUD(dt) {
     const dpx = Math.max(2, Math.floor(Math.min(ch - 16 - (ings.length ? is + 6 : 0), cw * 0.6) / 12));
     if (RECIPES[o.recipe].mug) drawKey(orderItems(o)[0], px + cw / 2, y + 14 + dpx * 6, dpx);
     else drawPlate(orderItems(o), px + cw / 2, y + 14 + dpx * 6, dpx);
-    ings.forEach((k, j) => drawIng(k, 'raw', px + cw / 2 + (j - (ings.length - 1) / 2) * is, y + ch - is / 2 - 4, ipx));
+    ings.forEach((k, j) => drawKey(k, px + cw / 2 + (j - (ings.length - 1) / 2) * is, y + ch - is / 2 - 4, ipx));
   });
 
   const kg = kitchenGeom();
@@ -3637,7 +3723,7 @@ function showResults() {
   $('btn-retry').hidden = guest;
   $('btn-res-menu').textContent = guest ? 'Leave' : NET.role ? 'Pick another kitchen' : 'All kitchens';
   const next = LEVELS[i + 1];
-  if (!next) $('res-next').textContent = stars ? 'You cleared every kitchen on the road so far. Go for three stars.' : 'Earn ' + lv.stars[0] + ' coins for your first star.';
+  if (!next) $('res-next').textContent = stars ? (lv.finale ? 'You made it to Thanksgiving. The road trip is complete! Go back for three stars everywhere.' : 'You cleared every kitchen on the road so far. Go for three stars.') : 'Earn ' + lv.stars[0] + ' coins for your first star.';
   else if (nextOk) $('res-next').textContent = '';
   else if (next.stop !== lv.stop) $('res-next').textContent = `Collect ${STOPS[next.stop].needStars} stars in ${STOPS[lv.stop].name} to drive on to ${STOPS[next.stop].name}. You have ${stopStars(lv.stop)}.`;
   else $('res-next').textContent = 'Earn ' + lv.stars[0] + ' coins to unlock ' + next.name + '.';

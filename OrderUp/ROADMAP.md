@@ -79,7 +79,7 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 - ~~Stop 6: New York Deli & Pizza~~ Done: the oven, dough stretching, layered pizza toppings, pastrami on rye and toasted bagels.
 - ~~Stop 7: New England Seafood Shack~~ Done: live lobsters that wander and escape, clam chowder, and fish & chips.
 - ~~Stop 8: California Coast~~ Done: fast, short tickets, grilled fish tacos, avocado toast and smoothie bowls.
-- Stop 9.
+- ~~Stop 9: Thanksgiving Finale~~ Done: turkey (roast and carve), stuffing, mash, pumpkin pie and the Feast plate. The Big Feast is the 5-minute boss service. **The road trip campaign is complete: 31 kitchens across 10 stops.**
 - Polish: with 5 tickets on a portrait phone, 5-ingredient builds show their icons at the smallest size. Could use a two-row icon layout or a tap-to-zoom ticket.
 - Versus mode.
 - Driving mini-game.

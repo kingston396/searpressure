@@ -63,8 +63,11 @@ The campaign is a food truck road trip (see `ROADMAP.md`). Kitchens are grouped 
 | 26 | California Coast | Venice Beach | Fish Tacos, Avocado Toast (built to order) | Short tickets; fish and toast in seconds |
 | 27 | California Coast | Smoothie Stand | Smoothie Bowl, Avocado Toast | Blender recipes; pour into a bowl, top with granola |
 | 28 | California Coast | Sunset Rush | Everything | Split kitchen, fastest ticket rate |
+| 29 | Thanksgiving Finale | Family Dinner | Turkey Dinner, Pumpkin Pie | Long turkey roast; carving; mash pot |
+| 30 | Thanksgiving Finale | Grandma's Kitchen | The Feast, Stuffing, Pumpkin Pie | Three-part feast plate |
+| 31 | Thanksgiving Finale | The Big Feast | Everything Thanksgiving | 5-minute boss service; road trip complete |
 
-Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers, 5 each for every stop from the Smokehouse on). Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
+Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers, 5 each for every stop from the Smokehouse on, including the Thanksgiving Finale). Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
 
 ## Kitchen systems
 
@@ -75,6 +78,8 @@ Each served order pays its menu price plus a tip of up to 10 coins, scaled by ho
 - **Build-your-own orders** (Tex-Mex): a recipe with `extras` gets a random set of them on each ticket (`pick` = min/max), and each extra adds `extraReward`. The ticket's icon row shows the exact build, and the pass only accepts that exact combination.
 - **Plate straight from a crate:** holding a plate at a crate of something that needs no prep (chips, cheese, buns) puts it right on the plate.
 - **Ordered pots** (Cajun): gumbo goes in as onion, then sausage, then shrimp, and jambalaya as rice, then sausage, then tomato. The ticket icons show the order. Add something out of turn and the chef says what goes in next.
+- **Carving and slicing:** brisket, pizza, pie and turkey come out of the heat and get sliced (or carved) on a board. Clams are shucked, fish is filleted and dough is stretched, all with the same button.
+- **Tickets** spell out pot dishes step by step when they're the whole order. On multi-part plates (like the Feast) they show the finished side instead, so the icon row stays readable.
 - **Pizza** (New York): stretch dough on a board, then add sauce, then cheese (and pepperoni). Toppings build up on the base (`TOPPINGS`), and adding one out of order tells you what is missing. Bake it in the **oven**, then slice it on a board.
 - **Live lobsters** (New England): a raw lobster left on a counter hops to a free neighbouring counter every few seconds, and from an edge counter it can escape for good (`LOBSTER_HOP`). Take it straight to a pot.
 - **Blender recipes** (`BLENDS`): ice cream makes a vanilla shake, ice cream + strawberry a strawberry shake, and banana + strawberry a smoothie. Tap Blend once the jar matches a recipe.
