@@ -700,6 +700,7 @@ function startDrive(k, opts = {}) {
     for (const [ox, oy] of [[-1.2, 0], [1.4, 0.2], [0, -1.1], [0.3, 1.2]]) city.props.push({ x: a1.x + ox, y: a1.y + oy, kind: 'cone', hit: false, vx: 0, vy: 0, spin: 0, rot: 0, life: 1 });
   }
   for (let i = 0; i < run.peds; i++) D.peds.push(spawnPed(r));
+  D.attempt = beginAttempt('drive' + k);
   nextDrop();
   input.joy.id = null;
   // First time on the first run (or asked for): a driving lesson before the clock starts.
@@ -1258,6 +1259,7 @@ function drivePointer(e) {
 
 
 function driveOpen() { return true; }
+function beginAttempt() { return null; }   // no wallet in the test build
 function pauseGame() { if (!D || D.phase === 'over') return; paused = true; input.joy.id = null; D.hand = false; show('scr-pause'); }
 function resumeGame() { paused = false; show(null); }
 function toMenu() { if (D) { engineStop(); D = null; } paused = false; buildRuns(); show('scr-menu'); }

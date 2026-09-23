@@ -138,6 +138,9 @@ A driving mini-game in the spirit of Crazy Taxi and The Simpsons: Hit & Run. It 
 
 Every coin you earn (kitchens, the daily challenge, versus, co-op and Delivery Runs) goes into a wallet, shown on the results screen and on the title's **Shop** button. Stars and best scores work as before. Items are bought once (`GEAR`, `UPGRADES`).
 
+- **First-try bonus:** three stars on your very first attempt at a kitchen, Delivery Run or day's daily challenge pays a bonus of half its three-star target (e.g. +100 on Salad Days, +280 on The Big Feast). Every start counts as an attempt, including restarts and quits.
+- **No repeat gold:** once a level has three stars it pays no more coins. You can still replay it for a better best score. Intro cards say which applies (`settle`, `coinNote`).
+
 - **Chef gear:** four slots (hat, apron, gloves, shoes), each with four items; every bonus is under 10%, and some have a small downside. Each chef wears one item per slot, picked in the Wardrobe (or **Wear gear** in the shop); both chefs can wear the same item, and bonuses from different slots add up. New gear goes straight onto chef 1 if that slot is empty. Online, your chef wears your gear.
 
 | Slot | Items (effect on the chef wearing it, price) |

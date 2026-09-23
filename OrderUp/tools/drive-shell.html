@@ -106,6 +106,7 @@ function show(id) { for (const s of SCREENS) $(s).hidden = s !== id; }
 /*__GAME__*/
 
 function driveOpen() { return true; }
+function beginAttempt() { return null; }   // no wallet in the test build
 function pauseGame() { if (!D || D.phase === 'over') return; paused = true; input.joy.id = null; D.hand = false; show('scr-pause'); }
 function resumeGame() { paused = false; show(null); }
 function toMenu() { if (D) { engineStop(); D = null; } paused = false; buildRuns(); show('scr-menu'); }

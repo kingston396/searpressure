@@ -306,6 +306,7 @@
     <div id="intro-menu" class="menu-list"></div>
     <p id="intro-tip" class="tip"></p>
     <p id="intro-note" class="small" hidden></p>
+    <p id="intro-coins" class="wallet-line" hidden></p>
     <div id="helper-box" class="helper-box" hidden>
       <div class="mono" id="helper-title">Hire a helper for this shift</div>
       <div id="helper-list" class="helper-list"></div>
@@ -2813,6 +2814,7 @@ function startLevel(idx, opts = {}) {
   G.rng = lv.daily ? mulberry32(DAILY.seed) : opts.seed != null ? mulberry32(opts.seed) : Math.random;
   if (lv.oneChef && (!NET.role || opts.versus)) G.chefs.length = 1;
   input.grab = input.chop = input.swap = false;
+  if (!lv.tutorial) G.attempt = beginAttempt(levelKey(idx));
   if (lv.judge) { judgeSay('start', 0); G.judge.t = 6; }
 }
 
@@ -4917,6 +4919,40 @@ function addToWallet(n) {
   save.wallet = (save.wallet || 0) + n; persist();
   return n;
 }
+// Coins pay out once per level: a bonus for three stars on the first attempt,
+// and nothing more once a level has three stars (you can still replay it for a best score).
+function levelKey(idx) { return idx === 'daily' ? 'daily:' + (DAILY ? DAILY.key : todayKey()) : typeof idx === 'string' ? idx : 'k' + idx; }
+function priorStars(key) {
+  if (key.startsWith('daily:')) return save.daily && 'daily:' + save.daily.key === key && save.daily.best ? starsFor('daily', save.daily.best) : 0;
+  if (key.startsWith('drive')) { const k = +key.slice(5), b = (save.drive || [])[k]; return b ? driveStars(k, b) : 0; }
+  return bestStars(+key.slice(1));
+}
+function hasPlayed(key) {
+  if ((save.plays || {})[key] > 0 || priorStars(key) > 0) return true;
+  if (key[0] === 'k') return !!save.best[+key.slice(1)];
+  if (key.startsWith('drive')) return !!(save.drive || [])[+key.slice(5)];
+  return !!(save.daily && 'daily:' + save.daily.key === key && save.daily.plays);
+}
+// Every start counts as an attempt (restarts and quits too), so the first try can't be retried.
+function beginAttempt(key) {
+  const att = { key, first: !hasPlayed(key), mastered: priorStars(key) >= 3 };
+  save.plays = save.plays || {};
+  save.plays[key] = (save.plays[key] || 0) + 1; persist();
+  return att;
+}
+function firstTryBonus(target3) { return Math.round(target3 * 0.5 / 10) * 10; }
+function settle(att, earned, stars, target3) {
+  if (!att) return { paid: 0, text: '' };
+  if (att.mastered) return { paid: 0, text: 'Already three-starred: replays here earn no coins, but your best score still counts.' };
+  const bonus = att.first && stars >= 3 ? firstTryBonus(target3) : 0;
+  const paid = addToWallet(earned + bonus);
+  return { paid, text: (bonus ? `First-try three stars! +${fmtCoins(earned)} coins and a +${fmtCoins(bonus)} bonus` : `+${fmtCoins(earned)} coins`) + ` to your wallet (${fmtCoins(save.wallet)} to spend).` + (stars >= 3 ? ' This one pays no more coins now.' : '') };
+}
+function coinNote(key, target3) {
+  if (priorStars(key) >= 3) return 'Three-starred already: replays earn no coins, just a better best score.';
+  if (!hasPlayed(key)) return `First try: three stars on your first attempt pays a +${fmtCoins(firstTryBonus(target3))} coin bonus.`;
+  return '';
+}
 function fmtCoins(n) { return Number(n || 0).toLocaleString('en-US'); }
 
 /* =========================================================================
@@ -5604,6 +5640,7 @@ function startDrive(k, opts = {}) {
     for (const [ox, oy] of [[-1.2, 0], [1.4, 0.2], [0, -1.1], [0.3, 1.2]]) city.props.push({ x: a1.x + ox, y: a1.y + oy, kind: 'cone', hit: false, vx: 0, vy: 0, spin: 0, rot: 0, life: 1 });
   }
   for (let i = 0; i < run.peds; i++) D.peds.push(spawnPed(r));
+  D.attempt = beginAttempt('drive' + k);
   nextDrop();
   input.joy.id = null;
   // First time on the first run (or asked for): a driving lesson before the clock starts.
@@ -6161,9 +6198,9 @@ function driveResults() {
   save.drive = save.drive || [];
   const best = !save.drive[k] || D.coins > save.drive[k];
   if (best) { save.drive[k] = D.coins; persist(); }
-  const paid = addToWallet(D.coins);
-  $('res-wallet').hidden = !paid;
-  $('res-wallet').textContent = `+${fmtCoins(paid)} coins to your wallet · ${fmtCoins(save.wallet)} to spend in the shop`;
+  const pay = settle(D.attempt, D.coins, stars, run.stars[2]);
+  $('res-wallet').hidden = !pay.text;
+  $('res-wallet').textContent = pay.text;
   $('res-no').textContent = 'Delivery Run ' + (k + 1);
   $('res-over').textContent = "Time's up";
   $('res-name').textContent = run.name;
@@ -6189,6 +6226,8 @@ function openDriveIntro(k) {
   $('intro-tip').textContent = run.blurb + ' Drag on the left to drive: up is gas, down is brake, left and right steer. Hold Drift to slide round corners. Follow the arrow and stop in the green ring to hand over a bag. Every delivery adds time, and after three bags head back to the truck. Drifts, ramps, near misses and knocking over cones all pay coins.';
   $('intro-note').hidden = true; $('helper-box').hidden = true;
   $('intro-stars').textContent = 'Stars at ' + run.stars.join(' / ') + ' coins';
+  const cn = coinNote('drive' + k, run.stars[2]);
+  $('intro-coins').textContent = cn; $('intro-coins').hidden = !cn;
   $('btn-drive-tut').hidden = k !== 0 || !save.driveTut;
   $('btn-intro-go').textContent = k === 0 && !save.driveTut ? 'Start the lesson' : 'Start driving';
   show('scr-intro');
@@ -6302,6 +6341,8 @@ function openIntro(i) {
     const p = document.createElement('span'); p.className = 'dprice'; p.textContent = RECIPES[r].extras ? RECIPES[r].reward + '+ · your way' : RECIPES[r].reward + ' + tip';
     d.append(n, p); m.appendChild(d);
   });
+  const cn = coinNote(levelKey(i), starTargets(i, NET.mode === 'versus' ? 1 : netPlayers())[2]);
+  $('intro-coins').textContent = cn; $('intro-coins').hidden = !cn;
   $('intro-note').textContent = lv.note || '';
   $('intro-note').hidden = !lv.note;
   const humans = NET.mode === 'versus' ? 1 : netPlayers();
@@ -6374,9 +6415,9 @@ function showResults() {
   const need = starTargets(i, G.humans)[0];
   if (stars && !lv.daily) { save.stars = save.stars || []; if (stars > (save.stars[i] || 0)) { save.stars[i] = stars; persist(); } }
   logRun(stars);
-  const paid = lv.tutorial ? 0 : addToWallet(G.score);
-  $('res-wallet').hidden = !paid;
-  $('res-wallet').textContent = `+${fmtCoins(paid)} coins to your wallet · ${fmtCoins(save.wallet)} to spend in the shop`;
+  const pay = settle(G.attempt, G.score, stars, starTargets(i, G.humans)[2]);
+  $('res-wallet').hidden = !pay.text;
+  $('res-wallet').textContent = pay.text;
   $('rate-box').hidden = !PLAYTEST.db;
   $('rate-thanks').hidden = true;
   for (const b of document.querySelectorAll('.rate-btn')) b.setAttribute('aria-pressed', 'false');
