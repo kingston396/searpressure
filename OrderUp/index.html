@@ -237,9 +237,9 @@
 
 <section id="scr-online" class="screen dim" hidden>
   <div class="ticket">
-    <span class="mono">Two phones, one kitchen</span>
+    <span class="mono">Up to four phones, one kitchen</span>
     <h2>Play with a friend</h2>
-    <p>One of you hosts and gets a room code. The other joins with that code. You each run one chef, and the host picks the kitchens.</p>
+    <p>One of you hosts and gets a room code. Up to three friends join with that code. You each run one chef, and the host picks the kitchens.</p>
     <button id="btn-host" class="btn" type="button">Host a kitchen</button>
     <hr class="rule">
     <label class="mono" for="join-code">Join with a code</label>
@@ -979,8 +979,9 @@ const MISS_PENALTY = 10;
 const PLATE_RETURN = 5;
 const DRIVER_WAIT = 8;       // seconds the delivery driver waits at the window once the ticket runs out
 const DELIVERY_BONUS = 5;    // extra coins on a delivery ticket, for the bagging step
-const CHEF_COLORS = ['#e8472f', '#3a86d4'];
-const CHEF_DARK = ['#a8301d', '#1f5a9a'];
+const CHEF_COLORS = ['#e8472f', '#3a86d4', '#f5b82e', '#3f9b45'];   // chefs 3 and 4 only appear online
+const CHEF_DARK = ['#a8301d', '#1f5a9a', '#b9821a', '#2a6e2f'];
+const MAX_PLAYERS = 4;
 
 /* =========================================================================
    Save data
@@ -2662,8 +2663,20 @@ function startLevel(idx, opts = {}) {
     else if (ch === '1' || ch === '2') spawns[ch] = { x: x + 0.5, y: y + 0.5 };
     tiles.push(t);
   }
-  const chefs = ['1', '2'].map((k, i) => ({
-    x: spawns[k].x, y: spawns[k].y, fx: 0, fy: 1, held: null, color: CHEF_COLORS[i], dark: CHEF_DARK[i], moving: false,
+  const nChefs = NET.role ? Math.max(2, Math.min(MAX_PLAYERS, opts.players || 2)) : 2;
+  const starts = [spawns['1'], spawns['2']];
+  for (let i = 2; i < nChefs; i++) {
+    const from = starts[i % 2];
+    let best = null, bestD = 1e9;
+    for (const t of tiles) {
+      if (t.type !== 'floor' || starts.some(p => Math.floor(p.x) === t.x && Math.floor(p.y) === t.y)) continue;
+      const d = Math.hypot(t.x + 0.5 - from.x, t.y + 0.5 - from.y);
+      if (d < bestD) { bestD = d; best = t; }
+    }
+    starts.push({ x: best.x + 0.5, y: best.y + 0.5 });
+  }
+  const chefs = starts.map((sp, i) => ({
+    x: sp.x, y: sp.y, fx: 0, fy: 1, held: null, color: CHEF_COLORS[i], dark: CHEF_DARK[i], moving: false,
     task: null, taskSfx: 0, spraying: false, walk: 0, target: null, toast: null, toastT: 0, fit: chefFit(i),
   }));
   G = {
@@ -2675,7 +2688,7 @@ function startLevel(idx, opts = {}) {
     plateTile: tiles.find(t => t.type === 'plates'), hatch: tiles.find(t => t.type === 'hatch'),
     transposed, netTiles: tiles.filter(t => t.type !== 'floor'),
     strikes: 0, clock: 0, judge: null, kicked: false, shake: 0,
-    humans: NET.role ? 2 : 1,
+    humans: NET.role ? nChefs : 1,
     crateKinds: new Set(tiles.filter(t => t.type === 'crate').map(t => t.kind)),
   };
   // The daily challenge deals the same tickets to everyone; one chef only when it's Short-Staffed (solo).
@@ -3117,10 +3130,14 @@ function controllers(dt) {
   const local = { chef: G.chefs[G.active], move: readMove(), grab: input.grab, chop: input.chop, swap: input.swap, held: input.chopHeld };
   input.grab = input.chop = input.swap = false;
   if (NET.role !== 'host') return [local].concat(G.chefs.filter(c => c.ai).map(c => helperControl(c, dt)));
-  const r = NET.remote;
-  const remote = { chef: G.chefs[1], move: [r.mx, r.my], grab: r.grab, chop: r.chop, swap: false, held: r.held };
-  r.grab = r.chop = false;
-  return [local, remote];
+  const out = [local];
+  NET.guests.forEach(g => {
+    const r = g.remote, chef = G.chefs[g.slot];
+    if (!chef) return;
+    out.push({ chef, move: [r.mx, r.my], grab: r.grab, chop: r.chop, swap: false, held: r.held });
+    r.grab = r.chop = false;
+  });
+  return out;
 }
 
 function update(dt) {
@@ -3140,7 +3157,7 @@ function update(dt) {
     if (n < G.lastCount && n > 0) { sfx('tick'); G.lastCount = n; }
     if (G.countdown <= 0) { G.phase = 'play'; sfx('go'); }
     input.grab = input.chop = input.swap = false;
-    NET.remote.grab = NET.remote.chop = false;
+    for (const g of NET.guests) g.remote.grab = g.remote.chop = false;
     return;
   }
   if (G.phase === 'over') {
@@ -3859,8 +3876,9 @@ const SNAP_RATE = 1 / 15;
 
 const NET = {
   role: null,          // null offline, 'host' or 'guest'
-  peer: null, conn: null, code: '',
-  remote: { mx: 0, my: 0, held: false, grab: false, chop: false },  // guest's latest inputs, on the host
+  peer: null, conn: null, code: '',   // conn: the guest's line to the host
+  guests: [],          // on the host: { conn, fit, remote: latest inputs } per friend, in join order
+  slot: 1, fits: [],   // on a guest: which chef is ours, and every chef's outfit
   events: [],          // sounds, floats and puffs since the last snapshot
   snapT: 0, sendT: 0, lastSent: '',
 };
@@ -3880,6 +3898,15 @@ function peerOptions() {
   const o = { debug: 0 };
   try {
     const q = new URLSearchParams(location.search);
+    // ?turn=turn:host:3478&turnuser=…&turnpass=… adds your own TURN relay for strict networks,
+    // on top of PeerJS's default STUN and free TURN servers.
+    if (q.get('turn')) {
+      o.config = { iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
+        { urls: q.get('turn').split(','), username: q.get('turnuser') || '', credential: q.get('turnpass') || '' },
+      ] };
+    }
     if (q.get('peerhost')) {
       o.host = q.get('peerhost');
       o.port = +(q.get('peerport') || 443);
@@ -3920,15 +3947,20 @@ async function hostGame() {
   const code = randomCode();
   const peer = new Peer(ROOM_PREFIX + code, peerOptions());
   NET.peer = peer; NET.role = 'host'; NET.code = code;
-  peer.on('open', () => netStatus('Tell your friend this code. On their phone: Play with a friend → Join.', code));
+  peer.on('open', () => netStatus(`Tell your friends this code (up to ${MAX_PLAYERS - 1} can join). On their phones: Play with a friend → Join.`, code));
   peer.on('connection', conn => {
-    if (NET.conn) { conn.on('open', () => conn.close()); return; }
-    bindConn(conn);
-    conn.on('open', () => { sfx('order'); conn.send({ t: 'fit', o: (save.outfits || [])[0] || 'classic' }); enterOnlineMenu(); });
+    // Room for three friends, and nobody joins halfway through a service.
+    if (NET.guests.length >= MAX_PLAYERS - 1 || G) { conn.on('open', () => { conn.send({ t: 'full', busy: !!G }); setTimeout(() => conn.close(), 300); }); return; }
+    const g = { conn, fit: 'classic', remote: { mx: 0, my: 0, held: false, grab: false, chop: false } };
+    NET.guests.push(g);
+    conn.on('data', m => onNetMessage(m, g));
+    conn.on('close', () => guestLeft(g));
+    conn.on('error', () => guestLeft(g));
+    conn.on('open', () => { sfx('order'); enterOnlineMenu(); });
   });
   peer.on('error', err => {
     if (err.type === 'unavailable-id') { peer.destroy(); NET.peer = null; NET.role = null; hostGame(); return; }
-    if (!NET.conn) netFail(err);
+    if (!NET.guests.length) netFail(err);
   });
 }
 
@@ -3942,37 +3974,60 @@ async function joinGame() {
   NET.peer = peer; NET.role = 'guest'; NET.code = code;
   peer.on('open', () => {
     const conn = peer.connect(ROOM_PREFIX + code, { reliable: true, serialization: 'json' });
-    bindConn(conn);
-    conn.on('open', () => { sfx('order'); conn.send({ t: 'fit', o: (save.outfits || [])[0] || 'classic' }); netStatus('Connected! Waiting for your friend to pick a kitchen.'); });
+    NET.conn = conn;
+    conn.on('data', m => onNetMessage(m));
+    conn.on('close', () => netDropped());
+    conn.on('error', () => netDropped());
+    conn.on('open', () => { sfx('order'); conn.send({ t: 'fit', o: (save.outfits || [])[0] || 'classic' }); netStatus('Connected! Waiting for the host to pick a kitchen.'); });
   });
   peer.on('error', err => { if (!NET.conn || !NET.conn.open) netFail(err); });
 }
 
-function bindConn(conn) {
-  NET.conn = conn;
-  conn.on('data', onNetMessage);
-  conn.on('close', () => netDropped());
-  conn.on('error', () => netDropped());
+// Host: to every friend. Guest: to the host.
+function netSend(msg) {
+  if (NET.role === 'host') { for (const g of NET.guests) if (g.conn.open) g.conn.send(msg); }
+  else if (NET.conn && NET.conn.open) NET.conn.send(msg);
 }
-function netSend(msg) { if (NET.conn && NET.conn.open) NET.conn.send(msg); }
+function netOpen() { return NET.role === 'host' ? NET.guests.some(g => g.conn.open) : !!(NET.conn && NET.conn.open); }
+function netPlayers() { return NET.role === 'host' ? 1 + NET.guests.length : NET.role ? NET.fits.length || 2 : 1; }
+// Host: everyone's outfits by chef slot (host first, then friends in join order).
+function sendFits() {
+  NET.fits = [(save.outfits || [])[0] || 'classic'].concat(NET.guests.map(g => g.fit));
+  netSend({ t: 'fits', fits: NET.fits });
+  if (G) G.chefs.forEach((c, i) => { if (!c.ai) c.fit = chefFit(i); });
+  syncOnlineBanner();
+}
+// Host: one friend left. The rest play on; with nobody left it's back to the online screen.
+function guestLeft(g) {
+  const i = NET.guests.indexOf(g);
+  if (i < 0 || NET.role !== 'host') return;
+  NET.guests.splice(i, 1);
+  try { g.conn.close(); } catch (e) {}
+  if (!NET.guests.length) { netDropped(); return; }
+  // Their phone paused everyone on the way out; carry on without them.
+  if (G) { g.left = true; addFloat('hud', 0, 0, 'A friend left', '#ff6b57'); if (paused) setPaused(false, true); }
+  else { sendFits(); enterOnlineMenu(); }
+}
 
 function netLeave(notify = true) {
   if (notify) netSend({ t: 'bye' });
-  const { conn, peer } = NET;
-  NET.role = null; NET.conn = null; NET.peer = null; NET.events = [];
+  const { conn, peer, guests } = NET;
+  NET.role = null; NET.conn = null; NET.peer = null; NET.events = []; NET.guests = []; NET.fits = [];
   try { conn && conn.close(); } catch (e) {}
+  for (const g of guests) { try { g.conn.close(); } catch (e) {} }
   try { peer && peer.destroy(); } catch (e) {}
   syncOnlineBanner();
 }
 function netDropped() {
   if (!NET.role) return;
+  NET.lastRole = NET.role;
   const wasPlaying = !!G;
   netLeave(false);
   G = null; paused = false;
   buildLevelList();
   show('scr-online');
   setOnlineButtons(true);
-  netStatus(wasPlaying ? 'Your friend left the kitchen, or the connection dropped.' : 'The connection closed.');
+  netStatus(wasPlaying ? (NET.lastRole === 'host' ? 'Everyone left the kitchen, or the connection dropped.' : 'The host left the kitchen, or the connection dropped.') : 'The connection closed.');
 }
 
 // Host: after a friend joins (and between rounds) the host picks the kitchen.
@@ -3980,34 +4035,45 @@ function enterOnlineMenu() {
   G = null; paused = false;
   buildLevelList();
   syncOnlineBanner();
-  if (NET.role === 'host') { show('scr-title'); netSend({ t: 'lobby' }); }
-  else { show('scr-online'); netStatus('Connected! Waiting for your friend to pick a kitchen.'); setOnlineButtons(false); }
+  if (NET.role === 'host') { show('scr-title'); netSend({ t: 'lobby' }); sendFits(); }
+  else { show('scr-online'); netStatus('Connected! Waiting for the host to pick a kitchen.'); setOnlineButtons(false); }
 }
 function syncOnlineBanner() {
-  const on = !!NET.role && !!NET.conn;
+  const on = !!NET.role && (NET.role === 'host' ? NET.guests.length > 0 : !!NET.conn);
   $('online-banner').hidden = !on;
   $('btn-online').hidden = on;
   syncTutorialButton();
-  if (on) $('online-banner-text').textContent = NET.role === 'host' ? `Playing with a friend (room ${NET.code}). Pick a kitchen for you both.` : 'Playing with a friend.';
+  const n = netPlayers() - 1, friends = n === 1 ? 'a friend' : n + ' friends';
+  if (on) $('online-banner-text').textContent = NET.role === 'host' ? `Playing with ${friends} (room ${NET.code}). Pick a kitchen for everyone.${n < MAX_PLAYERS - 1 ? ' More can still join.' : ''}` : `Playing online (${n + 1} chefs).`;
 }
+
+// Closing the tab or app says goodbye, so friends aren't left waiting on a dead connection.
+window.addEventListener('pagehide', () => { if (NET.role) netSend({ t: 'bye' }); });
 
 /* ---------- messages ---------- */
 
-function onNetMessage(m) {
+function onNetMessage(m, from) {
   if (!m || typeof m !== 'object') return;
-  if (m.t === 'bye') { netDropped(); return; }
-  if (m.t === 'fit') { NET.remoteFit = String(m.o || 'classic'); if (G) G.chefs.forEach((c, i) => { if (!c.ai) c.fit = chefFit(i); }); return; }
   if (NET.role === 'host') {
-    if (m.t === 'in') { NET.remote.mx = +m.mx || 0; NET.remote.my = +m.my || 0; NET.remote.held = !!m.held; }
-    else if (m.t === 'act') { if (m.a === 'grab') NET.remote.grab = true; if (m.a === 'chop') { NET.remote.chop = true; NET.remote.held = true; } }
-    else if (m.t === 'pause') setPaused(!!m.on, false);
+    if (!from || !NET.guests.includes(from)) return;   // ignore stragglers from a friend who already left
+    const r = from.remote;
+    if (m.t === 'bye') guestLeft(from);
+    else if (m.t === 'fit') { from.fit = String(m.o || 'classic'); sendFits(); }
+    else if (m.t === 'in') { r.mx = +m.mx || 0; r.my = +m.my || 0; r.held = !!m.held; }
+    else if (m.t === 'act') { if (m.a === 'grab') r.grab = true; if (m.a === 'chop') { r.chop = true; r.held = true; } }
+    else if (m.t === 'pause') setPaused(!!m.on, true);   // and tell everyone else
     return;
   }
   // guest
+  if (m.t === 'bye') { netDropped(); return; }
+  if (m.t === 'full') { netLeave(false); show('scr-online'); setOnlineButtons(true); netStatus(m.busy ? 'That kitchen is in the middle of a service. Try again when they are back on the menu.' : `That kitchen is full (${MAX_PLAYERS} chefs).`); return; }
+  if (m.t === 'fits') { NET.fits = Array.isArray(m.fits) ? m.fits.map(String) : []; if (G) G.chefs.forEach((c, i) => { if (!c.ai) c.fit = chefFit(i); }); syncOnlineBanner(); return; }
   if (m.t === 'start') {
     paused = false; show(null);
-    startLevel(m.lv, { transpose: m.tr, dailyKey: m.dk });
-    G.active = 1;
+    NET.slot = Math.max(1, Math.min(MAX_PLAYERS - 1, +m.me || 1));
+    if (Array.isArray(m.fits)) NET.fits = m.fits.map(String);
+    startLevel(m.lv, { transpose: m.tr, dailyKey: m.dk, players: m.n });
+    G.active = NET.slot;
     for (const c of G.chefs) { c.tx = c.x; c.ty = c.y; }
   } else if (m.t === 'snap') applySnapshot(m);
   else if (m.t === 'lobby') enterOnlineMenu();
@@ -4080,7 +4146,7 @@ function applySnapshot(m) {
 
 // Runs every frame while online, playing or not.
 function netTick(dt) {
-  if (!NET.conn || !NET.conn.open || !G) return;
+  if (!netOpen() || !G) return;
   if (NET.role === 'host') {
     NET.snapT -= dt;
     if (NET.snapT <= 0) { NET.snapT = SNAP_RATE; netSend(snapshot()); }
@@ -4629,8 +4695,8 @@ function outfitSwaps(o, color, dark) {
 function chefFit(i) {
   const mine = save.outfits || [];
   if (!NET.role) return mine[i] || 'classic';
-  const me = NET.role === 'host' ? 0 : 1;
-  return i === me ? mine[0] || 'classic' : NET.remoteFit || 'classic';
+  const me = NET.role === 'host' ? 0 : NET.slot;
+  return i === me ? mine[0] || 'classic' : NET.fits[i] || 'classic';
 }
 function chefCanvas(o, slot, size = 48, scarf = [CHEF_COLORS[slot], CHEF_DARK[slot]]) {
   const d = Math.max(1, Math.round(Math.min(window.devicePixelRatio || 1, 3)));
@@ -4669,7 +4735,8 @@ function buildWardrobe() {
       Object.assign(document.createElement('span'), { className: 'hblurb', textContent: ok ? (save.outfits[wardSlot] === o.id ? 'Wearing' : 'Tap to wear') : o.judge ? "Pass the Judge's Table" : `★ ${o.need}` }));
     b.onclick = () => {
       save.outfits[wardSlot] = o.id; persist(); sfx('pick'); buildWardrobe();
-      if (NET.role && wardSlot === 0) netSend({ t: 'fit', o: o.id });
+      if (NET.role === 'guest' && wardSlot === 0) netSend({ t: 'fit', o: o.id });
+      if (NET.role === 'host' && wardSlot === 0) sendFits();
     };
     list.appendChild(b);
   }
@@ -4907,7 +4974,7 @@ function openIntro(i) {
   });
   $('intro-note').textContent = lv.note || '';
   $('intro-note').hidden = !lv.note;
-  const humans = NET.role ? 2 : 1;
+  const humans = netPlayers();
   $('intro-stars').textContent = 'Stars at ' + starTargets(i, humans).join(' / ') + ' coins' + (lv.daily ? ' · same tickets for everyone today' : '') + (humans > 1 ? ` · co-op: ${Math.round(COOP_STEP * (humans - 1) * 100)}% busier service` : '');
   // Solo players at the Judge's Table hire helpers from three random offers:
   // one per star on the kitchen before it (The Big Feast), up to three.
@@ -4940,9 +5007,13 @@ function openIntro(i) {
 let chosenHelpers = [];
 function play(i) {
   if (NET.role === 'guest') return;
-  paused = false; show(null); startLevel(i);
+  paused = false; show(null); startLevel(i, { players: netPlayers() });
   if (!NET.role && lvOf(i).judge) for (const k of chosenHelpers.slice(0, helperHires(i))) spawnHelper(k);
-  if (NET.role === 'host') netSend({ t: 'start', lv: i, tr: G.transposed, dk: DAILY && DAILY.key });
+  if (NET.role === 'host') {
+    // Chef slots are fixed for the whole service, so a friend leaving doesn't reshuffle anyone.
+    NET.guests.forEach((g, k) => { g.slot = k + 1; g.remote = { mx: 0, my: 0, held: false, grab: false, chop: false }; });
+    for (const g of NET.guests) if (g.conn.open) g.conn.send({ t: 'start', lv: i, tr: G.transposed, dk: DAILY && DAILY.key, n: G.chefs.length, me: g.slot, fits: NET.fits });
+  }
 }
 function syncPauseButtons() {
   const guest = NET.role === 'guest';
@@ -5000,7 +5071,7 @@ function showResults() {
     $('res-no').textContent = 'Daily challenge · ' + dailyDate();
     $('res-next').textContent = (isBest && G.score ? 'New best for today! ' : `Today’s best: ${d.best}. `) + 'A new kitchen and twist arrive tomorrow.';
   }
-  if (guest) $('res-next').textContent = 'Your friend is picking what to play next.';
+  if (guest) $('res-next').textContent = 'The host is picking what to play next.';
   show('scr-results');
 }
 

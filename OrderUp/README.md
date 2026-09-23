@@ -15,13 +15,14 @@ New players see **New here? Start with the tutorial** on the title screen. It's 
 
 ## Play with a friend (online co-op)
 
-Two phones, one kitchen. On the title screen, tap **Play with a friend**. One player taps **Host a kitchen** and gets a 4-letter room code. The other types the code and taps **Join**. Each player runs one chef, and the host picks the kitchens.
+Up to four phones, one kitchen. On the title screen, tap **Play with a friend**. One player taps **Host a kitchen** and gets a 4-letter room code. Up to three friends type the code and tap **Join**. Each player runs one chef (red, blue, yellow and green), and the host picks the kitchens. Chefs 3 and 4 start on the free floor next to the kitchen's two spawn points. Each extra player makes service 25% busier and raises the star targets to match.
 
-- **Peer-to-peer:** the host's phone runs the game. The guest's phone sends its stick and button presses, and gets back about 15 snapshots of the kitchen a second. The guest's own chef is predicted locally, so movement feels instant.
+- **Peer-to-peer:** the host's phone runs the game. Each guest's phone sends its stick and button presses, and gets back about 15 snapshots of the kitchen a second. The guest's own chef is predicted locally, so movement feels instant.
 - **Matchmaking:** [PeerJS](https://peerjs.com) (loaded from jsdelivr only when you go online) and its free public server introduce the two phones. After that, data goes directly between them over WebRTC.
 - **Needs a real web host.** Online play doesn't work inside the Claude artifact preview, which blocks WebRTC. Deploy the `OrderUp` folder anywhere static (for example, drag it onto [Netlify Drop](https://app.netlify.com/drop)) and both players open that link.
 - **Own PeerJS server:** add `?peerhost=your.server&peerport=443` to the URL. `peerpath` and `peersecure=0` are also accepted.
-- **Limits of the prototype:** 2 players only. Some strict mobile or corporate networks block direct connections. That would need a TURN relay server, which isn't set up.
+- **Joining and leaving:** a fifth phone is told the kitchen is full, and nobody can join in the middle of a service. If a friend leaves mid-service (closing the app sends a goodbye), their chef stands still and everyone else plays on. When the last friend leaves, the host goes back to the online screen.
+- **Strict networks (TURN):** PeerJS 1.5 already falls back to its free public TURN relays when phones can't connect directly. For something sturdier, add your own TURN server: `?turn=turn:your.server:3478&turnuser=…&turnpass=…` (several URLs can be comma-separated). It's used alongside the defaults.
 
 ## Controls
 

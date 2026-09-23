@@ -82,6 +82,7 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 - Delivery orders: bag station, pickup window and a waiting driver, in Curb Service, Friday Night Rush, Taco Truck, Corner Slice, Midtown Lunch Rush and Sunset Rush.
 - Rewards: 10 chef outfits (Wardrobe), a seeded daily challenge with twists, story scenes before each stop, and three Roadside Specials bonus kitchens.
 - Fixed: the kitchen intro card's "On the menu" list was empty since the helper picker was added.
+- Online co-op for 2–4 players (host plus up to three friends), with friends able to leave mid-service, and an optional own TURN relay (`?turn=`).
 
 ## Difficulty (done)
 - Smooth rising curve across all 31 kitchens (tools/tune.js), and co-op scaling (+25% pace and star targets per extra player).
