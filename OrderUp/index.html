@@ -5478,13 +5478,14 @@ function buildWardrobe() {
   const list = $('ward-list'); list.innerHTML = '';
   for (const o of OUTFITS) {
     const ok = outfitUnlocked(o);
+    if (!ok && o.judge && hiddenBonus(LEVELS.findIndex(l => l.judge))) continue;   // a secret until the Judge's Table opens
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'helper outfit'; b.disabled = !ok;
     b.setAttribute('aria-pressed', String(save.outfits[wardSlot] === o.id));
     const cv = chefCanvas(o, wardSlot);
     if (!ok) cv.style.opacity = '0.35';
     b.append(cv, Object.assign(document.createElement('span'), { className: 'hname', textContent: o.name }),
-      Object.assign(document.createElement('span'), { className: 'hblurb', textContent: ok ? (save.outfits[wardSlot] === o.id ? 'Wearing' : 'Tap to wear') : o.judge ? (hiddenBonus(LEVELS.findIndex(l => l.judge)) ? 'Secret' : "Pass the Judge's Table") : `★ ${o.need}` }));
+      Object.assign(document.createElement('span'), { className: 'hblurb', textContent: ok ? (save.outfits[wardSlot] === o.id ? 'Wearing' : 'Tap to wear') : o.judge ? "Pass the Judge's Table" : `★ ${o.need}` }));
     b.onclick = () => {
       save.outfits[wardSlot] = o.id; persist(); sfx('pick'); buildWardrobe();
       if (NET.role === 'guest' && wardSlot === 0) netSend({ t: 'fit', o: o.id, g: myLoadout(0) });
@@ -6678,13 +6679,15 @@ function buildDriveList() {
   if (NET.role || !DRIVE_RUNS.some((r, k) => driveOpen(k)) || $('drive-head')) return;
   const head = document.createElement('div');
   head.className = 'stop-head'; head.id = 'drive-head';
-  head.innerHTML = '<span class="mono">Secret bonus</span><h3>Delivery Runs</h3><p class="small">Drive the orders yourself. More runs are hidden behind three stars on the delivery kitchens.</p>';
+  head.innerHTML = '<span class="mono">Secret bonus</span><h3>Delivery Runs</h3><p class="small">Drive the orders yourself.</p>';
   box.appendChild(head);
   DRIVE_RUNS.forEach((run, k) => {
-    const ok = driveOpen(k), b = document.createElement('button');
-    b.className = 'lvl'; b.type = 'button'; b.id = 'drv-' + k; b.disabled = !ok;
+    const ok = driveOpen(k);
+    if (!ok) return;   // runs not yet found stay hidden
+    const b = document.createElement('button');
+    b.className = 'lvl'; b.type = 'button'; b.id = 'drv-' + k;
     const best = (save.drive || [])[k];
-    b.innerHTML = `<span class="no">Run ${k + 1}</span><span class="name">${ok ? run.name : '???'}</span><span class="stars">${ok ? starHTML(best ? driveStars(k, best) : 0) : '<span class="off">Secret</span>'}</span><span></span><span class="dishes small">${ok ? 'Delivery driving' : 'Three-star ' + run.key + ' to find it'}</span>`;
+    b.innerHTML = `<span class="no">Run ${k + 1}</span><span class="name">${run.name}</span><span class="stars">${starHTML(best ? driveStars(k, best) : 0)}</span><span></span><span class="dishes small">Delivery driving</span>`;
     if (best) { const s = document.createElement('span'); s.className = 'best'; s.textContent = 'Best ' + best; b.appendChild(s); }
     b.addEventListener('click', () => { audioInit(); openDriveIntro(k); });
     box.appendChild(b);
