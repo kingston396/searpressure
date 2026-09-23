@@ -125,6 +125,20 @@
   .tally { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font: 500 15px "DM Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
   .tally .total { font: 400 26px "Pixelify Sans", system-ui, sans-serif; color: var(--tomato); }
   .icon-btn { background: none; border: 0; color: var(--muted); font: 500 12px "DM Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; padding: 6px 4px; }
+  input { -webkit-user-select: text; user-select: text; }
+  .join-row { display: flex; gap: 10px; }
+  .join-row input {
+    flex: 1 1 auto; min-width: 0; box-sizing: border-box;
+    font: 700 26px/1 "Pixelify Sans", "Courier New", monospace; letter-spacing: .3em; text-transform: uppercase; text-align: center;
+    color: var(--text); background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 10px 8px;
+  }
+  .join-row input:focus-visible { outline: 3px solid var(--mustard); outline-offset: 1px; }
+  .join-row .btn { flex: 0 0 auto; }
+  .code-box { display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--paper-2); border-radius: 8px; padding: 12px; }
+  #online-code { font: 700 52px/1 "Pixelify Sans", "Courier New", monospace; letter-spacing: .18em; color: var(--tomato); }
+  .banner { background: var(--paper-2); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .banner p { font-size: 14px; }
+  .btn.small { font-size: 15px; padding: 8px 12px; }
   @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
 </style>
 </head>
@@ -138,9 +152,26 @@
     <h1>Order<br><span>Up!</span></h1>
     <p>Chop, cook, plate and serve before the tickets run out. You run two chefs. Swap between them to keep both busy.</p>
     <hr class="rule">
+    <button id="btn-online" class="btn alt" type="button">Play with a friend</button>
+    <div id="online-banner" class="banner" hidden><p id="online-banner-text"></p><button id="btn-online-leave" class="btn ghost small" type="button">Leave</button></div>
     <div class="mono">Pick a kitchen</div>
     <div id="levels" class="levels"></div>
     <button id="btn-howto" class="btn ghost" type="button">How to play</button>
+  </div>
+</section>
+
+<section id="scr-online" class="screen dim" hidden>
+  <div class="ticket">
+    <span class="mono">Two phones, one kitchen</span>
+    <h2>Play with a friend</h2>
+    <p>One of you hosts and gets a room code. The other joins with that code. You each run one chef, and the host picks the kitchens.</p>
+    <button id="btn-host" class="btn" type="button">Host a kitchen</button>
+    <hr class="rule">
+    <label class="mono" for="join-code">Join with a code</label>
+    <div class="join-row"><input id="join-code" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD" inputmode="text"><button id="btn-join" class="btn alt" type="button">Join</button></div>
+    <div id="online-code-box" class="code-box" hidden><span class="mono">Room code</span><span id="online-code"></span></div>
+    <p id="online-status" class="tip" aria-live="polite">Both phones need an internet connection. Once you're connected, the game data goes straight between your phones.</p>
+    <button id="btn-online-back" class="btn ghost" type="button">Back</button>
   </div>
 </section>
 
@@ -452,7 +483,10 @@ const SFX = {
   go:    () => { tone(784, 0.14, 'triangle', 0.12); tone(1175, 0.3, 'triangle', 0.12, 0.14); },
   end:   () => [784, 659, 523, 392].forEach((f, i) => tone(f, 0.25, 'triangle', 0.1, i * 0.12)),
 };
-function sfx(n) { try { SFX[n](); } catch (e) {} }
+function sfx(n) {
+  if (NET.role === 'host' && G) NET.events.push(['s', n]);
+  try { SFX[n](); } catch (e) {}
+}
 function buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
 
 /* =========================================================================
@@ -1229,11 +1263,12 @@ function ingKey(i) { return i.kind + ':' + i.state; }
 function isCookware(i) { return i && (i.type === 'pot' || i.type === 'pan'); }
 function onGriddle(t) { return t.type === 'griddle' && t.item && t.item.type === 'ing' && GRIDDLE[t.item.kind] !== undefined; }
 
-function startLevel(idx) {
+function startLevel(idx, opts = {}) {
   const lv = LEVELS[idx];
   let map = lv.map;
-  // Tall screens get tall kitchens: transpose wide maps in portrait.
-  if (window.innerHeight > window.innerWidth && map[0].length > map.length) map = map[0].split('').map((_, x) => map.map(row => row[x]).join(''));
+  // Tall screens get tall kitchens: transpose wide maps in portrait. Online, the host decides for both.
+  const transposed = opts.transpose ?? (window.innerHeight > window.innerWidth && map[0].length > map.length);
+  if (transposed) map = map[0].split('').map((_, x) => map.map(row => row[x]).join(''));
   const rows = map.length, cols = map[0].length;
   const tiles = [], spawns = {};
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
@@ -1266,6 +1301,7 @@ function startLevel(idx) {
     time: lv.time, phase: 'countdown', countdown: 3.2, lastCount: 4, endT: 0,
     returns: [], floats: [], puffs: [], swapFx: 0, lastSec: 99, sprayT: 0, crackleT: 0,
     plateTile: tiles.find(t => t.type === 'plates'), hatch: tiles.find(t => t.type === 'hatch'),
+    transposed, netTiles: tiles.filter(t => t.type !== 'floor'),
   };
   input.grab = input.chop = input.swap = false;
 }
@@ -1427,14 +1463,12 @@ function actionPlan(c) {
 
 function say(c, text) { c.toast = text; c.toastT = 1.6; }
 
-function doGrab() {
-  const c = G.chefs[G.active];
+function doGrab(c) {
   const p = grabPlan(c);
   if (p) { p.run(); c.task = null; }
   else { sfx('nope'); if (c.held && c.target) say(c, "Can't put that there"); }
 }
-function doChop() {
-  const c = G.chefs[G.active];
+function doChop(c) {
   const p = actionPlan(c);
   if (p && p.kind === 'spray') return;       // spraying is handled while the button is held
   if (!p) { sfx('nope'); return; }
@@ -1442,7 +1476,7 @@ function doChop() {
   c.task = { kind: p.kind, tile: p.tile };
 }
 function doSwap() {
-  if (G.chefs.length < 2) return;
+  if (G.chefs.length < 2 || NET.role) return;
   G.active = (G.active + 1) % G.chefs.length;
   G.swapFx = 1;
   sfx('swap');
@@ -1462,14 +1496,18 @@ function serve(c) {
   G.orders.splice(idx, 1);
   c.held = null;
   if (h.type === 'plate') G.returns.push(PLATE_RETURN);
-  const k = kitchenGeom(), st = c.target;
-  addFloat(k.ox + (st.x + 0.5) * k.ts, k.oy + (st.y + 0.2) * k.ts, '+' + earned, '#f5b82e', tip >= 7 ? 'Speedy!' : null);
+  const st = c.target;
+  addFloat('tile', st.x + 0.5, st.y + 0.2, '+' + earned, '#f5b82e', tip >= 7 ? 'Speedy!' : null);
   G.coinPulse = 1;
   sfx('serve'); buzz(25);
   if (G.orders.length === 0) G.nextOrder = Math.min(G.nextOrder, 1.2);
 }
 
-function addFloat(x, y, text, color, sub) { G.floats.push({ x, y, text, color, sub, life: 1.3 }); }
+// Floating text anchored to a kitchen tile ('tile', in tiles) or under the tickets ('hud').
+function addFloat(at, x, y, text, color, sub) {
+  G.floats.push({ at, x, y, dy: 0, text, color, sub, life: 1.3 });
+  if (NET.role === 'host') NET.events.push(['f', at, x, y, text, color, sub]);
+}
 
 function spawnOrder() {
   const opts = G.lv.recipes;
@@ -1505,7 +1543,7 @@ cvs.addEventListener('pointerdown', e => {
   const r = L.ctrlR;
   if (dist(L.btnA, x, y) < r * 1.2) { input.grab = true; input.flash.A = 1; return; }
   if (dist(L.btnB, x, y) < r * 1.1) { input.chop = true; input.chopHeld = true; input.chopId = e.pointerId; input.flash.B = 1; return; }
-  if (dist(L.btnS, x, y) < r * 0.9) { input.swap = true; input.flash.S = 1; return; }
+  if (!NET.role && dist(L.btnS, x, y) < r * 0.9) { input.swap = true; input.flash.S = 1; return; }
   if (input.joy.id === null && x < W * 0.55 && y > L.orders.y + L.orders.h) {
     Object.assign(input.joy, { id: e.pointerId, bx: x, by: y, x, y });
   }
@@ -1523,6 +1561,7 @@ cvs.addEventListener('contextmenu', e => e.preventDefault());
 
 const MOVE_KEYS = { ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1], ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0] };
 window.addEventListener('keydown', e => {
+  if (e.target && e.target.tagName === 'INPUT') { if (e.key === 'Enter') joinGame(); return; }
   audioInit();
   if (MOVE_KEYS[e.code]) { input.keys[e.code] = true; e.preventDefault(); return; }
   if (!G || e.repeat) return;
@@ -1558,9 +1597,23 @@ function readMove() {
    Update
    ========================================================================= */
 
+// Who drives which chef this frame. Offline, the player drives the active chef.
+// Hosting online, the player drives chef 0 and the guest's inputs drive chef 1.
+function controllers() {
+  const local = { chef: G.chefs[G.active], move: readMove(), grab: input.grab, chop: input.chop, swap: input.swap, held: input.chopHeld };
+  input.grab = input.chop = input.swap = false;
+  if (NET.role !== 'host') return [local];
+  const r = NET.remote;
+  const remote = { chef: G.chefs[1], move: [r.mx, r.my], grab: r.grab, chop: r.chop, swap: false, held: r.held };
+  r.grab = r.chop = false;
+  return [local, remote];
+}
+
 function update(dt) {
   for (const k in input.flash) input.flash[k] = Math.max(0, input.flash[k] - dt * 5);
+  if (NET.role) netTick(dt);
   if (!G || paused) return;
+  if (NET.role === 'guest') { updateGuest(dt); return; }
   G.swapFx = Math.max(0, G.swapFx - dt * 2.5);
   G.coinPulse = Math.max(0, (G.coinPulse || 0) - dt * 3);
   updateFx(dt);
@@ -1571,6 +1624,7 @@ function update(dt) {
     if (n < G.lastCount && n > 0) { sfx('tick'); G.lastCount = n; }
     if (G.countdown <= 0) { G.phase = 'play'; sfx('go'); }
     input.grab = input.chop = input.swap = false;
+    NET.remote.grab = NET.remote.chop = false;
     return;
   }
   if (G.phase === 'over') {
@@ -1585,14 +1639,15 @@ function update(dt) {
   G.lastSec = sec;
   if (G.time <= 0) { G.time = 0; endLevel(); return; }
 
-  const c = G.chefs[G.active];
-  const [mx, my] = readMove();
-  moveChef(c, mx, my, dt);
+  const ctrls = controllers();
+  for (const ch of G.chefs) ch.moving = false;
+  for (const k of ctrls) moveChef(k.chef, k.move[0], k.move[1], dt);
   for (const ch of G.chefs) ch.target = findTarget(ch);
-
-  if (input.swap) { input.swap = false; doSwap(); }
-  if (input.grab) { input.grab = false; doGrab(); }
-  if (input.chop) { input.chop = false; doChop(); }
+  for (const k of ctrls) {
+    if (k.swap) doSwap();
+    if (k.grab) doGrab(k.chef);
+    if (k.chop) doChop(k.chef);
+  }
 
   // Chopping and washing continue on their own until done or the chef walks off.
   for (const ch of G.chefs) {
@@ -1620,7 +1675,7 @@ function update(dt) {
     }
   }
 
-  updateFire(c, dt);
+  updateFire(ctrls, dt);
 
   // Cooking happens on stoves and griddles, and stops while they're on fire.
   for (const t of G.tiles) {
@@ -1668,7 +1723,7 @@ function update(dt) {
       G.failed++;
       const lost = Math.min(G.score, MISS_PENALTY);
       G.score -= lost;
-      addFloat((o.x ?? L.orders.x) + 40, L.orders.y + L.orders.h + 14, lost ? '-' + lost : 'Missed', '#ff6b57', lost ? 'Missed' : null);
+      addFloat('hud', 0, 0, lost ? '-' + lost : 'Missed', '#ff6b57', lost ? 'Missed' : null);
       sfx('fail'); buzz([40, 60, 40]);
     }
   }
@@ -1719,16 +1774,22 @@ function ignite(t) {
   sfx('fire'); buzz(60);
 }
 
-function updateFire(active, dt) {
-  // Spraying: the active chef, holding an extinguisher, with the button held down.
-  active.spraying = !!(active.held && active.held.type === 'ext' && input.chopHeld);
-  for (const ch of G.chefs) if (ch !== active) ch.spraying = false;
-  if (active.spraying) {
-    const nx = active.x + active.fx * 0.5, ny = active.y + active.fy * 0.5;
-    for (let i = 0; i < 3; i++) {
-      const spread = (Math.random() - 0.5) * 1.6;
-      G.puffs.push({ x: nx, y: ny, vx: active.fx * 4.5 - active.fy * spread, vy: active.fy * 4.5 + active.fx * spread, color: 'rgba(235,245,255,.85)', life: 0.45, max: 0.45, kind: 'spray' });
-    }
+function sprayPuffs(a) {
+  const nx = a.x + a.fx * 0.5, ny = a.y + a.fy * 0.5;
+  for (let i = 0; i < 3; i++) {
+    const spread = (Math.random() - 0.5) * 1.6;
+    G.puffs.push({ x: nx, y: ny, vx: a.fx * 4.5 - a.fy * spread, vy: a.fy * 4.5 + a.fx * spread, color: 'rgba(235,245,255,.85)', life: 0.45, max: 0.45, kind: 'spray' });
+  }
+}
+
+function updateFire(ctrls, dt) {
+  // Spraying: a driven chef holding an extinguisher, with their button held down.
+  for (const ch of G.chefs) ch.spraying = false;
+  for (const k of ctrls) {
+    const active = k.chef;
+    active.spraying = !!(active.held && active.held.type === 'ext' && k.held);
+    if (!active.spraying) continue;
+    sprayPuffs(active);
     G.sprayT -= dt;
     if (G.sprayT <= 0) { sfx('spray'); G.sprayT = 0.12; }
     for (const t of G.tiles) {
@@ -1758,7 +1819,9 @@ function updateFire(active, dt) {
 }
 
 function addPuff(x, y, color, life, kind) {
-  G.puffs.push({ x: x + (Math.random() - 0.5) * 0.3, y, vx: (Math.random() - 0.5) * (kind === 'chip' ? 1.6 : 0.2), vy: kind === 'chip' ? -1 - Math.random() : -0.5 - Math.random() * 0.3, color, life, max: life, kind });
+  const p = { x: x + (Math.random() - 0.5) * 0.3, y, vx: (Math.random() - 0.5) * (kind === 'chip' ? 1.6 : 0.2), vy: kind === 'chip' ? -1 - Math.random() : -0.5 - Math.random() * 0.3, color, life, max: life, kind };
+  G.puffs.push(p);
+  if (NET.role === 'host') NET.events.push(['p', +p.x.toFixed(2), +p.y.toFixed(2), +p.vx.toFixed(2), +p.vy.toFixed(2), color, life, kind]);
 }
 function updateFx(dt) {
   for (let i = G.puffs.length - 1; i >= 0; i--) {
@@ -1769,7 +1832,7 @@ function updateFx(dt) {
   }
   for (let i = G.floats.length - 1; i >= 0; i--) {
     const f = G.floats[i];
-    f.life -= dt; f.y -= 28 * dt;
+    f.life -= dt; f.dy -= 28 * dt;
     if (f.life <= 0) G.floats.splice(i, 1);
   }
 }
@@ -2009,21 +2072,23 @@ function drawHUD(dt) {
     const col = frac > 0.5 ? '#3f9b45' : frac > 0.25 ? '#f5b82e' : '#e8472f';
     X.fillStyle = '#e8dcbc'; X.fillRect(px + 5, y + 5, cw - 10, 6);
     X.fillStyle = col; X.fillRect(px + 5, y + 5, Math.max(3, Math.round((cw - 10) * frac / 3) * 3), 6);
-    // dish
-    const dpx = Math.max(2, Math.floor(Math.min(ch - 36, cw * 0.6) / 12));
-    drawDish(o.recipe, px + cw / 2, y + 14 + dpx * 6, dpx);
-    // ingredients
+    // ingredients row at the bottom, dish in the space above it
     const ings = recipeIngredients(o.recipe);
     const ipx = (cw - 10) / ings.length >= 24 && ch > 80 ? 2 : 1;
     const is = 13 * ipx;
+    const dpx = Math.max(2, Math.floor(Math.min(ch - 16 - (ings.length ? is + 6 : 0), cw * 0.6) / 12));
+    drawDish(o.recipe, px + cw / 2, y + 14 + dpx * 6, dpx);
     ings.forEach((k, j) => drawIng(k, 'raw', px + cw / 2 + (j - (ings.length - 1) / 2) * is, y + ch - is / 2 - 4, ipx));
   });
 
+  const kg = kitchenGeom();
   for (const f of G.floats) {
     X.globalAlpha = Math.min(1, f.life * 2);
+    const fx = f.at === 'tile' ? kg.ox + f.x * kg.ts : L.orders.x + 50;
+    const fy = (f.at === 'tile' ? kg.oy + f.y * kg.ts : L.orders.y + L.orders.h + 14) + f.dy;
     X.font = '400 28px "Pixelify Sans", system-ui, sans-serif'; X.textAlign = 'center';
-    X.lineWidth = 5; X.strokeStyle = '#1c2133'; X.strokeText(f.text, f.x, f.y); X.fillStyle = f.color; X.fillText(f.text, f.x, f.y);
-    if (f.sub) { X.font = '800 13px Nunito, sans-serif'; X.lineWidth = 4; X.strokeText(f.sub, f.x, f.y + 20); X.fillStyle = '#fff5de'; X.fillText(f.sub, f.x, f.y + 20); }
+    X.lineWidth = 5; X.strokeStyle = '#1c2133'; X.strokeText(f.text, fx, fy); X.fillStyle = f.color; X.fillText(f.text, fx, fy);
+    if (f.sub) { X.font = '800 13px Nunito, sans-serif'; X.lineWidth = 4; X.strokeText(f.sub, fx, fy + 20); X.fillStyle = '#fff5de'; X.fillText(f.sub, fx, fy + 20); }
     X.globalAlpha = 1;
   }
 }
@@ -2071,6 +2136,7 @@ function drawControls() {
   const r = L.ctrlR;
   drawButton(L.btnA, r, '#f5b82e', '#b9821a', gp ? gp.label : (c.held ? 'Drop' : 'Grab'), null, !gp || gp.dim, input.flash.A);
   drawButton(L.btnB, r * 0.85, '#e8472f', '#a8301d', cp ? cp.label : 'Chop', null, !cp || cp.dim, c.spraying ? 0.6 : input.flash.B);
+  if (NET.role) return;   // online, each player keeps their own chef
   // Swap shows the colour of the chef you'd switch to.
   const other = G.chefs[(G.active + 1) % G.chefs.length];
   const sr = r * 0.62;
@@ -2097,12 +2163,272 @@ function drawBanner() {
 }
 
 /* =========================================================================
+   Online co-op (peer-to-peer). The host's phone runs the kitchen; the guest
+   sends inputs and draws snapshots. PeerJS's free cloud server only
+   introduces the two phones, then data goes directly between them over WebRTC.
+   ========================================================================= */
+
+const PEERJS_URL = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+const ROOM_PREFIX = 'orderup-v1-';
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+const SNAP_RATE = 1 / 15;
+
+const NET = {
+  role: null,          // null offline, 'host' or 'guest'
+  peer: null, conn: null, code: '',
+  remote: { mx: 0, my: 0, held: false, grab: false, chop: false },  // guest's latest inputs, on the host
+  events: [],          // sounds, floats and puffs since the last snapshot
+  snapT: 0, sendT: 0, lastSent: '',
+};
+
+function loadPeerJS() {
+  return new Promise((resolve, reject) => {
+    if (window.Peer) return resolve();
+    const s = document.createElement('script');
+    s.src = PEERJS_URL;
+    s.onload = () => (window.Peer ? resolve() : reject(new Error('lib')));
+    s.onerror = () => reject(new Error('lib'));
+    document.head.appendChild(s);
+  });
+}
+// ?peerhost=… lets you point at your own PeerJS server instead of the free cloud one.
+function peerOptions() {
+  const o = { debug: 0 };
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.get('peerhost')) {
+      o.host = q.get('peerhost');
+      o.port = +(q.get('peerport') || 443);
+      o.path = q.get('peerpath') || '/';
+      o.secure = q.get('peersecure') !== '0';
+    }
+  } catch (e) {}
+  return o;
+}
+function randomCode() { let c = ''; for (let i = 0; i < 4; i++) c += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]; return c; }
+
+function netStatus(text, code) {
+  $('online-status').textContent = text;
+  $('online-code').textContent = code || '';
+  $('online-code-box').hidden = !code;
+}
+function netFail(err) {
+  const t = err && err.type;
+  const msg =
+    err && err.message === 'lib' ? "Couldn't load the online library. Check your internet connection and try again." :
+    t === 'peer-unavailable' ? 'No kitchen found with that code. Check the code with your friend. Their game needs to be open on the "Host" screen.' :
+    t === 'browser-incompatible' ? "This browser can't do peer-to-peer play. Try Chrome or Safari." :
+    t === 'network' || t === 'server-error' || t === 'socket-error' || t === 'socket-closed' ? "Couldn't reach the matchmaking server. Online play doesn't work inside preview windows (like the Claude artifact). Open the hosted game instead." :
+    'Something went wrong connecting. Try again.';
+  netLeave(false);
+  show('scr-online');
+  netStatus(msg);
+  setOnlineButtons(true);
+}
+function setOnlineButtons(enabled) {
+  for (const id of ['btn-host', 'btn-join', 'join-code']) $(id).disabled = !enabled;
+}
+
+async function hostGame() {
+  setOnlineButtons(false);
+  netStatus('Setting up your kitchen…');
+  try { await loadPeerJS(); } catch (e) { netFail(e); return; }
+  const code = randomCode();
+  const peer = new Peer(ROOM_PREFIX + code, peerOptions());
+  NET.peer = peer; NET.role = 'host'; NET.code = code;
+  peer.on('open', () => netStatus('Tell your friend this code. On their phone: Play with a friend → Join.', code));
+  peer.on('connection', conn => {
+    if (NET.conn) { conn.on('open', () => conn.close()); return; }
+    bindConn(conn);
+    conn.on('open', () => { sfx('order'); enterOnlineMenu(); });
+  });
+  peer.on('error', err => {
+    if (err.type === 'unavailable-id') { peer.destroy(); NET.peer = null; NET.role = null; hostGame(); return; }
+    if (!NET.conn) netFail(err);
+  });
+}
+
+async function joinGame() {
+  const code = $('join-code').value.trim().toUpperCase();
+  if (!/^[A-Z]{4}$/.test(code)) { netStatus('Enter the 4-letter code from your friend’s screen.'); return; }
+  setOnlineButtons(false);
+  netStatus('Joining ' + code + '…');
+  try { await loadPeerJS(); } catch (e) { netFail(e); return; }
+  const peer = new Peer(undefined, peerOptions());
+  NET.peer = peer; NET.role = 'guest'; NET.code = code;
+  peer.on('open', () => {
+    const conn = peer.connect(ROOM_PREFIX + code, { reliable: true, serialization: 'json' });
+    bindConn(conn);
+    conn.on('open', () => { sfx('order'); netStatus('Connected! Waiting for your friend to pick a kitchen.'); });
+  });
+  peer.on('error', err => { if (!NET.conn || !NET.conn.open) netFail(err); });
+}
+
+function bindConn(conn) {
+  NET.conn = conn;
+  conn.on('data', onNetMessage);
+  conn.on('close', () => netDropped());
+  conn.on('error', () => netDropped());
+}
+function netSend(msg) { if (NET.conn && NET.conn.open) NET.conn.send(msg); }
+
+function netLeave(notify = true) {
+  if (notify) netSend({ t: 'bye' });
+  const { conn, peer } = NET;
+  NET.role = null; NET.conn = null; NET.peer = null; NET.events = [];
+  try { conn && conn.close(); } catch (e) {}
+  try { peer && peer.destroy(); } catch (e) {}
+  syncOnlineBanner();
+}
+function netDropped() {
+  if (!NET.role) return;
+  const wasPlaying = !!G;
+  netLeave(false);
+  G = null; paused = false;
+  buildLevelList();
+  show('scr-online');
+  setOnlineButtons(true);
+  netStatus(wasPlaying ? 'Your friend left the kitchen, or the connection dropped.' : 'The connection closed.');
+}
+
+// Host: after a friend joins (and between rounds) the host picks the kitchen.
+function enterOnlineMenu() {
+  G = null; paused = false;
+  buildLevelList();
+  syncOnlineBanner();
+  if (NET.role === 'host') { show('scr-title'); netSend({ t: 'lobby' }); }
+  else { show('scr-online'); netStatus('Connected! Waiting for your friend to pick a kitchen.'); setOnlineButtons(false); }
+}
+function syncOnlineBanner() {
+  const on = !!NET.role && !!NET.conn;
+  $('online-banner').hidden = !on;
+  $('btn-online').hidden = on;
+  if (on) $('online-banner-text').textContent = NET.role === 'host' ? `Playing with a friend (room ${NET.code}). Pick a kitchen for you both.` : 'Playing with a friend.';
+}
+
+/* ---------- messages ---------- */
+
+function onNetMessage(m) {
+  if (!m || typeof m !== 'object') return;
+  if (m.t === 'bye') { netDropped(); return; }
+  if (NET.role === 'host') {
+    if (m.t === 'in') { NET.remote.mx = +m.mx || 0; NET.remote.my = +m.my || 0; NET.remote.held = !!m.held; }
+    else if (m.t === 'act') { if (m.a === 'grab') NET.remote.grab = true; if (m.a === 'chop') { NET.remote.chop = true; NET.remote.held = true; } }
+    else if (m.t === 'pause') setPaused(!!m.on, false);
+    return;
+  }
+  // guest
+  if (m.t === 'start') {
+    paused = false; show(null);
+    startLevel(m.lv, { transpose: m.tr });
+    G.active = 1;
+    for (const c of G.chefs) { c.tx = c.x; c.ty = c.y; }
+  } else if (m.t === 'snap') applySnapshot(m);
+  else if (m.t === 'lobby') enterOnlineMenu();
+  else if (m.t === 'pause') setPaused(!!m.on, false);
+}
+
+function setPaused(on, tell) {
+  if (!G || (G.phase === 'over' && on)) return;
+  if (tell) netSend({ t: 'pause', on });
+  paused = on;
+  if (on) { input.joy.id = null; syncPauseButtons(); show('scr-pause'); } else show(null);
+}
+
+/* ---------- snapshots ---------- */
+
+function snapshot() {
+  const ci = t => (t ? G.tiles.indexOf(t) : -1);
+  return {
+    t: 'snap',
+    tl: G.netTiles.map(t => [t.item, +t.fire.toFixed(2), t.count, t.dirty, +(t.wash || 0).toFixed(2), +(t.brew || 0).toFixed(2), !!t.brewing]),
+    ch: G.chefs.map(c => [+c.x.toFixed(3), +c.y.toFixed(3), +c.fx.toFixed(2), +c.fy.toFixed(2), c.held, c.task ? [c.task.kind, ci(c.task.tile)] : null, c.moving, +c.walk.toFixed(2), c.toast, +c.toastT.toFixed(2), c.spraying]),
+    or: G.orders.map(o => [o.id, o.recipe, o.total, +o.timeLeft.toFixed(2)]),
+    g: [G.score, G.tips, G.served, G.failed, +G.time.toFixed(2), G.phase, +G.countdown.toFixed(2), +G.endT.toFixed(2)],
+    ev: NET.events.splice(0),
+  };
+}
+
+function applySnapshot(m) {
+  if (!G) return;
+  m.tl.forEach((a, i) => {
+    const t = G.netTiles[i];
+    if (!t) return;
+    [t.item, t.fire, t.count, t.dirty, t.wash, t.brew, t.brewing] = a;
+  });
+  m.ch.forEach((a, i) => {
+    const c = G.chefs[i];
+    if (!c) return;
+    const [x, y, fx, fy, held, task, moving, walk, toast, toastT, spraying] = a;
+    c.held = held; c.task = task ? { kind: task[0], tile: G.tiles[task[1]] } : null;
+    c.toast = toast; c.toastT = toastT; c.spraying = spraying;
+    if (i === G.active) {
+      // Our own chef is predicted locally; pull it gently towards the host's copy.
+      const ex = x - c.x, ey = y - c.y, err = Math.hypot(ex, ey);
+      if (err > 0.9) { c.x = x; c.y = y; }
+      else if (!c.moving) { c.x += ex * 0.3; c.y += ey * 0.3; }
+    } else {
+      c.tx = x; c.ty = y; c.fx = fx; c.fy = fy; c.moving = moving; c.walk = walk;
+    }
+  });
+  G.orders = m.or.map(([id, recipe, total, timeLeft]) => {
+    const old = G.orders.find(o => o.id === id);
+    return { id, recipe, total, timeLeft, x: old ? old.x : null };
+  });
+  const prevPhase = G.phase;
+  [G.score, G.tips, G.served, G.failed, G.time, G.phase, G.countdown, G.endT] = m.g;
+  if (G.phase === 'over' && prevPhase !== 'over') { for (const c of G.chefs) c.task = null; }
+  for (const e of m.ev) {
+    if (e[0] === 's') { try { SFX[e[1]](); } catch (err) {} }
+    else if (e[0] === 'f') G.floats.push({ at: e[1], x: e[2], y: e[3], dy: 0, text: e[4], color: e[5], sub: e[6], life: 1.3 });
+    else if (e[0] === 'p') G.puffs.push({ x: e[1], y: e[2], vx: e[3], vy: e[4], color: e[5], life: e[6], max: e[6], kind: e[7] });
+  }
+}
+
+// Runs every frame while online, playing or not.
+function netTick(dt) {
+  if (!NET.conn || !NET.conn.open || !G) return;
+  if (NET.role === 'host') {
+    NET.snapT -= dt;
+    if (NET.snapT <= 0) { NET.snapT = SNAP_RATE; netSend(snapshot()); }
+  }
+}
+
+// The guest's frame: predict our own chef, smooth the other one, send inputs.
+function updateGuest(dt) {
+  updateFx(dt);
+  const me = G.chefs[G.active];
+  let mx = 0, my = 0;
+  if (G.phase === 'play') {
+    [mx, my] = readMove();
+    moveChef(me, mx, my, dt);
+    me.target = findTarget(me);
+  } else me.moving = false;
+  for (const c of G.chefs) {
+    if (c === me) continue;
+    if (c.tx !== undefined) { const k = Math.min(1, dt * 14); c.x += (c.tx - c.x) * k; c.y += (c.ty - c.y) * k; }
+    c.target = findTarget(c);
+  }
+  for (const c of G.chefs) if (c.spraying) sprayPuffs(c);
+  if (input.grab) netSend({ t: 'act', a: 'grab' });
+  if (input.chop) netSend({ t: 'act', a: 'chop' });
+  input.grab = input.chop = input.swap = false;
+  NET.sendT -= dt;
+  const state = `${mx.toFixed(2)},${my.toFixed(2)},${input.chopHeld ? 1 : 0}`;
+  if (state !== NET.lastSent || NET.sendT <= 0) {
+    NET.lastSent = state; NET.sendT = 0.25;
+    netSend({ t: 'in', mx: +mx.toFixed(2), my: +my.toFixed(2), held: input.chopHeld });
+  }
+  if (G.phase === 'over' && G.endT > 1.6 && !G.shown) { G.shown = true; showResults(); }
+}
+
+/* =========================================================================
    Screens
    ========================================================================= */
 
 const $ = id => document.getElementById(id);
 let paused = false;
-const SCREENS = ['scr-title', 'scr-howto', 'scr-intro', 'scr-pause', 'scr-results'];
+const SCREENS = ['scr-title', 'scr-online', 'scr-howto', 'scr-intro', 'scr-pause', 'scr-results'];
 function show(id) { for (const s of SCREENS) $(s).hidden = s !== id; }
 
 function starHTML(n) { return [0, 1, 2].map(i => i < n ? '★' : '<span class="off">★</span>').join(''); }
@@ -2153,10 +2479,28 @@ function openIntro(i) {
   show('scr-intro');
 }
 
-function play(i) { paused = false; show(null); startLevel(i); }
-function pauseGame() { if (!G || G.phase === 'over') return; paused = true; input.joy.id = null; show('scr-pause'); }
-function resumeGame() { paused = false; show(null); }
-function toMenu() { G = null; paused = false; buildLevelList(); show('scr-title'); }
+function play(i) {
+  if (NET.role === 'guest') return;
+  paused = false; show(null); startLevel(i);
+  if (NET.role === 'host') netSend({ t: 'start', lv: i, tr: G.transposed });
+}
+function syncPauseButtons() {
+  const guest = NET.role === 'guest';
+  $('btn-restart').hidden = guest;
+  $('btn-quit').textContent = guest ? 'Leave' : 'Kitchens';
+}
+function pauseGame() {
+  if (!G || G.phase === 'over') return;
+  syncPauseButtons();
+  if (NET.role) { setPaused(true, true); return; }
+  paused = true; input.joy.id = null; show('scr-pause');
+}
+function resumeGame() { if (NET.role) setPaused(false, true); else { paused = false; show(null); } }
+function toMenu() {
+  if (NET.role === 'host') { enterOnlineMenu(); return; }
+  if (NET.role === 'guest') netLeave();
+  G = null; paused = false; buildLevelList(); show('scr-title');
+}
 
 function showResults() {
   const i = G.lvIdx, lv = G.lv, stars = starsFor(i, G.score);
@@ -2169,18 +2513,28 @@ function showResults() {
   $('res-tips').textContent = G.tips;
   $('res-score').textContent = G.score;
   const nextOk = i + 1 < LEVELS.length && unlocked(i + 1);
-  $('btn-next').hidden = !nextOk;
+  const guest = NET.role === 'guest';
+  $('btn-next').hidden = !nextOk || guest;
+  $('btn-retry').hidden = guest;
+  $('btn-res-menu').textContent = guest ? 'Leave' : NET.role ? 'Pick another kitchen' : 'All kitchens';
   const next = LEVELS[i + 1];
   if (!next) $('res-next').textContent = stars ? 'You cleared every kitchen on the road so far. Go for three stars.' : 'Earn ' + lv.stars[0] + ' coins for your first star.';
   else if (nextOk) $('res-next').textContent = '';
   else if (next.stop !== lv.stop) $('res-next').textContent = `Collect ${STOPS[next.stop].needStars} stars in ${STOPS[lv.stop].name} to drive on to ${STOPS[next.stop].name}. You have ${stopStars(lv.stop)}.`;
   else $('res-next').textContent = 'Earn ' + lv.stars[0] + ' coins to unlock ' + next.name + '.';
+  if (guest) $('res-next').textContent = 'Your friend is picking what to play next.';
   show('scr-results');
 }
 
 $('btn-howto').onclick = () => show('scr-howto');
+$('btn-online').onclick = () => { audioInit(); setOnlineButtons(true); netStatus('Both phones need an internet connection. Once you\'re connected, the game data goes straight between your phones.'); show('scr-online'); };
+$('btn-host').onclick = () => { audioInit(); hostGame(); };
+$('btn-join').onclick = () => { audioInit(); joinGame(); };
+$('btn-online-back').onclick = () => { netLeave(); show('scr-title'); };
+$('btn-online-leave').onclick = () => { netLeave(); buildLevelList(); show('scr-title'); };
 $('btn-howto-close').onclick = () => show(G ? 'scr-pause' : 'scr-title');
 $('btn-intro-back').onclick = () => show('scr-title');
+$('join-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4); });
 $('btn-intro-go').onclick = () => { audioInit(); play(introIdx); };
 $('btn-resume').onclick = resumeGame;
 $('btn-restart').onclick = () => play(G.lvIdx);
@@ -2215,7 +2569,7 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 // Test hook for automated play-throughs.
-window.__orderUp = { get G() { return G; }, startLevel: play, input, RECIPES, LEVELS };
+window.__orderUp = { get G() { return G; }, startLevel: play, input, RECIPES, LEVELS, NET };
 </script>
 </body>
 </html>

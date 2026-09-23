@@ -69,7 +69,7 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 1. ~~**Stop 1: Route 66 Breakfast.** Griddle, coffee machine, dishwashing, 3 kitchens.~~ Done.
 2. ~~**Fire.** Spreading fire and the extinguisher.~~ Done. It's on in every kitchen that cooks (kitchens 2–7).
 3. ~~**Pixel art restyle.**~~ Done. The Kenney packs in the repo (Tiny Town / Tiny Dungeon) have no food, kitchen equipment or chefs, so the game uses its own 16×16 sprites in the same style. They're text grids in the `SPR` table, with Pixelify Sans for the text.
-4. **Online co-op prototype.** Room codes and host-authoritative sync. This needs hosting outside the artifact.
+4. ~~**Online co-op prototype.**~~ Done. It's peer-to-peer (PeerJS/WebRTC) with 4-letter room codes, a host-authoritative simulation, guest-side movement prediction and 2 players. Next steps: 3–4 players (needs more spawn points per kitchen), a TURN relay for strict networks, and versus mode.
 
 ## Later
 - Stops 2–9.

@@ -9,6 +9,16 @@ It's one self-contained HTML file with no build step and no image files. The pix
 - **On a phone:** host the folder anywhere static (GitHub Pages, Netlify, `npx serve OrderUp`) and open it. Use "Add to Home Screen" to play fullscreen.
 - **Locally:** open `OrderUp/index.html` in a browser.
 
+## Play with a friend (online co-op)
+
+Two phones, one kitchen. On the title screen, tap **Play with a friend**. One player taps **Host a kitchen** and gets a 4-letter room code. The other types the code and taps **Join**. Each player runs one chef, and the host picks the kitchens.
+
+- **Peer-to-peer:** the host's phone runs the game. The guest's phone sends its stick and button presses, and gets back about 15 snapshots of the kitchen a second. The guest's own chef is predicted locally, so movement feels instant.
+- **Matchmaking:** [PeerJS](https://peerjs.com) (loaded from jsdelivr only when you go online) and its free public server introduce the two phones. After that, data goes directly between them over WebRTC.
+- **Needs a real web host.** Online play doesn't work inside the Claude artifact preview, which blocks WebRTC. Deploy the `OrderUp` folder anywhere static (for example, drag it onto [Netlify Drop](https://app.netlify.com/drop)) and both players open that link.
+- **Own PeerJS server:** add `?peerhost=your.server&peerport=443` to the URL. `peerpath` and `peersecure=0` are also accepted.
+- **Limits of the prototype:** 2 players only. Some strict mobile or corporate networks block direct connections. That would need a TURN relay server, which isn't set up.
+
 ## Controls
 
 | Touch | Keyboard | Action |
