@@ -72,7 +72,8 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 4. ~~**Online co-op prototype.**~~ Done. It's peer-to-peer (PeerJS/WebRTC) with 4-letter room codes, a host-authoritative simulation, guest-side movement prediction and 2 players. Next steps: 3–4 players (needs more spawn points per kitchen), a TURN relay for strict networks, and versus mode.
 
 ## Later
-- Stops 2–9.
+- ~~Stop 2: Drive-In Burgers~~ Done: 3 kitchens with the deep fryer, blender, griddle patties and cheese.
+- Stops 3–9.
 - Versus mode.
 - Driving mini-game.
 - Unity port: iOS and Android builds, between-level ads with the Remove Ads purchase, and online play through Netcode or Photon.

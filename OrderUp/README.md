@@ -42,13 +42,18 @@ The campaign is a food truck road trip (see `ROADMAP.md`). Kitchens are grouped 
 | 5 | Route 66 Breakfast | Sunrise Griddle | Eggs & Bacon, Pancakes | Griddle, dishwashing |
 | 6 | Route 66 Breakfast | Bottomless Coffee | + Coffee | Coffee machine (served in the mug, no plate) |
 | 7 | Route 66 Breakfast | Truck Stop Rush | + Big Breakfast | Three-item plates, three griddles |
+| 8 | Drive-In Burgers | Curb Service | Burger, Cheeseburger, Fries | Deep fryer, patties on the griddle |
+| 9 | Drive-In Burgers | Shake Shack | + Vanilla & Strawberry Shakes | Blender (served in the cup) |
+| 10 | Drive-In Burgers | Friday Night Rush | + Burger & Fries | Split kitchen, everything at once |
 
-Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66). Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
+Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers). Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
 
 ## Kitchen systems
 
-- **Griddle:** put eggs, bacon or batter straight on it. They cook and then start to burn, with a flashing warning and beeps first.
+- **Griddle:** put eggs, bacon, batter or chopped meat (patties) straight on it. They cook and then start to burn, with a flashing warning and beeps first.
 - **Coffee machine:** tap Grab to brew a mug.
+- **Deep fryer:** chop potatoes, then drop them in. Fryers burn faster than griddles.
+- **Blender:** add a scoop of ice cream (and a strawberry for a strawberry shake), then tap **Blend**. Shakes are served in the cup, like coffee.
 - **Dishwashing** (kitchens with `dishes: true`): served plates come back dirty through the hatch. Carry the stack to the sink and wash the plates there, and clean ones appear on the plate rack.
 - **Fire** (kitchens with `fire: true`): burnt food sets its counter alight. Fire spreads to a neighbouring counter every few seconds, and you can't use a counter while it's burning. Items on it aren't destroyed. Pick up the extinguisher and hold Spray while facing the flames.
 
@@ -60,6 +65,6 @@ Everything you'd want to tune is at the top of the `<script>`:
 - `RECIPES`: ingredients, price and ticket time for each dish.
 - `SPR` / `PAL`: the pixel art. Each sprite is a grid of palette letters, where `.` is transparent and digits are colour slots filled in per use (for example chef colours and cooked or burnt states). Kitchen tiles are 16 px and food is 12 px.
 - `STOPS`: road trip stops and how many stars open each one.
-- `CHOP_TIME`, `POT_COOK`, `POT_BURN`, `PAN_COOK`, `PAN_BURN`, `GRIDDLE`, `GRIDDLE_BURN`, `BREW_TIME`, `WASH_TIME`, `FIRE_SPREAD`, `SPEED`, `TIP_MAX`, `MISS_PENALTY`.
+- `CHOP_TIME`, `POT_COOK`, `POT_BURN`, `PAN_COOK`, `PAN_BURN`, `HEAT` (what cooks on griddles and fryers, and how fast), `BLEND_TIME`, `BREW_TIME`, `WASH_TIME`, `FIRE_SPREAD`, `SPEED`, `TIP_MAX`, `MISS_PENALTY`.
 
 In portrait, kitchens that are wider than they are tall get rotated so they fill the screen.
