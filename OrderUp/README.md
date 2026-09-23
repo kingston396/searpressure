@@ -42,6 +42,15 @@ Tickets with four or more items wrap their icons onto two rows when the rail is 
 
 The campaign is a food truck road trip (see `ROADMAP.md`). Kitchens are grouped into stops.
 
+Every kitchen is drawn as the inside of the truck. It has a diamond-plate steel floor, a red and cream body, wheels, and a cab with a windshield at one end. The truck is parked on ground that changes with the stop: asphalt, desert, dirt, bayou, boardwalk or beach.
+
+- **Serving window:** a red-striped awning hangs over it, above a sidewalk with a chalkboard menu sign.
+- **Customer line:** each dine-in ticket brings one customer, who walks up and waits in line.
+  - A VIP shows a gold coin.
+  - A customer whose ticket is running out shows a red "!".
+  - Customers who are served leave with a heart. Customers who are missed storm off.
+- **Pickup window:** delivery kitchens also have a blue awning here. A driver on a scooter waits outside while a delivery is late.
+
 | # | Stop | Kitchen | Menu | What it teaches |
 | --- | --- | --- | --- | --- |
 | 1 | Hometown Diner | Salad Days | Green Salad, Garden Salad | Crates, boards, plates, serving |

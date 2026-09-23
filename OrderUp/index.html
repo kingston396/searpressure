@@ -1313,6 +1313,22 @@ function floorRows(base, grout, speck) {
   }
   return rows;
 }
+// The truck's floor: steel diamond plate with a seam at the tile edge.
+function plateRows(shift) {
+  const rows = [];
+  for (let y = 0; y < 16; y++) {
+    let r = '';
+    for (let x = 0; x < 16; x++) {
+      const cx = (x + shift) % 8, cy = y % 8;
+      if (y === 15 || x === 15) r += 'G';
+      else if ((cx === 2 && cy === 1) || (cx === 1 && cy === 2) || (cx === 5 && cy === 5) || (cx === 6 && cy === 6)) r += 'w';
+      else if ((cx === 2 && cy === 2) || (cx === 6 && cy === 5)) r += 'G';
+      else r += 'g';
+    }
+    rows.push(r);
+  }
+  return rows;
+}
 // Flames: three frames of columns with a hot yellow core.
 function fireRows(frame) {
   const rows = Array.from({ length: 16 }, () => Array(16).fill('.'));
@@ -1331,8 +1347,8 @@ function fireRows(frame) {
 const SPR = {
   wood: counterRows('c', 'C', 'C', 'b', 'T'),
   steel: counterRows('g', 'W', 'G', 'd', 'w'),
-  floorA: floorRows('e', 'q', 'E'),
-  floorB: floorRows('E', 'q', 'e'),
+  floorA: plateRows(0),
+  floorB: plateRows(4),
   fire0: fireRows(0), fire1: fireRows(1), fire2: fireRows(2),
 
   // ---- tile decorations (16x16, drawn over a counter)
@@ -3631,10 +3647,192 @@ function kitchenGeom() {
   const res = tutReserve();
   const shake = G.shake > 0 && save.shake !== false ? (Math.random() - 0.5) * 10 * G.shake : 0;
   const k = res ? { x: L.kitchen.x, y: L.kitchen.y + res, w: L.kitchen.w, h: L.kitchen.h - res } : L.kitchen;
-  const raw = Math.min(k.w / G.cols, k.h / G.rows, 96);
+  // Room around the kitchen for the truck's body, cab, wheels and the street outside.
+  const m = truckLayout().m, fw = G.cols + m.l + m.r, fh = G.rows + m.t + m.b;
+  const raw = Math.min(k.w / fw, k.h / fh, 96);
   const ts = Math.max(16, Math.floor(raw * DPR / 16) * 16) / DPR;
   const snap = v => Math.round(v * DPR) / DPR;
-  return { ts, ox: snap(k.x + (k.w - G.cols * ts) / 2 + shake), oy: snap(k.y + (k.h - G.rows * ts) / 2) };
+  return { ts, ox: snap(k.x + (k.w - fw * ts) / 2 + m.l * ts + shake), oy: snap(k.y + (k.h - fh * ts) / 2 + m.t * ts) };
+}
+
+/* ---------- the food truck around the kitchen, and the street outside ---------- */
+
+// Street colour per stop: asphalt, desert, drive-in lot, Texas dirt, adobe, bayou, city, boardwalk, beach, autumn, the judges' carpet.
+const STOP_GROUND = ['#5e6472', '#c9a36b', '#4a4f5c', '#b58a5a', '#c98b52', '#5b6a4a', '#6e7280', '#b8a98a', '#e3cf95', '#7a5a3a', '#4a2a3a', '#5e6472'];
+const HAIRS = ['#2b1d2a', '#5a3620', '#a86f3e', '#f5d33e', '#8a8f9c', '#b24f5b'];
+const TRUCK_WALL = 0.3;
+SPR.heart = ['.k.k.', 'kmkmk', 'kmmmk', '.kmk.', '..k..'];
+SPR.bang = ['kkk', 'krk', 'krk', 'krk', 'kkk', 'krk', 'kkk'];
+function edgeSide(t) { if (!t) return null; if (t.y === 0) return 't'; if (t.y === G.rows - 1) return 'b'; if (t.x === 0) return 'l'; if (t.x === G.cols - 1) return 'r'; return null; }
+const SIDE_N = { t: [0, -1], b: [0, 1], l: [-1, 0], r: [1, 0] };
+// Where the serving window, pickup window and cab are, and how much room each side needs.
+function truckLayout() {
+  if (G.truck) return G.truck;
+  const serve = G.tiles.find(t => t.type === 'serve') || G.tiles.find(t => t.type === 'pickup');
+  const pick = G.tiles.find(t => t.type === 'pickup');
+  const ss = edgeSide(serve) || 'b', ps = edgeSide(pick);
+  const shorts = G.cols >= G.rows ? ['l', 'r'] : ['t', 'b'];
+  const cab = shorts.find(q => q !== ss && q !== ps) || shorts.find(q => q !== ss) || shorts[0];
+  const m = { l: 0.5, r: 0.5, t: 0.5, b: 0.5 };
+  m[ss] += 1.35; m[cab] += 0.9;
+  if (ps && ps !== ss) m[ps] += 1;
+  return (G.truck = { serve, pick, ss, ps, cab, m });
+}
+// Customers queue along the outside of the truck, starting at the serving window.
+function queueSpot(i) {
+  const tl = truckLayout(), s = tl.serve, [nx, ny] = SIDE_N[tl.ss], horiz = nx === 0;
+  const pos = horiz ? s.x : s.y, len = horiz ? G.cols : G.rows, dir = pos + 0.5 < len / 2 ? 1 : -1;
+  const out = 0.5 + TRUCK_WALL + 0.62, step = 0.78;
+  return [s.x + 0.5 + nx * out + (horiz ? dir * i * step : 0), s.y + 0.5 + ny * out + (horiz ? 0 : dir * i * step)];
+}
+// One customer per open (dine-in) ticket: they walk up, wait, and leave happy or cross.
+function updateCrowd(dt) {
+  G.crowd = G.crowd || new Map(); G.leavers = G.leavers || [];
+  const angry = G.failed > (G.lastFailed ?? G.failed); G.lastFailed = G.failed;
+  const queue = G.orders.filter(o => !o.delivery), ids = new Set(queue.map(o => o.id));
+  for (const [id, c] of G.crowd) if (!ids.has(id)) { G.crowd.delete(id); G.leavers.push(Object.assign(c, { mood: angry ? 'angry' : 'happy', life: 1.8 })); }
+  queue.forEach((o, i) => {
+    const [tx, ty] = queueSpot(i);
+    let c = G.crowd.get(o.id);
+    if (!c) { const [sx, sy] = queueSpot(queue.length + 3); c = { x: sx, y: sy, shirt: SHIRTS[o.id % SHIRTS.length], hair: HAIRS[(o.id * 7) % HAIRS.length], walk: 0 }; G.crowd.set(o.id, c); }
+    c.o = o;
+    const dx = tx - c.x, dy = ty - c.y, d = Math.hypot(dx, dy);
+    c.moving = d > 0.02;
+    if (c.moving) { const st = Math.min(d, 2.6 * dt); c.x += dx / d * st; c.y += dy / d * st; c.walk += dt; }
+  });
+  // Leavers walk off along the street, away from the window.
+  const [fx, fy] = queueSpot(1), [ax, ay] = queueSpot(0), ux = fx - ax, uy = fy - ay, ul = Math.hypot(ux, uy) || 1;
+  for (const l of G.leavers) { l.life -= dt; l.x += ux / ul * 2.2 * dt; l.y += uy / ul * 2.2 * dt; l.walk += dt; l.moving = true; }
+  G.leavers = G.leavers.filter(l => l.life > 0);
+}
+function drawPerson(c, alpha = 1) {
+  const bob = c.moving ? (Math.floor(c.walk * 8) % 2) * P : 0;
+  X.globalAlpha = alpha;
+  X.fillStyle = 'rgba(0,0,0,.22)'; X.fillRect(c.x - 3 * P, c.y + 0.12, 6 * P, 1.5 * P);
+  spr('person', c.x, c.y - 0.22 - bob, P * 0.95, { 1: c.shirt, B: c.hair });
+  X.globalAlpha = 1;
+}
+// The street, the truck's body, cab and wheels (under the kitchen tiles).
+function drawTruck() {
+  const tl = truckLayout(), m = tl.m, C = G.cols, R = G.rows, WL = TRUCK_WALL;
+  const gx = -m.l, gy = -m.t, gw = C + m.l + m.r, gh = R + m.t + m.b;
+  const ground = STOP_GROUND[G.lv.stop] || STOP_GROUND[0];
+  X.fillStyle = PAL.k; X.fillRect(gx - P * 2, gy - P * 2, gw + P * 4, gh + P * 4);
+  X.fillStyle = ground; X.fillRect(gx, gy, gw, gh);
+  const r = mulberry32((G.lv.stop || 0) * 7 + 3);
+  X.fillStyle = mix(ground, '#000000', 0.14);
+  for (let i = 0; i < gw * gh * 2.5; i++) X.fillRect(gx + r() * gw, gy + r() * gh, P * 2, P);
+  X.fillStyle = mix(ground, '#ffffff', 0.12);
+  for (let i = 0; i < gw * gh; i++) X.fillRect(gx + r() * gw, gy + r() * gh, P, P);
+  const bx = -WL, by = -WL, bw = C + WL * 2, bh = R + WL * 2;
+  // Sidewalk with a curb along the serving side, where the line forms.
+  if (tl.serve) {
+    const side = tl.ss, d = m[side] - 0.15, walk = '#c9c3b4';
+    const rect = { l: [gx, gy, d, gh], r: [C + m.r - d, gy, d, gh], t: [gx, gy, gw, d], b: [gx, R + m.b - d, gw, d] }[side];
+    X.fillStyle = walk; X.fillRect(...rect);
+    X.fillStyle = mix(walk, '#000000', 0.12);
+    const [rx, ry, rw, rh] = rect, horiz = side === 't' || side === 'b';
+    for (let k = 0; k < (horiz ? rw : rh); k += 1) { if (horiz) X.fillRect(rx + k, ry, P, rh); else X.fillRect(rx, ry + k, rw, P); }
+    X.fillStyle = '#8a8f9c';
+    if (side === 'l') X.fillRect(rx + rw - 2 * P, ry, 2 * P, rh);
+    if (side === 'r') X.fillRect(rx, ry, 2 * P, rh);
+    if (side === 't') X.fillRect(rx, ry + rh - 2 * P, rw, 2 * P);
+    if (side === 'b') X.fillRect(rx, ry, rw, 2 * P);
+  }
+  // Cab at one short end.
+  const cl = 0.85, inset = 0.35;
+  const cab = { l: [bx - cl, by + inset, cl + 0.05, bh - inset * 2], r: [bx + bw - 0.05, by + inset, cl + 0.05, bh - inset * 2], t: [bx + inset, by - cl, bw - inset * 2, cl + 0.05], b: [bx + inset, by + bh - 0.05, bw - inset * 2, cl + 0.05] }[tl.cab];
+  // Wheels on the long sides (drawn first so the body sits on them).
+  const longH = tl.cab === 'l' || tl.cab === 'r';
+  const wheel = (x, y, w, h) => { X.fillStyle = PAL.k; X.fillRect(x, y, w, h); X.fillStyle = '#3a3d48'; X.fillRect(x + P, y + P, w - 2 * P, h - 2 * P); X.fillStyle = '#8a8f9c'; X.fillRect(x + w / 2 - 2 * P, y + h / 2 - 2 * P, 4 * P, 4 * P); };
+  for (const f of [0.14, 0.8]) {
+    if (longH) { const x = bx + bw * f - 0.45; wheel(x, by - 0.22, 0.9, 0.34); wheel(x, by + bh - 0.12, 0.9, 0.34); }
+    else { const y = by + bh * f - 0.45; wheel(bx - 0.22, y, 0.34, 0.9); wheel(bx + bw - 0.12, y, 0.34, 0.9); }
+  }
+  X.fillStyle = 'rgba(0,0,0,.3)'; X.fillRect(bx + 0.12, by + 0.16, bw, bh);
+  // Cab: body colour, windshield, headlights and bumper.
+  X.fillStyle = PAL.k; X.fillRect(cab[0] - P, cab[1] - P, cab[2] + 2 * P, cab[3] + 2 * P);
+  X.fillStyle = '#e8472f'; X.fillRect(...cab);
+  const [cx, cy, cw, ch] = cab;
+  X.fillStyle = PAL.k;
+  if (longH) {
+    const wx = tl.cab === 'l' ? cx + 0.12 : cx + cw - 0.52;
+    X.fillRect(wx - P, cy + 0.15 - P, 0.4 + 2 * P, ch - 0.3 + 2 * P);
+    X.fillStyle = '#6fb0d6'; X.fillRect(wx, cy + 0.15, 0.4, ch - 0.3);
+    X.fillStyle = '#dff1fb'; X.fillRect(wx + 3 * P, cy + 0.25, 2 * P, ch * 0.3);
+    const hx = tl.cab === 'l' ? cx - 2 * P : cx + cw - 2 * P;
+    X.fillStyle = '#f5d33e'; X.fillRect(hx, cy + 0.1, 4 * P, 5 * P); X.fillRect(hx, cy + ch - 0.1 - 5 * P, 4 * P, 5 * P);
+  } else {
+    const wy = tl.cab === 't' ? cy + 0.12 : cy + ch - 0.52;
+    X.fillRect(cx + 0.15 - P, wy - P, cw - 0.3 + 2 * P, 0.4 + 2 * P);
+    X.fillStyle = '#6fb0d6'; X.fillRect(cx + 0.15, wy, cw - 0.3, 0.4);
+    X.fillStyle = '#dff1fb'; X.fillRect(cx + 0.25, wy + 3 * P, cw * 0.3, 2 * P);
+    const hy = tl.cab === 't' ? cy - 2 * P : cy + ch - 2 * P;
+    X.fillStyle = '#f5d33e'; X.fillRect(cx + 0.1, hy, 5 * P, 4 * P); X.fillRect(cx + cw - 0.1 - 5 * P, hy, 5 * P, 4 * P);
+  }
+  // Body: outline, cream paint and a red stripe (the kitchen tiles cover the middle).
+  X.fillStyle = PAL.k; X.fillRect(bx - P, by - P, bw + 2 * P, bh + 2 * P);
+  X.fillStyle = '#fff5de'; X.fillRect(bx, by, bw, bh);
+  X.fillStyle = '#e8472f'; X.fillRect(bx + 0.1, by + 0.1, bw - 0.2, bh - 0.2);
+  X.fillStyle = '#a8301d'; X.fillRect(bx + 0.2, by + 0.2, bw - 0.4, bh - 0.4);
+  X.fillStyle = '#fff5de';
+  for (let i = 1; i < C; i++) { X.fillRect(i - P / 2, by + 0.03, P, P); X.fillRect(i - P / 2, by + bh - 0.03 - P, P, P); }
+  for (let j = 1; j < R; j++) { X.fillRect(bx + 0.03, j - P / 2, P, P); X.fillRect(bx + bw - 0.03 - P, j - P / 2, P, P); }
+}
+// A chalkboard menu sign on the sidewalk at the back of the line.
+function drawMenuBoard() {
+  const tl = truckLayout(); if (!tl.serve || tl.serve.type !== 'serve') return;
+  const [x, y] = queueSpot(4.6);
+  X.fillStyle = 'rgba(0,0,0,.25)'; X.fillRect(x - 0.28, y + 0.2, 0.62, 0.12);
+  X.fillStyle = PAL.k; X.fillRect(x - 0.3, y - 0.42, 0.6, 0.66);
+  X.fillStyle = '#8a5a36'; X.fillRect(x - 0.3 + P, y - 0.42 + P, 0.6 - 2 * P, 0.66 - 2 * P);
+  X.fillStyle = '#2e3a34'; X.fillRect(x - 0.3 + 2 * P, y - 0.42 + 2 * P, 0.6 - 4 * P, 0.5 - 2 * P);
+  X.fillStyle = '#fff5de';
+  for (let i = 0; i < 3; i++) X.fillRect(x - 0.18, y - 0.3 + i * 0.13, 0.22 - (i % 2) * 0.08, P);
+  X.fillStyle = '#f5d33e'; for (let i = 0; i < 3; i++) X.fillRect(x + 0.1, y - 0.3 + i * 0.13, 0.08, P);
+}
+// Awnings over the windows, the queue and the delivery drivers (over the kitchen tiles).
+function drawTruckOutside(dt) {
+  const tl = truckLayout();
+  const awning = (t, side, c1, c2) => {
+    if (!t || !side) return;
+    const [nx, ny] = SIDE_N[side], horiz = nx === 0, depth = 0.5;
+    const ex = t.x + 0.5 + nx * (0.5 + TRUCK_WALL), ey = t.y + 0.5 + ny * (0.5 + TRUCK_WALL);
+    const len = 2.2, x0 = horiz ? ex - len / 2 : (nx < 0 ? ex - depth : ex), y0 = horiz ? (ny < 0 ? ey - depth : ey) : ey - len / 2;
+    const w = horiz ? len : depth, h = horiz ? depth : len;
+    X.fillStyle = 'rgba(0,0,0,.25)'; X.fillRect(x0 + nx * 0.08 + 0.05, y0 + ny * 0.08 + 0.05, w, h);
+    X.fillStyle = PAL.k; X.fillRect(x0 - P, y0 - P, w + 2 * P, h + 2 * P);
+    const n = 6;
+    for (let i = 0; i < n; i++) { X.fillStyle = i % 2 ? c2 : c1; if (horiz) X.fillRect(x0 + i * len / n, y0, len / n, h); else X.fillRect(x0, y0 + i * len / n, w, len / n); }
+    // Scalloped outer edge.
+    for (let i = 0; i < n; i++) {
+      X.fillStyle = i % 2 ? c2 : c1;
+      const a = i * len / n + len / n * 0.2, b = len / n * 0.6, lip = 3 * P;
+      if (nx < 0) X.fillRect(x0 - lip, y0 + a, lip, b); if (nx > 0) X.fillRect(x0 + w, y0 + a, lip, b);
+      if (ny < 0) X.fillRect(x0 + a, y0 - lip, b, lip); if (ny > 0) X.fillRect(x0 + a, y0 + h, b, lip);
+    }
+  };
+  drawMenuBoard();
+  if (tl.serve && tl.serve.type === 'serve') awning(tl.serve, tl.ss, '#e8472f', '#fff5de');
+  awning(tl.pick, tl.ps, '#3a86d4', '#fff5de');
+  updateCrowd(dt);
+  // Queue: front of the line last, so they're on top.
+  const people = [...G.crowd.values()].sort((a, b) => a.y - b.y);
+  for (const c of people) {
+    drawPerson(c);
+    const o = c.o, frac = o.timeLeft / o.total;
+    if (o.vip) spr('coin', c.x, c.y - 0.78, P * 0.7);
+    else if (frac < 0.3 && Math.sin(T * 10) > -0.2) spr('bang', c.x + 0.22, c.y - 0.7, P);
+  }
+  for (const l of G.leavers) {
+    drawPerson(l, Math.min(1, l.life));
+    spr(l.mood === 'happy' ? 'heart' : 'bang', l.x, l.y - 0.72 - (1.8 - l.life) * 0.2, P * (l.mood === 'happy' ? 1.2 : 1));
+  }
+  // A driver waits on a scooter outside the pickup window while a delivery is overdue.
+  if (tl.pick && tl.ps && G.orders.some(o => o.late)) {
+    const [nx, ny] = SIDE_N[tl.ps];
+    spr('scooter', tl.pick.x + 0.5 + nx * (1.2 + TRUCK_WALL), tl.pick.y + 0.5 + ny * (1.2 + TRUCK_WALL) + (Math.floor(T * 8) % 2 ? P : 0), P);
+  }
 }
 
 function render(dt) {
@@ -3644,6 +3842,7 @@ function render(dt) {
   X.fillStyle = '#1c2133'; X.fillRect(0, 0, W, H);
   if (D) { renderDrive(dt); return; }
   if (!G) { drawBackdrop(); return; }
+  kitchenDt = paused ? 0 : dt;
   drawKitchen();
   drawHUD(dt);
   if (G.lv.judge) drawJudge();
@@ -3711,7 +3910,6 @@ function drawTile(t) {
   } else if (t.type === 'pickup') {
     sprTL('pickup', x, y, P);
     // A driver on a scooter waits at the window while a delivery is overdue.
-    if (G.orders.some(o => o.late)) spr('scooter', x + 0.5, y + 0.62 + (flick ? P : 0), P);
   } else if (t.type === 'trash') {
     sprTL('bin', x, y, P);
   } else if (t.type === 'plates') {
@@ -3806,10 +4004,11 @@ function drawChef(c, idx) {
   }
 }
 
+let kitchenDt = 0;
 function drawKitchen() {
   const { ts, ox, oy } = kitchenGeom();
   X.save(); X.translate(ox, oy); X.scale(ts, ts);
-  X.fillStyle = 'rgba(0,0,0,.35)'; X.fillRect(-P * 3, P * 2, G.cols + P * 6, G.rows + P * 3);
+  drawTruck();
   for (const t of G.tiles) drawTile(t);
   // Target brackets for the active chef
   const act = G.chefs[G.active];
@@ -3825,6 +4024,7 @@ function drawKitchen() {
   for (const t of G.tiles) if (t.item) drawItem(t.item, t.x + 0.5, t.y + (t.type === 'coffee' ? 0.62 : t.type === 'blender' ? 0.5 : 0.4), P);
   const order = G.chefs.map((c, i) => i).sort((a, b) => G.chefs[a].y - G.chefs[b].y);
   for (const i of order) drawChef(G.chefs[i], i);
+  drawTruckOutside(kitchenDt);
   // Frost on anything that's gone cold (only the judge cares).
   if (G.lv.judge) {
     for (const t of G.tiles) if (isCold(t.item)) spr('frost', t.x + 0.82, t.y + 0.12, P);
