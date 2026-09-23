@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1c2133">
+<title>Delivery Runs Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@500&family=Nunito:wght@600;800&family=Pixelify+Sans:wght@400;600;700&display=swap">
+<style>
+  :root { --paper: #fff5de; --paper-2: #f0e0bc; --text: #2b2230; --muted: #7a6450; --line: #dccda0; --tomato: #e8472f; --tomato-dk: #a8301d; --mustard: #f5b82e; --mustard-dk: #b9821a; }
+  html, body { margin: 0; height: 100%; background: #1c2133; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
+  body { font-family: Nunito, system-ui, sans-serif; color: var(--text); }
+  canvas { position: fixed; inset: 0; display: block; }
+  #safe-probe { position: fixed; inset: 0; pointer-events: none; visibility: hidden; padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0); }
+  [hidden] { display: none !important; }
+  .screen { position: fixed; inset: 0; display: flex; overflow-y: auto; padding: 24px 16px; background: rgba(16, 19, 32, .8); }
+  .ticket { margin: auto; width: 100%; max-width: 400px; box-sizing: border-box; background: var(--paper); padding: 20px; border-radius: 2px; box-shadow: 0 22px 50px rgba(0, 0, 0, .45); display: flex; flex-direction: column; gap: 12px; }
+  .mono { font: 500 13px "DM Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1, h2 { font-family: "Pixelify Sans", "Courier New", monospace; margin: 0; }
+  h1 { font-size: 44px; line-height: .95; color: var(--tomato); }
+  h1 span { color: var(--text); }
+  h2 { font-size: 32px; }
+  p { margin: 0; font-weight: 800; line-height: 1.35; }
+  .small { font-size: 13px; color: var(--muted); font-weight: 800; }
+  .tip { background: var(--paper-2); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+  .btn { font: 400 21px "Pixelify Sans", system-ui, sans-serif; border: 0; border-radius: 10px; padding: 12px 14px; cursor: pointer; background: var(--tomato); color: #fff; box-shadow: 0 4px 0 var(--tomato-dk); }
+  .btn.ghost { background: transparent; color: var(--text); box-shadow: inset 0 0 0 2px var(--line); }
+  .btn.alt { background: var(--mustard); color: var(--text); box-shadow: 0 4px 0 var(--mustard-dk); }
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .run { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; text-align: left; background: #fff; border: 2px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; font: inherit; color: var(--text); }
+  .run .name { font: 400 22px/1 "Pixelify Sans", system-ui, sans-serif; }
+  .run .stars { grid-row: 1 / 3; grid-column: 2; font-size: 20px; color: var(--mustard); align-self: center; }
+  .run .stars .off, .stars .off { color: var(--line); }
+  .result-stars { font-size: 44px; text-align: center; color: var(--mustard); letter-spacing: 6px; }
+  .tally { display: grid; grid-template-columns: 1fr auto; gap: 6px; font: 500 16px "DM Mono", monospace; }
+  .tally .total { color: var(--tomato); font-size: 26px; }
+  .toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="safe-probe"></div>
+
+<section id="scr-menu" class="screen">
+  <div class="ticket">
+    <span class="mono">Test build · driving only</span>
+    <h1>Sear<br><span>Pressure</span></h1>
+    <p>Delivery Runs: drive the orders out yourself. In the full game these are secret bonuses found by three-starring the delivery kitchens. Here all three are open.</p>
+    <div class="tip">Drag on the left to drive: up is gas, down is brake, sideways steers. Hold <b>Drift</b> (or Space) to slide. Follow the arrow and stop in the green ring to hand a bag over. After three bags, reload at the food truck. Keyboard: arrows or WASD, Space to drift, Esc to pause.</div>
+    <div id="runs" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div class="toggles">
+      <button id="btn-sound" class="btn ghost" type="button">Sound: on</button>
+      <button id="btn-lefty" class="btn ghost" type="button">Left-handed: off</button>
+    </div>
+  </div>
+</section>
+
+<section id="scr-pause" class="screen" hidden>
+  <div class="ticket">
+    <span class="mono">Paused</span>
+    <h2>Paused</h2>
+    <button id="btn-resume" class="btn" type="button">Resume</button>
+    <div class="btn-row">
+      <button id="btn-restart" class="btn alt" type="button">Restart</button>
+      <button id="btn-quit" class="btn ghost" type="button">Runs</button>
+    </div>
+  </div>
+</section>
+
+<section id="scr-results" class="screen" hidden>
+  <div class="ticket">
+    <span class="mono" id="res-no">Delivery Run 1</span>
+    <h2 id="res-name"></h2>
+    <div id="res-stars" class="result-stars"></div>
+    <div class="tally">
+      <span>Deliveries</span><span id="res-served">0</span>
+      <span>Stunts and smashes</span><span id="res-stunts">0</span>
+      <span>Tips</span><span id="res-tips">0</span>
+      <span>Total</span><span id="res-score" class="total">0</span>
+    </div>
+    <p id="res-next" class="small"></p>
+    <div class="btn-row">
+      <button id="btn-retry" class="btn alt" type="button">Retry</button>
+      <button id="btn-menu" class="btn ghost" type="button">Runs</button>
+    </div>
+  </div>
+</section>
+
+<script>
+'use strict';
+// Stand-ins for the parts of the full game the driving code touches.
+const NET = { role: null, events: [] };
+let G = null, paused = false, T = 0;
+const SAVE_KEY = 'searpressure.drivetest';
+let save = { muted: false, shake: true, buzz: true, lefty: false, drive: [] };
+try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); } catch (e) {}
+function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
+const $ = id => document.getElementById(id);
+const SCREENS = ['scr-menu', 'scr-pause', 'scr-results'];
+function show(id) { for (const s of SCREENS) $(s).hidden = s !== id; }
+
+/*__GAME__*/
+
+function driveOpen() { return true; }
+function pauseGame() { if (!D || D.phase === 'over') return; paused = true; input.joy.id = null; D.hand = false; show('scr-pause'); }
+function resumeGame() { paused = false; show(null); }
+function toMenu() { if (D) { engineStop(); D = null; } paused = false; buildRuns(); show('scr-menu'); }
+
+function driveResults() {
+  const k = D.k, run = D.run, stars = driveStars(k, D.coins);
+  save.drive = save.drive || [];
+  const best = !save.drive[k] || D.coins > save.drive[k];
+  if (best) { save.drive[k] = D.coins; persist(); }
+  $('res-no').textContent = 'Delivery Run ' + (k + 1);
+  $('res-name').textContent = run.name;
+  $('res-stars').innerHTML = starHTML(stars);
+  $('res-served').textContent = D.delivered;
+  $('res-stunts').textContent = D.stunts;
+  $('res-tips').textContent = D.tips;
+  $('res-score').textContent = D.coins;
+  $('res-next').textContent = (best && D.coins ? 'New best! ' : `Best: ${save.drive[k]}. `) + (stars < 3 ? `${run.stars[stars]} coins for the next star.` : 'Three stars!');
+  show('scr-results');
+}
+
+function buildRuns() {
+  const box = $('runs'); box.innerHTML = '';
+  DRIVE_RUNS.forEach((run, k) => {
+    const best = (save.drive || [])[k], b = document.createElement('button');
+    b.type = 'button'; b.className = 'run'; b.id = 'run-' + k;
+    b.innerHTML = `<span class="name">${run.name}</span><span class="stars">${starHTML(best ? driveStars(k, best) : 0)}</span><span class="small">${run.blurb}${best ? ' Best ' + best + '.' : ''}</span>`;
+    b.onclick = () => { audioInit(); startDrive(k); };
+    box.appendChild(b);
+  });
+  $('btn-sound').textContent = 'Sound: ' + (save.muted ? 'off' : 'on');
+  $('btn-lefty').textContent = 'Left-handed: ' + (save.lefty ? 'on' : 'off');
+}
+
+$('btn-resume').onclick = resumeGame;
+$('btn-restart').onclick = () => { engineStop(); startDrive(D.k); };
+$('btn-quit').onclick = toMenu;
+$('btn-retry').onclick = () => startDrive(D.k);
+$('btn-menu').onclick = toMenu;
+$('btn-sound').onclick = () => { save.muted = !save.muted; persist(); buildRuns(); audioInit(); sfx('pick'); };
+$('btn-lefty').onclick = () => { save.lefty = !save.lefty; persist(); layout(); buildRuns(); };
+
+cvs.addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); if (D) drivePointer(e); }, { passive: false });
+window.addEventListener('pointermove', e => { if (e.pointerId === input.joy.id) { input.joy.x = e.clientX; input.joy.y = e.clientY; } });
+function release(e) {
+  if (e.pointerId === input.joy.id) input.joy.id = null;
+  if (D && e.pointerId === D.handId) { D.hand = false; D.handId = null; }
+}
+window.addEventListener('pointerup', release);
+window.addEventListener('pointercancel', release);
+cvs.addEventListener('contextmenu', e => e.preventDefault());
+window.addEventListener('keydown', e => {
+  audioInit();
+  if (MOVE_KEYS[e.code]) { input.keys[e.code] = true; e.preventDefault(); return; }
+  if (!D || e.repeat) return;
+  if (e.code === 'Escape' || e.code === 'KeyP') { if (paused) resumeGame(); else pauseGame(); }
+  else if (e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'KeyJ') { D.hand = true; e.preventDefault(); }
+});
+window.addEventListener('keyup', e => {
+  if (MOVE_KEYS[e.code]) input.keys[e.code] = false;
+  if (D && (e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'KeyJ')) D.hand = false;
+});
+window.addEventListener('blur', () => { input.keys = {}; input.joy.id = null; if (D) D.hand = false; });
+document.addEventListener('visibilitychange', () => { if (document.hidden && D && D.phase === 'play' && !paused) pauseGame(); });
+window.addEventListener('resize', resize);
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now; T += dt;
+  X = mainCtx;
+  X.setTransform(DPR, 0, 0, DPR, 0, 0);
+  X.imageSmoothingEnabled = false;
+  if (D) { if (!paused) updateDrive(dt); else engineSet(0); renderDrive(dt); }
+  else { X.fillStyle = '#1c2133'; X.fillRect(0, 0, W, H); }
+  requestAnimationFrame(loop);
+}
+resize();
+buildRuns();
+requestAnimationFrame(loop);
+window.__drive = { get D() { return D; }, startDrive };
+</script>
+</body>
+</html>

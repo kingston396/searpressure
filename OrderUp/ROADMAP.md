@@ -1,4 +1,4 @@
-# Order Up! Design roadmap
+# Sear Pressure design roadmap
 
 Decisions from the design interview, 23 Sep 2026. The current game (4 kitchens, two swappable chefs, chop / pot / pan / plate / serve) is the baseline.
 

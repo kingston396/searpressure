@@ -1,4 +1,4 @@
-# Order Up!
+# Sear Pressure
 
 A top-down cooking game for phones, in the spirit of Overcooked. You run a kitchen with two chefs. Chop, cook, plate and serve dishes before each order ticket runs out.
 
@@ -127,6 +127,7 @@ A driving mini-game in the spirit of Crazy Taxi and The Simpsons: Hit & Run. It 
 - **Bonus coins:** drifts, jumps off yellow ramps ("Big air!"), near misses with traffic, and knocking over cones, hydrants, bins and mailboxes.
 - **The city** is generated from the run's seed (`DRIVE_RUNS`): a grid of two-lane roads, sidewalks, buildings, and parks you can cut across (mind the trees). Traffic keeps to the right-hand lane and turns at junctions. It stops when you bump it.
 - Offline only. Best coins are saved per run.
+- **Test it on its own:** `drive-test.html` is a small standalone page (about 50 KB) with only the driving game, all three runs open, and its own save, so it never touches the main game's progress. Rebuild it after changing the game with `node OrderUp/tools/build-drive.js`. It copies the driving code straight out of `index.html` and wraps it in `tools/drive-shell.html`.
 
 ## Settings, music and installing
 

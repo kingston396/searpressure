@@ -1,6 +1,6 @@
-// Order Up! offline support: the game is one page, so cache it and its icons.
+// Sear Pressure offline support: the game is one page, so cache it and its icons.
 // Bump VERSION whenever index.html changes so phones pick up the new build.
-const VERSION = 'orderup-1';
+const VERSION = 'orderup-2';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
