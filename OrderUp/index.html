@@ -152,6 +152,18 @@
   .tut-icons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
   .tut-icon { display: flex; align-items: center; gap: 8px; font: 800 13px/1.2 "Nunito", system-ui, sans-serif; }
   .tut-icon canvas { flex: 0 0 auto; border-radius: 4px; }
+  .helper-box { display: flex; flex-direction: column; gap: 8px; }
+  .helper-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+  .helper {
+    display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+    background: #fff; border: 2px solid var(--line); border-radius: 10px; padding: 8px 6px; cursor: pointer;
+    font: inherit; color: var(--text);
+  }
+  .helper canvas { background: #e9e0f8; border-radius: 6px; }
+  .helper .hname { font: 700 15px/1.1 "Pixelify Sans", "Courier New", monospace; }
+  .helper .hblurb { font: 600 12px/1.25 "Nunito", system-ui, sans-serif; color: var(--muted); }
+  .helper[aria-pressed="true"] { border-color: #8a5ad4; background: #f3ecff; box-shadow: 0 0 0 2px #8a5ad4; }
+  .helper:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
 </style>
 </head>
@@ -220,6 +232,11 @@
     <div class="mono">On the menu</div>
     <div id="intro-menu" class="menu-list"></div>
     <p id="intro-tip" class="tip"></p>
+    <div id="helper-box" class="helper-box" hidden>
+      <div class="mono">Pick a helper for this shift</div>
+      <div id="helper-list" class="helper-list"></div>
+      <p class="small" id="helper-note">Tap one to bring them along. Each helper does one job.</p>
+    </div>
     <div class="mono" id="intro-stars"></div>
     <div class="btn-row">
       <button id="btn-intro-back" class="btn ghost" type="button">Back</button>
@@ -2684,8 +2701,9 @@ function doChop(c) {
   c.task = { kind: p.kind, tile: p.tile };
 }
 function doSwap() {
-  if (G.chefs.length < 2 || NET.role) return;
-  G.active = (G.active + 1) % G.chefs.length;
+  const humans = G.chefs.map((c, i) => i).filter(i => !G.chefs[i].ai);
+  if (humans.length < 2 || NET.role) return;
+  G.active = humans[(humans.indexOf(G.active) + 1) % humans.length];
   G.swapFx = 1;
   sfx('swap');
 }
@@ -2832,10 +2850,10 @@ function readMove() {
 
 // Who drives which chef this frame. Offline, the player drives the active chef.
 // Hosting online, the player drives chef 0 and the guest's inputs drive chef 1.
-function controllers() {
+function controllers(dt) {
   const local = { chef: G.chefs[G.active], move: readMove(), grab: input.grab, chop: input.chop, swap: input.swap, held: input.chopHeld };
   input.grab = input.chop = input.swap = false;
-  if (NET.role !== 'host') return [local];
+  if (NET.role !== 'host') return [local].concat(G.chefs.filter(c => c.ai).map(c => helperControl(c, dt)));
   const r = NET.remote;
   const remote = { chef: G.chefs[1], move: [r.mx, r.my], grab: r.grab, chop: r.chop, swap: false, held: r.held };
   r.grab = r.chop = false;
@@ -2875,7 +2893,7 @@ function update(dt) {
   G.lastSec = sec;
   if (G.time <= 0 && !G.lv.tutorial) { G.time = 0; endLevel(); return; }
 
-  const ctrls = controllers();
+  const ctrls = controllers(dt);
   for (const ch of G.chefs) ch.moving = false;
   for (const k of ctrls) moveChef(k.chef, k.move[0], k.move[1], dt);
   for (const ch of G.chefs) ch.target = findTarget(ch);
@@ -3267,6 +3285,12 @@ function drawChef(c, idx) {
     const b = c.task.tile;
     spr('knife', b.x + 0.6, b.y + 0.3 - (Math.floor(T * 12) % 2) * 3 * P, P);
   }
+  if (c.ai) {
+    const [name, sw] = HELPERS[c.ai.kind].icon;
+    X.fillStyle = PAL.k; X.fillRect(c.x - 5 * P, cy - 0.78, 10 * P, 10 * P);
+    X.fillStyle = '#e9e0f8'; X.fillRect(c.x - 4 * P, cy - 0.78 + P, 8 * P, 8 * P);
+    spr(name, c.x, cy - 0.78 + 5 * P, P * 0.55, sw);
+  }
   if (idx === G.active) {
     const bob = (Math.floor(T * 3) % 2) * P + G.swapFx * 0.2;
     spr('arrow', c.x, cy - 0.66 - bob, P, { 1: c.color });
@@ -3447,7 +3471,8 @@ function drawControls() {
   drawButton(L.btnB, r * 0.85, '#e8472f', '#a8301d', cp ? cp.label : 'Chop', null, !cp || cp.dim, c.spraying ? 0.6 : input.flash.B);
   if (NET.role) return;   // online, each player keeps their own chef
   // Swap shows the colour of the chef you'd switch to.
-  const other = G.chefs[(G.active + 1) % G.chefs.length];
+  const humans = G.chefs.filter(c => !c.ai);
+  const other = humans[(humans.indexOf(G.chefs[G.active]) + 1) % humans.length];
   const sr = r * 0.62;
   drawButton(L.btnS, sr, '#3f9b45', '#2a6e2f', 'Swap', null, false, input.flash.S);
   pixCircle(L.btnS.x + sr * 0.72, L.btnS.y - sr * 0.72, sr * 0.3 + 3, '#fff');
@@ -4019,6 +4044,166 @@ function drawJudge() {
 }
 
 /* =========================================================================
+   AI helper chefs: solo play at the Judge's Table only. Each one does exactly
+   one job at one kind of station. The player picks one from three random offers.
+   Helpers walk with the same movement and press the same Grab/Chop as you.
+   ========================================================================= */
+
+const HELPERS = {
+  chop:    { name: 'Prep Cook',   blurb: 'Chops, slices and stretches anything left on a board.', station: 'board', icon: ['knife'] },
+  fryer:   { name: 'Fry Cook',    blurb: 'Pulls food out of the fryer before it burns.', station: 'fryer', icon: ['fries', { 1: '#f5d33e', 2: '#f59a2e' }] },
+  griddle: { name: 'Grill Cook',  blurb: 'Takes food off the griddle before it burns.', station: 'griddle', icon: ['eggFried', { 1: '#ffffff', 2: '#f5b82e' }] },
+  stove:   { name: 'Pot Watcher', blurb: 'Moves finished pots and pans off the stove.', station: 'stove', icon: ['pot', { 1: '#e5552f' }] },
+  smoker:  { name: 'Pitmaster',   blurb: 'Pulls meat out of the smoker when it is done.', station: 'smoker', icon: ['ribs', { 1: '#6a2e1c', 2: '#3a160c', 3: '#e8c8a0' }] },
+  oven:    { name: 'Baker',       blurb: 'Takes pizzas, pies and roasts out of the oven.', station: 'oven', icon: ['pizza', { 1: '#d9953f', 2: '#c8402a', 3: '#f5d33e', 4: '#f5d33e' }] },
+  sink:    { name: 'Dishwasher',  blurb: 'Brings dirty plates to the sink and washes them.', station: 'sink', icon: ['dirtyPlate'] },
+  coffee:  { name: 'Barista',     blurb: 'Keeps the coffee machines brewing.', station: 'coffee', icon: ['mug'] },
+};
+const HELPER_COLOR = ['#8a5ad4', '#5a3a9a'];
+const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+// Helpers worth offering in a kitchen: only stations it actually has.
+function helperChoices(lv) {
+  const types = new Set(lv.map.join('').split('').map(ch => ({ C: 'board', Y: 'fryer', G: 'griddle', S: 'stove', F: 'stove', s: 'smoker', o: 'oven', K: 'sink', Q: 'coffee' })[ch]).filter(Boolean));
+  const keys = Object.keys(HELPERS).filter(k => types.has(HELPERS[k].station));
+  for (let i = keys.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [keys[i], keys[j]] = [keys[j], keys[i]]; }
+  return keys.slice(0, 3);
+}
+
+function helperCanvas(kind, size = 40) {
+  const d = Math.max(1, Math.round(Math.min(window.devicePixelRatio || 1, 3)));
+  const c = document.createElement('canvas');
+  c.width = c.height = size * d; c.style.width = c.style.height = size + 'px'; c.style.imageRendering = 'pixelated';
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  const prev = X; X = g;
+  const [name, sw] = HELPERS[kind].icon;
+  spr(name, size * d / 2, size * d / 2, 3 * d, sw);
+  X = prev;
+  return c;
+}
+
+/* ---------- pathfinding on the floor grid ---------- */
+
+function floorAt(x, y) { const t = tileAt(x, y); return !!t && t.type === 'floor'; }
+function chefCell(c) { return { x: Math.floor(c.x), y: Math.floor(c.y) }; }
+// Breadth-first search from a floor cell; returns a map of cell -> previous cell.
+function floodFrom(start) {
+  const key = (x, y) => y * G.cols + x;
+  const prev = new Map([[key(start.x, start.y), null]]);
+  const q = [start];
+  while (q.length) {
+    const cur = q.shift();
+    for (const [dx, dy] of DIRS) {
+      const nx = cur.x + dx, ny = cur.y + dy, k = key(nx, ny);
+      if (!prev.has(k) && floorAt(nx, ny)) { prev.set(k, cur); q.push({ x: nx, y: ny }); }
+    }
+  }
+  return { prev, key };
+}
+// Shortest route to stand next to any of `targets`: { tile, path, face }.
+function routeTo(c, targets) {
+  const start = chefCell(c);
+  const { prev, key } = floodFrom(start);
+  let best = null;
+  for (const t of targets) {
+    for (const [dx, dy] of DIRS) {
+      const sx = t.x + dx, sy = t.y + dy;
+      if (!prev.has(key(sx, sy))) continue;
+      const path = [];
+      for (let cur = { x: sx, y: sy }; cur; cur = prev.get(key(cur.x, cur.y))) path.unshift(cur);
+      if (!best || path.length < best.path.length) best = { tile: t, path: path.slice(1), face: [-dx, -dy] };
+    }
+  }
+  return best;
+}
+
+/* ---------- jobs ---------- */
+
+const TENDERS = ['fryer', 'griddle', 'stove', 'smoker', 'oven'];
+function finishedOn(t) {
+  if (t.fire > 0 || !t.item) return false;
+  if (t.type === 'stove') return isCookware(t.item) && t.item.cook >= 1 && !t.item.burnt && cookwareFull(t.item);
+  return onHeat(t) && t.item.state === 'cooked';
+}
+
+// What this helper should do next: { targets, action } or null to wait.
+function helperJob(c) {
+  const kind = c.ai.kind, h = c.held;
+  const tiles = type => G.tiles.filter(t => t.type === type && t.fire <= 0);
+  if (kind === 'chop') {
+    if (h) return null;
+    const boards = tiles('board').filter(t => chopResult(t.item));
+    return boards.length ? { targets: boards, action: 'chop' } : null;
+  }
+  if (TENDERS.includes(kind)) {
+    if (h) return { targets: G.tiles.filter(t => t.type === 'counter' && !t.item && t.fire <= 0), action: 'grab' };
+    const done = tiles(kind).filter(finishedOn);
+    return done.length ? { targets: done, action: 'grab' } : null;
+  }
+  if (kind === 'sink') {
+    if (h && h.type === 'dirty') return { targets: tiles('sink'), action: 'grab' };
+    const sinks = tiles('sink').filter(t => t.dirty > 0);
+    if (!h && sinks.length) return { targets: sinks, action: 'chop' };
+    const hatch = tiles('hatch').filter(t => t.dirty > 0);
+    return !h && hatch.length ? { targets: hatch, action: 'grab' } : null;
+  }
+  if (kind === 'coffee') {
+    if (h) return null;
+    const idle = tiles('coffee').filter(t => !t.item && !t.brewing);
+    return idle.length ? { targets: idle, action: 'grab' } : null;
+  }
+  return null;
+}
+
+// The helper's "controller" for this frame: a move vector and button presses.
+function helperControl(c, dt) {
+  const ai = c.ai, out = { chef: c, move: [0, 0], grab: false, chop: false, swap: false, held: false };
+  if (G.phase !== 'play' || c.task) return out;           // busy chopping or washing
+  ai.cool -= dt; ai.age += dt;
+  if (!ai.plan || ai.age > 6) {
+    if (ai.cool > 0) return out;
+    ai.cool = 0.3; ai.age = 0;
+    const job = helperJob(c);
+    ai.plan = job && job.targets.length ? routeTo(c, job.targets) : null;
+    if (ai.plan) ai.plan.action = job.action;
+    if (!ai.plan) return out;
+  }
+  const plan = ai.plan;
+  if (plan.path.length) {
+    const wp = plan.path[0], dx = wp.x + 0.5 - c.x, dy = wp.y + 0.5 - c.y, d = Math.hypot(dx, dy);
+    if (d < 0.12) { plan.path.shift(); return out; }
+    out.move = [dx / d * 0.85, dy / d * 0.85];
+    return out;
+  }
+  // Arrived: face the station, then press once it's the thing we're facing.
+  c.fx = plan.face[0]; c.fy = plan.face[1];
+  if (c.target === plan.tile) {
+    out[plan.action] = true;
+    ai.plan = null; ai.cool = 0.35;
+  } else if (ai.age > 1.5) ai.plan = null;
+  return out;
+}
+
+// Where a helper starts: the free floor cell closest to its stations.
+function spawnHelper(kind) {
+  const station = HELPERS[kind].station;
+  const targets = G.tiles.filter(t => t.type === station);
+  const taken = new Set(G.chefs.map(c => chefCell(c)).map(p => p.y * G.cols + p.x));
+  let best = null, bestD = 1e9;
+  for (const t of G.tiles) {
+    if (t.type !== 'floor' || taken.has(t.y * G.cols + t.x)) continue;
+    const d = Math.min(...targets.map(s => Math.abs(s.x - t.x) + Math.abs(s.y - t.y)));
+    if (d < bestD) { bestD = d; best = t; }
+  }
+  if (!best) return;
+  G.chefs.push({
+    x: best.x + 0.5, y: best.y + 0.5, fx: 0, fy: 1, held: null, color: HELPER_COLOR[0], dark: HELPER_COLOR[1], moving: false,
+    task: null, taskSfx: 0, spraying: false, walk: 0, target: null, toast: null, toastT: 0,
+    ai: { kind, plan: null, cool: 0.5, age: 0 },
+  });
+}
+
+/* =========================================================================
    Screens
    ========================================================================= */
 
@@ -4064,6 +4249,24 @@ function openIntro(i) {
   $('intro-name').textContent = lv.name;
   $('intro-tip').textContent = lv.tip;
   $('intro-stars').textContent = 'Stars at ' + lv.stars.join(' / ') + ' coins';
+  // Solo players at the Judge's Table pick one AI helper from three random offers.
+  chosenHelper = null;
+  const offers = !NET.role && lv.judge ? helperChoices(lv) : [];
+  $('helper-box').hidden = !offers.length;
+  const hl = $('helper-list'); hl.innerHTML = '';
+  offers.forEach(k => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'helper'; b.id = 'helper-' + k; b.setAttribute('aria-pressed', 'false');
+    b.append(helperCanvas(k), Object.assign(document.createElement('span'), { className: 'hname', textContent: HELPERS[k].name }), Object.assign(document.createElement('span'), { className: 'hblurb', textContent: HELPERS[k].blurb }));
+    b.onclick = () => {
+      chosenHelper = chosenHelper === k ? null : k;
+      for (const el of hl.children) el.setAttribute('aria-pressed', String(el.id === 'helper-' + chosenHelper));
+      $('helper-note').textContent = chosenHelper ? HELPERS[k].name + ' is coming along. Tap again to go without.' : 'Tap one to bring them along. Each helper does one job.';
+      sfx('pick');
+    };
+    hl.appendChild(b);
+  });
+  $('helper-note').textContent = offers.length < 3 ? 'This kitchen only has work for ' + (offers.length === 1 ? 'one kind of helper' : 'these helpers') + '. Tap to bring one along.' : 'Tap one to bring them along. Each helper does one job.';
   const m = $('intro-menu'); m.innerHTML = '';
   lv.recipes.forEach(r => {
     const d = document.createElement('div'); d.className = 'dish';
@@ -4075,9 +4278,11 @@ function openIntro(i) {
   show('scr-intro');
 }
 
+let chosenHelper = null;
 function play(i) {
   if (NET.role === 'guest') return;
   paused = false; show(null); startLevel(i);
+  if (!NET.role && chosenHelper && LEVELS[i].judge) spawnHelper(chosenHelper);
   if (NET.role === 'host') netSend({ t: 'start', lv: i, tr: G.transposed });
 }
 function syncPauseButtons() {
@@ -4172,7 +4377,7 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 // Test hook for automated play-throughs.
-window.__orderUp = { get G() { return G; }, startLevel: play, input, RECIPES, LEVELS, NET, TUT_STEPS };
+window.__orderUp = { get G() { return G; }, startLevel: play, input, RECIPES, LEVELS, NET, TUT_STEPS, setHelper: k => { chosenHelper = k; } };
 </script>
 </body>
 </html>

@@ -76,6 +76,21 @@ The campaign is a food truck road trip (see `ROADMAP.md`). Kitchens are grouped 
 
 Unlocked by earning a star on The Big Feast. Chef Brutus Blaze, an original shouty celebrity-chef character, inspects every plate. You get a **strike** for a wrong dish, **cold** food (a cooked part more than 15 seconds off the heat; a frost icon shows it), **overcooked** food (taken off during the burn warning), anything **burning**, or a customer who **walks out**. Three strikes ends the service on the spot with no stars. Tickets are 30% shorter than normal. It's tuned to be brutal, so tell me after you've played it if it's too easy or too hard.
 
+**AI helper (solo only):** when you play the Judge's Table on your own, not in co-op, the intro card offers three random helpers drawn from the stations in that kitchen. Pick one, and they join your two chefs, marked by a purple neckerchief and a badge. Each does exactly one job:
+
+| Helper | Job |
+| --- | --- |
+| Prep Cook | Chops, slices and stretches anything left on a board |
+| Fry Cook | Pulls food out of the fryer before it burns |
+| Grill Cook | Takes food off the griddle before it burns |
+| Pot Watcher | Moves finished pots and pans off the stove |
+| Pitmaster | Pulls meat from the smoker |
+| Baker | Takes pizzas, pies and roasts out of the oven |
+| Dishwasher | Brings dirty plates to the sink and washes them |
+| Barista | Keeps the coffee machines brewing |
+
+Helpers find their way around with grid pathfinding and use the same Grab and Chop actions as you. The whole roster is in `HELPERS`, so any kitchen could offer them later.
+
 **Testers:** add `#unlockall` to the end of the game's link to open every kitchen, including this one.
 
 Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers, 5 each for every stop from the Smokehouse on, including the Thanksgiving Finale). Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
