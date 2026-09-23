@@ -59,7 +59,7 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 - **Versus:** two mirrored kitchens racing for score.
 - Web prototype needs: a small realtime server (for example a hosted WebSocket service), host-authoritative game state, and inputs sent from clients. The published Claude artifact can't open sockets, so the prototype has to be hosted somewhere else, like Netlify plus a small server.
 
-### Rewards
+### Rewards (done)
 - **Chef outfits:** hats, colours and animal chefs, unlocked with stars.
 - **Bonus levels:** unlocked by star totals in each stop.
 - **Daily challenge:** a new kitchen and menu from a fixed daily seed, with a score to beat.
@@ -80,6 +80,8 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 - Playtest log: runs and a Too easy / Just right / Too hard rating are saved from the published artifact; `tools/playtest.js` summarises them per kitchen.
 
 - Delivery orders: bag station, pickup window and a waiting driver, in Curb Service, Friday Night Rush, Taco Truck, Corner Slice, Midtown Lunch Rush and Sunset Rush.
+- Rewards: 10 chef outfits (Wardrobe), a seeded daily challenge with twists, story scenes before each stop, and three Roadside Specials bonus kitchens.
+- Fixed: the kitchen intro card's "On the menu" list was empty since the helper picker was added.
 
 ## Difficulty (done)
 - Smooth rising curve across all 31 kitchens (tools/tune.js), and co-op scaling (+25% pace and star targets per extra player).

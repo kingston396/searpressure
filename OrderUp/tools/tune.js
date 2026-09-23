@@ -29,9 +29,11 @@ const dishEffort = r => { const R = RECIPES[r]; let e = R.items.reduce((n, k) =>
 const out = [];
 LEVELS.forEach((lv, i) => {
   if (lv.judge) return;
-  const k = LEVELS.filter((l, j) => l.stop === lv.stop && j < i).length;            // position within the stop
-  const n = LEVELS.filter(l => l.stop === lv.stop).length;
-  const target = 13 + 1.2 * lv.stop + (n > 1 ? 5 * k / (n - 1) : 0);              // pressure goal: +5 from first to last
+  // Bonus kitchens are tuned like the stop named by their `tier`, at its middle.
+  const stop = lv.tier ?? lv.stop;
+  const k = lv.tier != null ? 1 : LEVELS.filter((l, j) => l.stop === lv.stop && j < i).length;   // position within the stop
+  const n = lv.tier != null ? 3 : LEVELS.filter(l => l.stop === lv.stop).length;
+  const target = 13 + 1.2 * stop + (n > 1 ? 5 * k / (n - 1) : 0);                  // pressure goal: +5 from first to last
   // Delivery tickets add a bagging trip (and pay a bonus for it).
   const eff = lv.recipes.reduce((n, r) => n + dishEffort(r), 0) / lv.recipes.length + (lv.delivery || 0) * 1.5;
   const rate = target / eff;                                                       // orders per minute
@@ -39,7 +41,7 @@ LEVELS.forEach((lv, i) => {
   const interval = [Math.round(avg * 0.8), Math.round(avg * 1.2)];
   const reward = lv.recipes.reduce((n, r) => { const R = RECIPES[r]; return n + R.reward + (R.extras ? (R.pick[0] + R.pick[1]) / 2 * R.extraReward : 0); }, 0) / lv.recipes.length + (lv.delivery || 0) * 5;
   const possible = lv.time / 60 * (60 / avg) * (reward + 5);                          // every ticket served, average tip
-  const f = [0.35, 0.55, 0.75].map(x => x + 0.005 * lv.stop);
+  const f = [0.35, 0.55, 0.75].map(x => x + 0.005 * stop);
   const stars = f.map(x => Math.round(possible * x / 10) * 10);
   out.push({ i, name: lv.name, stop: lv.stop, k, eff: eff.toFixed(1), was: lv.interval.join('-'), interval, starsWas: lv.stars.join('/'), stars, pressure: (60 / avg * eff).toFixed(1) });
   // write back: the level's own interval and stars

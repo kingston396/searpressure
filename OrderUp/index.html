@@ -164,6 +164,15 @@
   .helper .hblurb { font: 600 12px/1.25 "Nunito", system-ui, sans-serif; color: var(--muted); }
   .helper[aria-pressed="true"] { border-color: #8a5ad4; background: #f3ecff; box-shadow: 0 0 0 2px #8a5ad4; }
   .helper:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
+  .rate-row.ward-tabs { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
+  .outfit canvas { background: #f3ecdc; }
+  .outfit:disabled { cursor: default; opacity: .8; }
+  .daily-btn { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+  .daily-btn .small { font-size: 13px; }
+  .story-art { width: 100%; aspect-ratio: 8 / 3; image-rendering: pixelated; border-radius: 8px; display: block; }
+  .story-line { display: flex; gap: 12px; align-items: flex-start; background: var(--paper-2); border-radius: 8px; padding: 10px 12px; min-height: 84px; }
+  .story-face canvas { background: #f3ecdc; border-radius: 6px; display: block; }
+  .story-line p { margin: 4px 0 0; font-size: 16px; }
   .rate-box { display: flex; flex-direction: column; gap: 6px; background: var(--paper-2); border-radius: 8px; padding: 10px 12px; }
   .rate-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .rate-btn { font: 700 14px/1.1 "Pixelify Sans", "Courier New", monospace; color: var(--text); background: #fff; border: 2px solid var(--line); border-radius: 8px; padding: 9px 4px; cursor: pointer; }
@@ -191,10 +200,38 @@
     <hr class="rule">
     <button id="btn-tutorial" class="btn" type="button">New here? Start with the tutorial</button>
     <button id="btn-online" class="btn alt" type="button">Play with a friend</button>
+    <button id="btn-daily" class="btn ghost daily-btn" type="button"><span>Daily challenge</span><span id="daily-sub" class="small"></span></button>
     <div id="online-banner" class="banner" hidden><p id="online-banner-text"></p><button id="btn-online-leave" class="btn ghost small" type="button">Leave</button></div>
     <div class="mono">Pick a kitchen</div>
     <div id="levels" class="levels"></div>
-    <button id="btn-howto" class="btn ghost" type="button">How to play</button>
+    <div class="btn-row">
+      <button id="btn-wardrobe" class="btn ghost" type="button">Wardrobe</button>
+      <button id="btn-howto" class="btn ghost" type="button">How to play</button>
+    </div>
+  </div>
+</section>
+
+<section id="scr-wardrobe" class="screen dim" hidden>
+  <div class="ticket">
+    <span class="mono">Wardrobe</span>
+    <h2>Chef outfits</h2>
+    <p class="small" id="ward-stars"></p>
+    <div class="rate-row ward-tabs"><button id="ward-c0" class="rate-btn" type="button" aria-pressed="true">Chef 1</button><button id="ward-c1" class="rate-btn" type="button" aria-pressed="false">Chef 2</button></div>
+    <div id="ward-list" class="helper-list"></div>
+    <button id="btn-ward-close" class="btn" type="button">Done</button>
+  </div>
+</section>
+
+<section id="scr-story" class="screen dim" hidden>
+  <div class="ticket">
+    <span class="mono" id="story-where">Stop 0</span>
+    <h2 id="story-title"></h2>
+    <canvas id="story-art" class="story-art" aria-hidden="true"></canvas>
+    <div class="story-line"><div id="story-face" class="story-face"></div><div><div class="mono" id="story-who"></div><p id="story-text" aria-live="polite"></p></div></div>
+    <div class="btn-row">
+      <button id="btn-story-skip" class="btn ghost" type="button">Skip</button>
+      <button id="btn-story-next" class="btn" type="button">Next</button>
+    </div>
   </div>
 </section>
 
@@ -315,6 +352,7 @@ const STOPS = [
   { name: 'California Coast', blurb: 'Fresh, fast and impatient. Short cooks, shorter tickets.', needStars: 5 },
   { name: 'Thanksgiving Finale', blurb: 'The end of the road. Everyone is coming for dinner.', needStars: 5 },
   { name: "The Judge's Table", blurb: 'One service. One judge. No mercy.', bonus: true },
+  { name: 'Roadside Specials', blurb: 'Bonus kitchens off the main road. Stars from anywhere on the trip open them.', extra: true },
 ];
 
 // Map legend:
@@ -788,6 +826,49 @@ const LEVELS = [
       '#B#UR##WYI#',
     ],
   },
+  // Roadside Specials: bonus kitchens opened by total stars. `tier` is the stop they're tuned like.
+  {
+    stop: 11, tier: 2, needTotal: 20, name: 'Midnight Diner', time: 210, stars: [200, 310, 420], maxOrders: 5, interval: [9, 13], plates: 5, fire: true, dishes: true,
+    recipes: ['bigbreakfast', 'cheeseburger', 'fries', 'coffee'],
+    tip: 'Open all night: big breakfasts, cheeseburgers, fries and bottomless coffee from one kitchen.',
+    map: [
+      '#X#PKH#Q#Z#',
+      'D.........G',
+      'E..1...2..G',
+      'N...#C#...Y',
+      'C.........Y',
+      'M.........G',
+      '#B#J#R#U###',
+    ],
+  },
+  {
+    stop: 11, tier: 5, needTotal: 45, name: 'State Fair', time: 210, stars: [250, 380, 510], maxOrders: 5, interval: [8, 13], plates: 5, fire: true, dishes: true,
+    recipes: ['fishchips', 'beignets', 'combo', 'sshake'],
+    tip: 'If it holds still, fry it. Three fryers, a blender and the longest line at the fair.',
+    map: [
+      '#XZPK#H#VV#',
+      'f.........Y',
+      'C..1...2..Y',
+      'U...#C#...Y',
+      'C.........G',
+      'd.........G',
+      '#y#B#M#RIW#',
+    ],
+  },
+  {
+    stop: 11, tier: 7, needTotal: 70, name: 'Ghost Kitchen', time: 210, stars: [200, 310, 420], maxOrders: 5, interval: [11, 17], plates: 5, fire: true, dishes: true, delivery: 1,
+    recipes: ['slice', 'cheeseburger', 'fries', 'nachos'],
+    tip: 'No dining room and no bell. Every ticket is a delivery: bag it and hand it to a driver at one of the two windows.',
+    map: [
+      '#@A#PKH#A@#',
+      'd.........o',
+      'C..1...2..o',
+      'q...#C#...Z',
+      'C.........G',
+      'M.........Y',
+      '#J#B#R#U#h#',
+    ],
+  },
 ];
 
 // Ingredient keys are "kind:state". Soups are "soup:<flavour>".
@@ -906,13 +987,13 @@ const CHEF_DARK = ['#a8301d', '#1f5a9a'];
    ========================================================================= */
 
 const SAVE_KEY = 'orderup.v1';
-let save = { best: [], stars: [], muted: false, tutorialDone: false };
+let save = { best: [], stars: [], muted: false, tutorialDone: false, outfits: ['classic', 'classic'], story: {}, daily: null };
 try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s) save = Object.assign(save, s); } catch (e) {}
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
 // Co-op scaling: each extra human player makes service 25% busier and raises star targets to match.
 const COOP_STEP = 0.25;
 function crewFactor(humans) { return 1 + COOP_STEP * (Math.max(1, humans) - 1); }
-function starTargets(lvIdx, humans = 1) { return LEVELS[lvIdx].stars.map(s => Math.round(s * crewFactor(humans) / 10) * 10); }
+function starTargets(lvIdx, humans = 1) { return lvOf(lvIdx).stars.map(s => Math.round(s * crewFactor(humans) / 10) * 10); }
 function starsFor(lvIdx, score, humans = 1) { return starTargets(lvIdx, humans).filter(s => score >= s).length; }
 // Stars are remembered as earned (older saves only had scores, scored solo).
 function bestStars(i) { return Math.max((save.stars || [])[i] || 0, save.best[i] ? starsFor(i, save.best[i]) : 0); }
@@ -922,9 +1003,11 @@ function firstOfStop(i) { return LEVELS.findIndex(l => l.stop === LEVELS[i].stop
 // the rest open one star at a time.
 // Testers: open the game with #unlockall on the end of the link to open every kitchen.
 function unlockAll() { try { return /unlockall/i.test(location.hash); } catch (e) { return false; } }
+function totalStars() { return LEVELS.reduce((n, lv, i) => n + bestStars(i), 0); }
 function unlocked(i) {
   if (unlockAll()) return true;
   const lv = LEVELS[i];
+  if (lv.needTotal) return totalStars() >= lv.needTotal;
   if (STOPS[lv.stop].bonus) return bestStars(i - 1) >= 1;
   if (!firstOfStop(i)) return bestStars(i - 1) >= 1;
   return lv.stop === 0 || stopStars(lv.stop - 1) >= STOPS[lv.stop].needStars;
@@ -2546,7 +2629,7 @@ function heatAccepts(t, it) { const f = heatFood(t, it); return !!f && (it.state
 function onHeat(t) { return heatAccepts(t, t.item); }
 
 function startLevel(idx, opts = {}) {
-  const lv = idx === 'tutorial' ? TUTORIAL : LEVELS[idx];
+  const lv = idx === 'tutorial' ? TUTORIAL : idx === 'daily' ? dailyLevel(opts.dailyKey) : LEVELS[idx];
   $('tut').hidden = true;
   let map = lv.map;
   // Tall screens get tall kitchens: transpose wide maps in portrait. Online, the host decides for both.
@@ -2581,7 +2664,7 @@ function startLevel(idx, opts = {}) {
   }
   const chefs = ['1', '2'].map((k, i) => ({
     x: spawns[k].x, y: spawns[k].y, fx: 0, fy: 1, held: null, color: CHEF_COLORS[i], dark: CHEF_DARK[i], moving: false,
-    task: null, taskSfx: 0, spraying: false, walk: 0, target: null, toast: null, toastT: 0,
+    task: null, taskSfx: 0, spraying: false, walk: 0, target: null, toast: null, toastT: 0, fit: chefFit(i),
   }));
   G = {
     lvIdx: idx, lv, rows, cols, tiles, chefs, active: 0,
@@ -2595,6 +2678,9 @@ function startLevel(idx, opts = {}) {
     humans: NET.role ? 2 : 1,
     crateKinds: new Set(tiles.filter(t => t.type === 'crate').map(t => t.kind)),
   };
+  // The daily challenge deals the same tickets to everyone; one chef only when it's Short-Staffed (solo).
+  G.rng = lv.daily ? mulberry32(DAILY.seed) : Math.random;
+  if (lv.oneChef && !NET.role) G.chefs.length = 1;
   input.grab = input.chop = input.swap = false;
   if (lv.judge) { judgeSay('start', 0); G.judge.t = 6; }
 }
@@ -2862,14 +2948,14 @@ function serve(c) {
   const flaw = judgeFlaw(h);
   if (flaw) { judgeReject(c, h, flaw); return; }
   const o = G.orders[idx];
-  const tip = Math.round(TIP_MAX * o.timeLeft / o.total);
+  const tip = Math.round(TIP_MAX * (G.lv.tipMul || 1) * o.timeLeft / o.total);
   const earned = orderReward(o) + tip;
   G.score += earned; G.tips += tip; G.served++;
   G.orders.splice(idx, 1);
   c.held = null;
   if (h.type === 'plate') G.returns.push(PLATE_RETURN);
   const st = c.target;
-  addFloat('tile', st.x + 0.5, st.y + 0.2, '+' + earned, '#f5b82e', tip >= 7 ? 'Speedy!' : null);
+  addFloat('tile', st.x + 0.5, st.y + 0.2, '+' + earned, '#f5b82e', tip >= 7 * (G.lv.tipMul || 1) ? 'Speedy!' : null);
   G.coinPulse = 1;
   sfx('serve'); buzz(25);
   if (G.lv.judge && (!G.judge || G.judge.t <= 0 || G.judge.mood === 0) && Math.random() < 0.7) judgeSay('good', 0);
@@ -2891,7 +2977,7 @@ function deliver(c) {
   const idx = G.orders.findIndex(o => o.delivery && sameItems(orderItems(o), h.items));
   if (idx < 0) { say(c, G.orders.some(o => o.delivery) ? 'Wrong bag for this driver' : 'No delivery for that'); sfx('nope'); return; }
   const o = G.orders[idx];
-  const tip = o.late ? 0 : Math.round(TIP_MAX * o.timeLeft / o.total);
+  const tip = o.late ? 0 : Math.round(TIP_MAX * (G.lv.tipMul || 1) * o.timeLeft / o.total);
   const earned = orderReward(o) + tip;
   G.score += earned; G.tips += tip; G.served++;
   G.orders.splice(idx, 1);
@@ -2920,8 +3006,8 @@ function addFloat(at, x, y, text, color, sub) {
 
 function spawnOrder() {
   const opts = G.lv.recipes;
-  let r = opts[Math.floor(Math.random() * opts.length)];
-  if (r === G.lastRecipe && opts.length > 1 && Math.random() < 0.5) r = opts[Math.floor(Math.random() * opts.length)];
+  let r = opts[Math.floor(G.rng() * opts.length)];
+  if (r === G.lastRecipe && opts.length > 1 && G.rng() < 0.5) r = opts[Math.floor(G.rng() * opts.length)];
   G.lastRecipe = r;
   const R = RECIPES[r], total = Math.round(R.time * (G.lv.timeScale || 1));
   const items = R.items.slice();
@@ -2929,12 +3015,12 @@ function spawnOrder() {
   if (R.extras) {
     // Only ask for extras this kitchen has a crate for.
     const pool = R.extras.filter(k => G.crateKinds.has(k.split(':')[0]));
-    const n = Math.min(pool.length, R.pick[0] + Math.floor(Math.random() * (R.pick[1] - R.pick[0] + 1)));
-    for (let i = 0; i < n; i++) { items.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]); reward += R.extraReward; }
+    const n = Math.min(pool.length, R.pick[0] + Math.floor(G.rng() * (R.pick[1] - R.pick[0] + 1)));
+    for (let i = 0; i < n; i++) { items.push(pool.splice(Math.floor(G.rng() * pool.length), 1)[0]); reward += R.extraReward; }
   }
   const o = { id: ++G.orderSeq, recipe: r, items, reward, total, timeLeft: total, x: null };
   // Delivery tickets: bag it and leave it at the pickup window before the driver gives up.
-  if (G.lv.delivery && G.tiles.some(t => t.type === 'pickup') && Math.random() < G.lv.delivery) {
+  if (G.lv.delivery && G.tiles.some(t => t.type === 'pickup') && G.rng() < G.lv.delivery) {
     o.delivery = true; o.total = o.timeLeft = Math.round(total * 1.25); o.reward += DELIVERY_BONUS;
   }
   G.orders.push(o);
@@ -3173,7 +3259,7 @@ function update(dt) {
   if (G.nextOrder <= 0) {
     if (G.orders.length < maxOrders()) spawnOrder();
     const [a, b] = G.lv.interval.map(v => v / crewFactor(G.humans));
-    G.nextOrder = G.orders.length <= 1 ? Math.min(3, a) : a + Math.random() * (b - a);
+    G.nextOrder = G.orders.length <= 1 ? Math.min(3, a) : a + G.rng() * (b - a);
   }
   for (let i = G.orders.length - 1; i >= 0; i--) {
     const o = G.orders[i];
@@ -3466,7 +3552,8 @@ function drawChef(c, idx) {
   X.fillStyle = 'rgba(0,0,0,.25)'; X.fillRect(c.x - 5 * P, c.y + 0.1, 10 * P, 2 * P);
   const heldAt = { D: [0, 0.02], U: [0, -0.62], R: [0.4, -0.24], L: [-0.4, -0.24] }[dir];
   if (c.held && dir === 'U') drawItem(c.held, c.x + heldAt[0], c.y + heldAt[1], P);
-  spr(name, c.x, cy, P, { 1: c.color, 2: c.dark }, dir === 'L');
+  const fit = outfitOf(c.fit);
+  spr(chefSprite(name, fit.hat), c.x, cy, P, outfitSwaps(fit, c.color, c.dark), dir === 'L');
   if (c.held && dir !== 'U') drawItem(c.held, c.x + heldAt[0], c.y + heldAt[1], P);
   if (c.task && c.task.kind === 'chop') {
     const b = c.task.tile;
@@ -3666,6 +3753,7 @@ function drawControls() {
   if (NET.role) return;   // online, each player keeps their own chef
   // Swap shows the colour of the chef you'd switch to.
   const humans = G.chefs.filter(c => !c.ai);
+  if (humans.length < 2) return;   // Short-Staffed: nobody to swap to
   const other = humans[(humans.indexOf(G.chefs[G.active]) + 1) % humans.length];
   const sr = r * 0.62;
   drawButton(L.btnS, sr, '#3f9b45', '#2a6e2f', 'Swap', null, false, input.flash.S);
@@ -3768,7 +3856,7 @@ async function hostGame() {
   peer.on('connection', conn => {
     if (NET.conn) { conn.on('open', () => conn.close()); return; }
     bindConn(conn);
-    conn.on('open', () => { sfx('order'); enterOnlineMenu(); });
+    conn.on('open', () => { sfx('order'); conn.send({ t: 'fit', o: (save.outfits || [])[0] || 'classic' }); enterOnlineMenu(); });
   });
   peer.on('error', err => {
     if (err.type === 'unavailable-id') { peer.destroy(); NET.peer = null; NET.role = null; hostGame(); return; }
@@ -3787,7 +3875,7 @@ async function joinGame() {
   peer.on('open', () => {
     const conn = peer.connect(ROOM_PREFIX + code, { reliable: true, serialization: 'json' });
     bindConn(conn);
-    conn.on('open', () => { sfx('order'); netStatus('Connected! Waiting for your friend to pick a kitchen.'); });
+    conn.on('open', () => { sfx('order'); conn.send({ t: 'fit', o: (save.outfits || [])[0] || 'classic' }); netStatus('Connected! Waiting for your friend to pick a kitchen.'); });
   });
   peer.on('error', err => { if (!NET.conn || !NET.conn.open) netFail(err); });
 }
@@ -3840,6 +3928,7 @@ function syncOnlineBanner() {
 function onNetMessage(m) {
   if (!m || typeof m !== 'object') return;
   if (m.t === 'bye') { netDropped(); return; }
+  if (m.t === 'fit') { NET.remoteFit = String(m.o || 'classic'); if (G) G.chefs.forEach((c, i) => { if (!c.ai) c.fit = chefFit(i); }); return; }
   if (NET.role === 'host') {
     if (m.t === 'in') { NET.remote.mx = +m.mx || 0; NET.remote.my = +m.my || 0; NET.remote.held = !!m.held; }
     else if (m.t === 'act') { if (m.a === 'grab') NET.remote.grab = true; if (m.a === 'chop') { NET.remote.chop = true; NET.remote.held = true; } }
@@ -3849,7 +3938,7 @@ function onNetMessage(m) {
   // guest
   if (m.t === 'start') {
     paused = false; show(null);
-    startLevel(m.lv, { transpose: m.tr });
+    startLevel(m.lv, { transpose: m.tr, dailyKey: m.dk });
     G.active = 1;
     for (const c of G.chefs) { c.tx = c.x; c.ty = c.y; }
   } else if (m.t === 'snap') applySnapshot(m);
@@ -4422,6 +4511,246 @@ function spawnHelper(kind) {
    game can be balanced from real play. Elsewhere this quietly does nothing.
    ========================================================================= */
 
+
+/* =========================================================================
+   Rewards: chef outfits, the road-trip story and the daily challenge
+   ========================================================================= */
+
+// Hats replace the top six rows of the chef sprites. 3 = hat colour, 4 = hat shade.
+const HATS = {
+  toque:   ['......kkkk......', '....kk3333kk....', '...k33333333k...', '...k33333334k...', '....k333334k....', '....k444444k....'],
+  cap:     ['................', '................', '.....kkkkkk.....', '....k333333k....', '...k33333333k...', '..kk44444444kk..'],
+  cowboy:  ['................', '.....kkkkkk.....', '....k333333k....', '....k344443k....', '.kkkk333333kkkk.', 'k44444444444444k'],
+  beanie:  ['................', '.......kk.......', '......k33k......', '....kk3333kk....', '...k33333333k...', '...k43434343k...'],
+  bandana: ['................', '................', '................', '....kkkkkkkk....', '...k33w33w33k...', '...k44444444kk..'],
+  crown:   ['................', '....k.k..k.k....', '....k3k33k3k....', '....k333333k....', '....k3r33r3k....', '....k444444k....'],
+};
+// Unlocked by total stars across the trip (the last one by passing the Judge's Table).
+const OUTFITS = [
+  { id: 'classic', name: 'Classic Whites', need: 0, hat: 'toque', hc: ['#ffffff', '#ddd5c4'] },
+  { id: 'diner', name: 'Diner Cap', need: 6, hat: 'cap', hc: ['#e8472f', '#a8301d'] },
+  { id: 'beanie', name: 'Line Cook Beanie', need: 14, hat: 'beanie', hc: ['#8ad65e', '#2e6e34'] },
+  { id: 'cowboy', name: 'Pitmaster Hat', need: 24, hat: 'cowboy', hc: ['#8a5a36', '#5a3620'], jacket: ['#f0e0c8', '#d8c0a0'] },
+  { id: 'bandana', name: 'Taco Truck Bandana', need: 34, hat: 'bandana', hc: ['#e8472f', '#a8301d'] },
+  { id: 'surf', name: 'Surf Shack Cap', need: 48, hat: 'cap', hc: ['#6fb0d6', '#3f6f8f'], jacket: ['#fff1a8', '#e8d890'] },
+  { id: 'night', name: 'Night Shift', need: 62, hat: 'toque', hc: ['#5a5f6e', '#3a3d48'], jacket: ['#8a8f9c', '#5a5f6e'] },
+  { id: 'gold', name: 'Golden Toque', need: 78, hat: 'toque', hc: ['#f5d33e', '#d9953f'] },
+  { id: 'crown', name: 'King of the Road', need: 90, hat: 'crown', hc: ['#f5d33e', '#d9953f'], jacket: ['#dcb8ea', '#9a6ab3'] },
+  { id: 'judge', name: "Judge's Whites", judge: true, hat: 'toque', hc: ['#2b2230', '#1c1624'], jacket: ['#2b2230', '#1c1624'] },
+];
+function outfitOf(id) { return OUTFITS.find(o => o.id === id) || OUTFITS[0]; }
+function outfitUnlocked(o) {
+  if (unlockAll()) return true;
+  return o.judge ? bestStars(LEVELS.findIndex(l => l.judge)) >= 1 : totalStars() >= o.need;
+}
+// A chef sprite wearing a given hat (side views sit one pixel further left).
+function chefSprite(name, hat) {
+  const key = name + '_' + hat;
+  if (!SPR[key]) {
+    const side = name.startsWith('chefSide');
+    SPR[key] = HATS[hat].map(r => side ? r.slice(1) + '.' : r).concat(SPR[name].slice(6));
+  }
+  return key;
+}
+function outfitSwaps(o, color, dark) {
+  const sw = { 1: color, 2: dark, 3: o.hc[0], 4: o.hc[1] };
+  if (o.jacket) { sw.w = o.jacket[0]; sw.W = o.jacket[1]; }
+  return sw;
+}
+// Which outfit a chef wears: yours solo; online, your first chef's outfit and your friend's.
+function chefFit(i) {
+  const mine = save.outfits || [];
+  if (!NET.role) return mine[i] || 'classic';
+  const me = NET.role === 'host' ? 0 : 1;
+  return i === me ? mine[0] || 'classic' : NET.remoteFit || 'classic';
+}
+function chefCanvas(o, slot, size = 48, scarf = [CHEF_COLORS[slot], CHEF_DARK[slot]]) {
+  const d = Math.max(1, Math.round(Math.min(window.devicePixelRatio || 1, 3)));
+  const c = document.createElement('canvas');
+  c.width = c.height = size * d; c.style.width = c.style.height = size + 'px'; c.style.imageRendering = 'pixelated';
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  const prev = X; X = g;
+  spr(chefSprite('chefDown', o.hat), size * d / 2, size * d / 2, size * d / 16, outfitSwaps(o, scarf[0], scarf[1]));
+  X = prev;
+  return c;
+}
+
+let wardSlot = 0;
+function openWardrobe() {
+  wardSlot = 0;
+  $('ward-c1').hidden = !!NET.role;
+  $('ward-c0').textContent = NET.role ? 'Your chef' : 'Chef 1';
+  buildWardrobe();
+  show('scr-wardrobe');
+}
+function buildWardrobe() {
+  save.outfits = save.outfits || ['classic', 'classic'];
+  const total = totalStars();
+  $('ward-stars').textContent = `You have ${total} star${total === 1 ? '' : 's'}. New outfits unlock as you collect more.`;
+  $('ward-c0').setAttribute('aria-pressed', String(wardSlot === 0));
+  $('ward-c1').setAttribute('aria-pressed', String(wardSlot === 1));
+  const list = $('ward-list'); list.innerHTML = '';
+  for (const o of OUTFITS) {
+    const ok = outfitUnlocked(o);
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'helper outfit'; b.disabled = !ok;
+    b.setAttribute('aria-pressed', String(save.outfits[wardSlot] === o.id));
+    const cv = chefCanvas(o, wardSlot);
+    if (!ok) cv.style.opacity = '0.35';
+    b.append(cv, Object.assign(document.createElement('span'), { className: 'hname', textContent: o.name }),
+      Object.assign(document.createElement('span'), { className: 'hblurb', textContent: ok ? (save.outfits[wardSlot] === o.id ? 'Wearing' : 'Tap to wear') : o.judge ? "Pass the Judge's Table" : `★ ${o.need}` }));
+    b.onclick = () => {
+      save.outfits[wardSlot] = o.id; persist(); sfx('pick'); buildWardrobe();
+      if (NET.role && wardSlot === 0) netSend({ t: 'fit', o: o.id });
+    };
+    list.appendChild(b);
+  }
+}
+
+/* ---------- the road trip story: a short scene before each stop ---------- */
+
+const CAST = {
+  Rosa: { hat: 'bandana', hc: ['#dcb8ea', '#9a6ab3'], scarf: ['#ec8a92', '#b24f5b'] },
+  Mo: { hat: 'cap', hc: ['#3a86d4', '#1f5a9a'], scarf: ['#f5d33e', '#d9953f'], jacket: ['#c2c6cf', '#8a8f9c'] },
+};
+const STORY = {
+  0: { sky: ['#8fd0f0', '#f6e7b8'], lines: [
+    ['Rosa', 'Forty years I ran this diner. Now the old food truck is fixed up and the road is calling.'],
+    ['Mo', 'Rosa says if we can run her kitchen, we can run any kitchen in America.'],
+    ['Rosa', 'Learn the basics here. Then we drive.'] ] },
+  1: { sky: ['#f7b26a', '#fbe3a8'], lines: [
+    ['Mo', 'Route 66! Truckers want breakfast, and they want it hot.'],
+    ['Rosa', 'And somebody has to wash the plates. Welcome to dishes.'] ] },
+  2: { sky: ['#3b3f7a', '#e0708a'], lines: [
+    ['Mo', 'A drive-in! Burgers, fries and shakes under the neon.'],
+    ['Rosa', 'Watch that fryer. I am not buying another fire extinguisher.'],
+    ['Mo', 'Folks want food brought out to their cars too. Bag it and I will run it.'] ] },
+  3: { sky: ['#8fd0f0', '#f0d8a0'], lines: [
+    ['Rosa', 'Texas. Brisket takes patience.'],
+    ['Mo', 'I have none. Good thing the smoker does.'] ] },
+  4: { sky: ['#f59a2e', '#fce0a0'], lines: [
+    ['Mo', 'Everyone here orders their own way. Extra cheese, no lettuce, you name it.'],
+    ['Rosa', 'So read the ticket. Every topping, every time.'] ] },
+  5: { sky: ['#6a4a9a', '#f0a070'], lines: [
+    ['Rosa', 'New Orleans. My mother’s gumbo: onion first, then sausage, then shrimp.'],
+    ['Mo', 'And if I put the shrimp in first?'],
+    ['Rosa', 'Then you are walking to New York.'] ] },
+  6: { sky: ['#9ab0c8', '#e8e0d0'], lines: [
+    ['Mo', 'New York! Pizza by the slice and pastrami piled high.'],
+    ['Rosa', 'New Yorkers do not wait. Neither do we.'] ] },
+  7: { sky: ['#a8c8e0', '#e8f0f0'], lines: [
+    ['Mo', 'Rosa, the lobsters keep climbing out of the crate!'],
+    ['Rosa', 'Then cook faster.'] ] },
+  8: { sky: ['#6fc0e8', '#fff1a8'], lines: [
+    ['Mo', 'Sun, surf and smoothie bowls.'],
+    ['Rosa', 'Short cooks and short tempers. Keep it fresh and keep it moving.'] ] },
+  9: { sky: ['#c86a3a', '#f5c870'], lines: [
+    ['Rosa', 'Last stop. The whole family is coming for Thanksgiving dinner.'],
+    ['Mo', 'All of it at once? Turkey, stuffing, mash and pie?'],
+    ['Rosa', 'All of it. Let’s bring it home.'] ] },
+  10: { sky: ['#2b2230', '#5a3a5a'], lines: [
+    ['Mo', 'Rosa, there is a letter. Three famous chefs want to taste our food.'],
+    ['Rosa', 'The Judge’s Table. Nobody passes the Judge’s Table.'],
+    ['Mo', 'Nobody... yet.'] ] },
+};
+// The food truck, drawn from rows like the other sprites.
+SPR.truck = [
+  '................................',
+  '..kkkkkkkkkkkkkkkkkkkkkk........',
+  '..kyryryryryryryryryryrk........',
+  '..kkkkkkkkkkkkkkkkkkkkkk........',
+  '..kwwwwwwwwwwwwwwwwwwwwkkkkkk...',
+  '..kwkkkkkkkkkkkkwwwwwwwkuuuuk...',
+  '..kwkuuuuuuuuuukwwwwwwwkuuuuUk..',
+  '..kwkuUuuuuuuuukwwwwwwwkuuuuuk..',
+  '..kwkTTTTTTTTTTkwwwwwwwkkkkkkkk.',
+  '..kwkkkkkkkkkkkkwwwwwwwwwwwwwwk.',
+  '..kwwwwwwwwwwwwwwwwwwwwwwwwwwyk.',
+  '..krrrrrrrrrrrrrrrrrrrrrrrrrrrk.',
+  '..kkkkkkkkkkkkkkkkkkkkkkkkkkkkk.',
+  '.....kDDDk............kDDDk.....',
+  '.....kDgDk............kDgDk.....',
+  '......kkk..............kkk......',
+];
+
+let storyState = null;
+function maybeStory(i) {
+  const lv = LEVELS[i];
+  if (NET.role || !firstOfStop(i) || !STORY[lv.stop] || (save.story || {})[lv.stop]) return false;
+  storyState = { stop: lv.stop, line: 0, then: () => openIntro(i) };
+  drawStoryArt(); storyLine();
+  show('scr-story');
+  return true;
+}
+function storyLine() {
+  const st = STORY[storyState.stop], [who, text] = st.lines[storyState.line];
+  $('story-where').textContent = storyState.stop === 10 ? 'Bonus challenge' : 'Stop ' + storyState.stop;
+  $('story-title').textContent = STOPS[storyState.stop].name;
+  $('story-who').textContent = who;
+  $('story-text').textContent = text;
+  const c = CAST[who];
+  $('story-face').replaceChildren(chefCanvas(c, 0, 56, c.scarf));
+  $('btn-story-next').textContent = storyState.line === st.lines.length - 1 ? 'Let’s go' : 'Next';
+}
+function storyNext(skip) {
+  const st = STORY[storyState.stop];
+  if (!skip && storyState.line < st.lines.length - 1) { storyState.line++; storyLine(); sfx('pick'); return; }
+  save.story = save.story || {}; save.story[storyState.stop] = true; persist();
+  const then = storyState.then; storyState = null; then();
+}
+function drawStoryArt() {
+  const cv = $('story-art'), st = STORY[storyState.stop];
+  const d = Math.max(1, Math.round(Math.min(window.devicePixelRatio || 1, 3)));
+  const w = 320, h = 120;
+  cv.width = w * d; cv.height = h * d;
+  const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+  const prev = X; X = g;
+  g.scale(d, d);
+  // Sky in bands, sun, ground and road.
+  for (let i = 0; i < 8; i++) { g.fillStyle = mix(st.sky[0], st.sky[1], i / 7); g.fillRect(0, i * 10, w, 10); }
+  g.fillStyle = '#fff1a8'; g.fillRect(250, 18, 24, 24); g.fillStyle = '#f5d33e'; g.fillRect(254, 22, 16, 16);
+  g.fillStyle = mix(st.sky[1], '#6a8a4a', 0.6); g.fillRect(0, 76, w, 10);
+  g.fillStyle = '#3a3d48'; g.fillRect(0, 86, w, 34);
+  g.fillStyle = '#f5d33e'; for (let x = 6; x < w; x += 36) g.fillRect(x, 102, 18, 3);
+  spr('truck', 110, 72, 3);
+  X = prev;
+}
+
+/* ---------- daily challenge: one kitchen, twist and ticket order for everyone each day ---------- */
+
+const DAILY_TWISTS = [
+  { id: 'rush', name: 'Rush Hour', blurb: 'Tickets come in 25% faster.', starMul: 1.2, apply: lv => { lv.interval = lv.interval.map(v => v * 0.8); } },
+  { id: 'tips', name: 'Big Tippers', blurb: 'Speed tips are doubled.', starMul: 1.15, apply: lv => { lv.tipMul = 2; } },
+  { id: 'overtime', name: 'Double Shift', blurb: 'An extra 90 seconds of service.', apply: lv => { lv.time += 90; } },
+  { id: 'solo', name: 'Short-Staffed', blurb: 'Only one of your chefs turned up today (solo play).', starMul: 0.65, apply: lv => { lv.oneChef = true; } },
+];
+function mulberry32(a) {
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function seedOf(str) { let h = 2166136261; for (const ch of str) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; }
+function todayKey() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+let DAILY = null;
+function dailyLevel(key = todayKey()) {
+  if (DAILY && DAILY.key === key) return DAILY.lv;
+  const r = mulberry32(seedOf(key));
+  const pool = LEVELS.map((l, i) => i).filter(i => LEVELS[i].stop <= 9);
+  const base = LEVELS[pool[Math.floor(r() * pool.length)]];
+  const twist = DAILY_TWISTS[Math.floor(r() * DAILY_TWISTS.length)];
+  const lv = Object.assign({}, base, { daily: true, baseName: base.name, interval: base.interval.slice() });
+  twist.apply(lv);
+  const mul = twist.starMul || lv.time / base.time;
+  lv.stars = base.stars.map(v => Math.round(v * mul / 10) * 10);
+  DAILY = { key, lv, twist, seed: seedOf(key + ':orders') };
+  return lv;
+}
+function lvOf(i) { return i === 'daily' ? (G && G.lv.daily ? G.lv : dailyLevel()) : i === 'tutorial' ? TUTORIAL : LEVELS[i]; }
+function dailyBest() { return save.daily && save.daily.key === todayKey() ? save.daily.best : 0; }
+function syncDailyButton() {
+  const lv = dailyLevel(), best = dailyBest();
+  $('daily-sub').textContent = `${DAILY.twist.name} at ${lv.baseName}${best ? ' · Today’s best ' + best : ''}`;
+}
+function dailyDate() { return new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
+
 const PLAYTEST = { db: null, uid: null, ref: null };
 (async () => {
   try {
@@ -4460,20 +4789,21 @@ function rateRun(rating) {
 
 const $ = id => document.getElementById(id);
 let paused = false;
-const SCREENS = ['scr-title', 'scr-online', 'scr-howto', 'scr-intro', 'scr-pause', 'scr-results'];
+const SCREENS = ['scr-wardrobe', 'scr-story', 'scr-title', 'scr-online', 'scr-howto', 'scr-intro', 'scr-pause', 'scr-results'];
 function show(id) { for (const s of SCREENS) $(s).hidden = s !== id; }
 
 function starHTML(n) { return [0, 1, 2].map(i => i < n ? '★' : '<span class="off">★</span>').join(''); }
 
 function buildLevelList() {
+  syncDailyButton();
   const box = $('levels');
   box.innerHTML = '';
   STOPS.forEach((stop, si) => {
     const head = document.createElement('div');
     head.className = 'stop-head';
     const open = LEVELS.some((l, i) => l.stop === si && unlocked(i));
-    const need = si > 0 && !open ? (stop.bonus ? `Earn a star on ${LEVELS[LEVELS.findIndex(l => l.stop === si) - 1].name} to earn a seat.` : `Collect ${stop.needStars} stars in ${STOPS[si - 1].name} to get here.`) : stop.blurb;
-    head.innerHTML = `<span class="mono">${stop.bonus ? 'Bonus challenge' : 'Stop ' + si}</span><h3>${stop.name}</h3><p class="small">${need}</p>`;
+    const need = stop.extra ? `${stop.blurb} You have ${totalStars()} star${totalStars() === 1 ? '' : 's'}.` : si > 0 && !open ? (stop.bonus ? `Earn a star on ${LEVELS[LEVELS.findIndex(l => l.stop === si) - 1].name} to earn a seat.` : `Collect ${stop.needStars} stars in ${STOPS[si - 1].name} to get here.`) : stop.blurb;
+    head.innerHTML = `<span class="mono">${stop.bonus ? 'Bonus challenge' : stop.extra ? 'Bonus kitchens' : 'Stop ' + si}</span><h3>${stop.name}</h3><p class="small">${need}</p>`;
     box.appendChild(head);
     LEVELS.forEach((lv, i) => {
       if (lv.stop !== si) return;
@@ -4481,11 +4811,11 @@ function buildLevelList() {
       b.className = 'lvl'; b.type = 'button'; b.id = 'lvl-' + i;
       const ok = unlocked(i);
       b.disabled = !ok;
-      b.innerHTML = `<span class="no">No.${String(i + 1).padStart(2, '0')}</span><span class="name">${lv.name}</span><span class="stars">${ok ? starHTML(bestStars(i)) : '<span class="off">Locked</span>'}</span><span></span><span class="dishes"></span>`;
+      b.innerHTML = `<span class="no">No.${String(i + 1).padStart(2, '0')}</span><span class="name">${lv.name}</span><span class="stars">${ok ? starHTML(bestStars(i)) : `<span class="off">${lv.needTotal ? '★ ' + lv.needTotal : 'Locked'}</span>`}</span><span></span><span class="dishes"></span>`;
       const d = b.querySelector('.dishes');
       lv.recipes.forEach(r => d.appendChild(dishCanvas(r, 26)));
       if (save.best[i]) { const s = document.createElement('span'); s.className = 'best'; s.textContent = 'Best ' + save.best[i]; b.appendChild(s); }
-      b.addEventListener('click', () => { audioInit(); openIntro(i); });
+      b.addEventListener('click', () => { audioInit(); if (!maybeStory(i)) openIntro(i); });
       box.appendChild(b);
     });
   });
@@ -4494,15 +4824,23 @@ function buildLevelList() {
 let introIdx = 0;
 function openIntro(i) {
   introIdx = i;
-  const lv = LEVELS[i];
-  $('intro-no').textContent = STOPS[lv.stop].name + ' · No.' + String(i + 1).padStart(2, '0');
+  const lv = lvOf(i);
+  $('intro-no').textContent = lv.daily ? 'Daily challenge · ' + dailyDate() : STOPS[lv.stop].name + ' · No.' + String(i + 1).padStart(2, '0');
   $('intro-time').textContent = fmtTime(lv.time) + ' service';
   $('intro-name').textContent = lv.name;
-  $('intro-tip').textContent = lv.tip;
+  $('intro-tip').textContent = lv.daily ? `Today’s twist: ${DAILY.twist.name}. ${DAILY.twist.blurb} ${lv.tip}` : lv.tip;
+  const m = $('intro-menu'); m.innerHTML = '';
+  lv.recipes.forEach(r => {
+    const d = document.createElement('div'); d.className = 'dish';
+    d.appendChild(dishCanvas(r, 64));
+    const n = document.createElement('span'); n.className = 'dname'; n.textContent = RECIPES[r].name;
+    const p = document.createElement('span'); p.className = 'dprice'; p.textContent = RECIPES[r].extras ? RECIPES[r].reward + '+ · your way' : RECIPES[r].reward + ' + tip';
+    d.append(n, p); m.appendChild(d);
+  });
   $('intro-note').textContent = lv.note || '';
   $('intro-note').hidden = !lv.note;
   const humans = NET.role ? 2 : 1;
-  $('intro-stars').textContent = 'Stars at ' + starTargets(i, humans).join(' / ') + ' coins' + (humans > 1 ? ` · co-op: ${Math.round(COOP_STEP * (humans - 1) * 100)}% busier service` : '');
+  $('intro-stars').textContent = 'Stars at ' + starTargets(i, humans).join(' / ') + ' coins' + (lv.daily ? ' · same tickets for everyone today' : '') + (humans > 1 ? ` · co-op: ${Math.round(COOP_STEP * (humans - 1) * 100)}% busier service` : '');
   // Solo players at the Judge's Table hire helpers from three random offers:
   // one per star on the kitchen before it (The Big Feast), up to three.
   chosenHelpers = [];
@@ -4535,8 +4873,8 @@ let chosenHelpers = [];
 function play(i) {
   if (NET.role === 'guest') return;
   paused = false; show(null); startLevel(i);
-  if (!NET.role && LEVELS[i].judge) for (const k of chosenHelpers.slice(0, helperHires(i))) spawnHelper(k);
-  if (NET.role === 'host') netSend({ t: 'start', lv: i, tr: G.transposed });
+  if (!NET.role && lvOf(i).judge) for (const k of chosenHelpers.slice(0, helperHires(i))) spawnHelper(k);
+  if (NET.role === 'host') netSend({ t: 'start', lv: i, tr: G.transposed, dk: DAILY && DAILY.key });
 }
 function syncPauseButtons() {
   const guest = NET.role === 'guest';
@@ -4559,12 +4897,12 @@ function toMenu() {
 function showResults() {
   const i = G.lvIdx, lv = G.lv, stars = G.kicked ? 0 : starsFor(i, G.score, G.humans);
   const need = starTargets(i, G.humans)[0];
-  if (stars) { save.stars = save.stars || []; if (stars > (save.stars[i] || 0)) { save.stars[i] = stars; persist(); } }
+  if (stars && !lv.daily) { save.stars = save.stars || []; if (stars > (save.stars[i] || 0)) { save.stars[i] = stars; persist(); } }
   logRun(stars);
   $('rate-box').hidden = !PLAYTEST.db;
   $('rate-thanks').hidden = true;
   for (const b of document.querySelectorAll('.rate-btn')) b.setAttribute('aria-pressed', 'false');
-  if (!G.kicked && G.humans === 1 && (!save.best[i] || G.score > save.best[i])) { save.best[i] = G.score; persist(); }
+  if (!lv.daily && !G.kicked && G.humans === 1 && (!save.best[i] || G.score > save.best[i])) { save.best[i] = G.score; persist(); }
   $('res-no').textContent = 'Kitchen ' + String(i + 1).padStart(2, '0');
   $('res-name').textContent = lv.name;
   $('res-stars').innerHTML = starHTML(stars);
@@ -4572,7 +4910,7 @@ function showResults() {
   $('res-failed').textContent = G.failed;
   $('res-tips').textContent = G.tips;
   $('res-score').textContent = G.score;
-  const nextOk = i + 1 < LEVELS.length && unlocked(i + 1);
+  const nextOk = !lv.daily && i + 1 < LEVELS.length && unlocked(i + 1);
   const guest = NET.role === 'guest';
   $('btn-next').hidden = !nextOk || guest;
   $('btn-retry').hidden = guest;
@@ -4585,6 +4923,15 @@ function showResults() {
   if (lv.finale && stars && nextOk) $('res-next').textContent = "You made it to Thanksgiving. The road trip is complete! A bonus challenge has opened: The Judge's Table.";
   else if (next && STOPS[next.stop].bonus && !nextOk) $('res-next').textContent = "Earn a star here to earn a seat at The Judge's Table.";
   if (lv.judge) $('res-next').textContent = G.kicked ? `Yourdone Ramsey threw you out after ${MAX_STRIKES} strikes. "${G.judge ? G.judge.text : ''}"` : stars ? 'Yourdone Ramsey grunts, Richard Braise nods and Nyesha Garnishton smiles. You passed the Judge\'s Table!' : `Not enough. The judges want ${need} coins with no more than two strikes.`;
+  else if (next && next.needTotal && !nextOk && !lv.daily) $('res-next').textContent = `Collect ${next.needTotal} stars in total to open ${next.name}. You have ${totalStars()}.`;
+  if (lv.daily) {
+    const d = save.daily && save.daily.key === DAILY.key ? save.daily : { key: DAILY.key, best: 0, plays: 0 };
+    const isBest = G.score > d.best;
+    d.plays++; if (isBest) d.best = G.score;
+    save.daily = d; persist();
+    $('res-no').textContent = 'Daily challenge · ' + dailyDate();
+    $('res-next').textContent = (isBest && G.score ? 'New best for today! ' : `Today’s best: ${d.best}. `) + 'A new kitchen and twist arrive tomorrow.';
+  }
   if (guest) $('res-next').textContent = 'Your friend is picking what to play next.';
   show('scr-results');
 }
@@ -4606,7 +4953,14 @@ $('btn-tutorial').onclick = () => { audioInit(); startTutorial(); };
 $('tut-next').onclick = () => { audioInit(); tutNext(); };
 $('btn-quit').onclick = toMenu;
 $('btn-retry').onclick = () => play(G.lvIdx);
-$('btn-next').onclick = () => openIntro(G.lvIdx + 1);
+$('btn-next').onclick = () => { if (!maybeStory(G.lvIdx + 1)) openIntro(G.lvIdx + 1); };
+$('btn-daily').onclick = () => { audioInit(); dailyLevel(); openIntro('daily'); };
+$('btn-wardrobe').onclick = () => { audioInit(); openWardrobe(); };
+$('btn-ward-close').onclick = () => show('scr-title');
+$('ward-c0').onclick = () => { wardSlot = 0; buildWardrobe(); };
+$('ward-c1').onclick = () => { wardSlot = 1; buildWardrobe(); };
+$('btn-story-next').onclick = () => storyNext(false);
+$('btn-story-skip').onclick = () => storyNext(true);
 $('btn-res-menu').onclick = toMenu;
 function syncMute() { $('btn-mute').textContent = 'Sound: ' + (save.muted ? 'off' : 'on'); }
 $('btn-mute').onclick = () => { save.muted = !save.muted; persist(); syncMute(); audioInit(); sfx('pick'); };
@@ -4637,7 +4991,7 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 // Test hook for automated play-throughs.
-window.__orderUp = { get G() { return G; }, startLevel: play, spawnOrder, input, RECIPES, LEVELS, NET, TUT_STEPS, setHelpers: ks => { chosenHelpers = ks; } };
+window.__orderUp = { get G() { return G; }, startLevel: play, spawnOrder, dailyLevel, dailyTwist: () => DAILY.twist.name, input, RECIPES, LEVELS, NET, TUT_STEPS, setHelpers: ks => { chosenHelpers = ks; } };
 </script>
 </body>
 </html>

@@ -71,6 +71,9 @@ The campaign is a food truck road trip (see `ROADMAP.md`). Kitchens are grouped 
 | 30 | Thanksgiving Finale | Grandma's Kitchen | The Feast, Stuffing, Pumpkin Pie | Three-part feast plate |
 | 31 | Thanksgiving Finale | The Big Feast | Everything Thanksgiving | 5-minute boss service; road trip complete |
 | Bonus | The Judge's Table | The Judge's Table | Deluxe Burger, Tomato Soup, Fish & Chips, Strawberry Shake | A panel of three judges: three strikes and you're out |
+| 33 | Roadside Specials | Midnight Diner | Big Breakfast, Cheeseburger, Fries, Coffee | Bonus kitchen: opens at 20 stars in total |
+| 34 | Roadside Specials | State Fair | Fish & Chips, Beignets, Burger & Fries, Strawberry Shake | Bonus kitchen: three fryers; opens at 45 stars |
+| 35 | Roadside Specials | Ghost Kitchen | Cheese Slice, Cheeseburger, Fries, Nachos | Bonus kitchen: every ticket is a delivery; opens at 70 stars |
 
 ### The Judge's Table (bonus boss)
 
@@ -102,6 +105,13 @@ Helpers find their way around with grid pathfinding and use the same Grab and Ch
 **Testers:** add `#unlockall` to the end of the game's link to open every kitchen, including this one.
 
 Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers, 5 each for every stop from the Smokehouse on, including the Thanksgiving Finale). Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
+
+## Rewards
+
+- **Chef outfits** (Wardrobe on the title screen): 10 outfits with different hats and jackets, unlocked by total stars (6, 14, 24, 34, 48, 62, 78 and 90), plus Judge's Whites for passing the Judge's Table. Each chef can wear a different one. Online, each player's first chef's outfit is sent to their friend. Outfits are `OUTFITS`; hat shapes are `HATS` (they replace the top six rows of the chef sprites).
+- **Daily challenge** (title screen): the date picks one campaign kitchen and a twist: Rush Hour (tickets 25% faster), Big Tippers (double tips), Double Shift (+90 seconds) or Short-Staffed (one chef, solo). The ticket order is seeded from the date too, so everyone gets the same service that day. Star targets scale with the twist. The day's best score is saved separately and doesn't touch campaign stars or unlocks. Works online too (the host's date is used).
+- **Story scenes:** before the first kitchen of each stop (and the Judge's Table), Rosa (the truck's owner) and Mo (her co-driver) have a short scene with the food truck on the road (`STORY`). Each plays once; Skip is always there. Not shown online.
+- **Bonus kitchens** (Roadside Specials): Midnight Diner, State Fair and Ghost Kitchen, opened by total stars (20 / 45 / 70). They're tuned like stops 2, 5 and 7 (`tier` in the level data).
 
 ## Difficulty
 
