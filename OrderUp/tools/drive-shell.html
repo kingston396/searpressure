@@ -48,7 +48,7 @@
     <span class="mono">Test build · driving only</span>
     <h1>Sear<br><span>Pressure</span></h1>
     <p>Delivery Runs: drive the orders out yourself. In the full game these are secret bonuses found by three-starring the delivery kitchens. Here all three are open.</p>
-    <div class="tip">Drag on the left to drive: up is gas, down is brake, sideways steers. Hold <b>Drift</b> (or Space) to slide. Follow the arrow and stop in the green ring to hand a bag over. After three bags, reload at the food truck. Keyboard: arrows or WASD, Space to drift, Esc to pause.</div>
+    <div class="tip">Drag on the left to drive: up is gas, down is brake, sideways steers. Hold <b>Drift</b> (or Space) to slide. Follow the arrow (and the corner map) and stop in the green ring to hand a bag over. After three bags, reload at the food truck. Knocking someone over costs 10 coins. Watch for road works, crashes, potholes and oil. Keyboard: arrows or WASD, Space to drift, Esc to pause.</div>
     <div id="runs" style="display:flex;flex-direction:column;gap:8px"></div>
     <div class="toggles">
       <button id="btn-sound" class="btn ghost" type="button">Sound: on</button>
@@ -77,6 +77,7 @@
     <div class="tally">
       <span>Deliveries</span><span id="res-served">0</span>
       <span>Stunts and smashes</span><span id="res-stunts">0</span>
+      <span>People knocked over</span><span id="res-hits">0</span>
       <span>Tips</span><span id="res-tips">0</span>
       <span>Total</span><span id="res-score" class="total">0</span>
     </div>
@@ -118,6 +119,7 @@ function driveResults() {
   $('res-stars').innerHTML = starHTML(stars);
   $('res-served').textContent = D.delivered;
   $('res-stunts').textContent = D.stunts;
+  $('res-hits').textContent = D.hits || 0;
   $('res-tips').textContent = D.tips;
   $('res-score').textContent = D.coins;
   $('res-next').textContent = (best && D.coins ? 'New best! ' : `Best: ${save.drive[k]}. `) + (stars < 3 ? `${run.stars[stars]} coins for the next star.` : 'Three stars!');

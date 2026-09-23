@@ -5046,9 +5046,9 @@ function dailyDate() { return new Date().toLocaleDateString(undefined, { month: 
 
 // Secret bonus: each run is discovered by three-starring a delivery kitchen.
 const DRIVE_RUNS = [
-  { name: 'Drive-In Strip', blurb: 'A small town with wide streets and not much traffic. A good place to learn to drift.', seed: 101, blocks: 5, traffic: 6, ramps: 3, time: 60, stars: [60, 110, 160], key: 'Curb Service' },
-  { name: 'Big Easy Streets', blurb: 'Tight blocks and plenty of traffic.', seed: 202, blocks: 6, traffic: 12, ramps: 4, time: 60, stars: [70, 130, 190], key: 'Corner Slice' },
-  { name: 'Manhattan Rush', blurb: 'A big grid, heavy traffic and customers who will not wait.', seed: 303, blocks: 7, traffic: 20, ramps: 5, time: 60, stars: [80, 150, 220], key: 'Ghost Kitchen' },
+  { name: 'Drive-In Strip', blurb: 'A roomy town to learn in: lighter traffic and a couple of road works.', seed: 101, blocks: 8, traffic: 22, peds: 60, works: 2, wrecks: 1, ramps: 5, hazards: 14, time: 70, stars: [60, 110, 160], key: 'Curb Service' },
+  { name: 'Big Easy Streets', blurb: 'Busy streets, crowded sidewalks and road works everywhere.', seed: 202, blocks: 10, traffic: 40, peds: 110, works: 4, wrecks: 2, ramps: 7, hazards: 24, time: 70, stars: [70, 130, 190], key: 'Corner Slice' },
+  { name: 'Manhattan Rush', blurb: 'A huge grid, bumper-to-bumper traffic and people everywhere.', seed: 303, blocks: 12, traffic: 65, peds: 170, works: 6, wrecks: 3, ramps: 9, hazards: 36, time: 70, stars: [80, 150, 220], key: 'Ghost Kitchen' },
 ];
 function driveOpen(k) { return unlockAll() || bestStars(LEVELS.findIndex(l => l.name === DRIVE_RUNS[k].key)) >= 3; }
 // Runs opened since the player last saw a results screen (announced once).
@@ -5061,10 +5061,12 @@ function newDriveRuns() {
 }
 function driveStars(k, coins) { return DRIVE_RUNS[k].stars.filter(s => coins >= s).length; }
 
-const RD = 0, WALK = 1, BLDG = 2, GRASS = 3, TREE = 4;       // city tiles
+const RD = 0, WALK = 1, BLDG = 2, GRASS = 3, TREE = 4, DIRT = 5, BARR = 6;   // city tiles
 const CAR_MAX = 9, CAR_REV = 3, CAR_ACC = 7, CAR_BRAKE = 14, CAR_TURN = 2.7, CAR_R = 0.32;
+const PED_PENALTY = 10;
 const DIRV = { E: [1, 0], W: [-1, 0], N: [0, -1], S: [0, 1] };
 const ROOFS = ['#b24f5b', '#9a6ab3', '#3f6f8f', '#8a5a36', '#5a5f6e', '#c98b52', '#2e6e34', '#a86f3e', '#6a4a9a'];
+const SHIRTS = ['#e8472f', '#3a86d4', '#f5b82e', '#3f9b45', '#9a6ab3', '#ec8a92', '#6fb0d6', '#f59a2e'];
 
 SPR.car = [
   '..kkkkkk..',
@@ -5119,11 +5121,22 @@ SPR.cone = ['..kk..', '.kok..', '.kwwk.', '.kook.', 'kwwwwk', 'kkkkkk'];
 SPR.hydrant = ['.kkkk.', 'krrrrk', 'kkrrkk', 'krrrrk', '.krrk.', '.kkkk.'];
 SPR.trashcan = ['kkkkkk', 'kGGGGk', 'kgGgGk', 'kgGgGk', 'kgGgGk', 'kkkkkk'];
 SPR.mailbox = ['.kkkk.', 'kUuuUk', 'kUuuUk', 'kUUUUk', '..kk..', '..kk..'];
+SPR.dumpster = [
+  'kkkkkkkkkk',
+  'kNNNNNNNNk',
+  'knNnNnNnNk',
+  'knNnNnNnNk',
+  'knNnNnNnNk',
+  'kNNNNNNNNk',
+  'kkkkkkkkkk',
+];
+SPR.dizzy = ['.y...y.', '..y.y..', 'y..y..y', '..y.y..', '.y...y.'];
 const PROP_KINDS = ['cone', 'cone', 'hydrant', 'trashcan', 'mailbox'];
 
 let D = null;
 
-// Build a city from the run's seed: a grid of two-lane roads, sidewalks, buildings and parks.
+// Build a city from the run's seed: a grid of two-lane roads, sidewalks, buildings and parks,
+// with road works, potholes, oil and street clutter.
 function driveCity(run) {
   const r = mulberry32(run.seed), n = run.blocks * 8 + 2;
   const t = new Uint8Array(n * n), bid = new Int16Array(n * n).fill(-1), bcol = [];
@@ -5133,7 +5146,7 @@ function driveCity(run) {
   }
   for (let j = 0; j < run.blocks; j++) for (let i = 0; i < run.blocks; i++) {
     const ox = i * 8 + 3, oy = j * 8 + 3;
-    if (r() < 0.18) {   // a park: grass you can drive over, and trees you can't
+    if (r() < 0.16) {   // a park: grass you can drive over, and trees you can't
       for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) t[(oy + y) * n + ox + x] = r() < 0.3 ? TREE : GRASS;
       continue;
     }
@@ -5146,24 +5159,54 @@ function driveCity(run) {
     }
   }
   const at = (x, y) => (x < 0 || y < 0 || x >= n || y >= n ? BLDG : t[y * n + x]);
+  const set = (x, y, k) => { t[y * n + x] = k; };
+  // Doors (sidewalk next to a building) are where customers wait. The truck parks nearest the middle.
+  const doorsAll = [];
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++)
+    if (t[y * n + x] === WALK && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => at(x + dx, y + dy) === BLDG)) doorsAll.push({ x: x + 0.5, y: y + 0.5 });
+  const mid = n / 2;
+  const truck = doorsAll.slice().sort((a, b) => Math.hypot(a.x - mid, a.y - mid) - Math.hypot(b.x - mid, b.y - mid))[0];
+  // Road works close a whole block of road: barricades at each end, dirt in between.
+  const works = [];
+  while (works.length < run.works) {
+    const horiz = r() < 0.5, band = (1 + Math.floor(r() * (run.blocks - 1))) * 8, seg = Math.floor(r() * run.blocks) * 8;
+    const cx = horiz ? seg + 4.5 : band + 1, cy = horiz ? band + 1 : seg + 4.5;
+    if (Math.hypot(cx - truck.x, cy - truck.y) < 10 || works.some(w => Math.hypot(w.x - cx, w.y - cy) < 12)) continue;
+    works.push({ x: cx, y: cy, horiz });
+    for (let a = 2; a <= 7; a++) for (let l = 0; l < 2; l++) {
+      const x = horiz ? seg + a : band + l, y = horiz ? band + l : seg + a;
+      set(x, y, a === 2 || a === 7 ? BARR : DIRT);
+    }
+  }
   // Ramps sit mid-block on a lane and launch you along the road.
   const ramps = [];
-  while (ramps.length < run.ramps) {
+  for (let tries = 0; ramps.length < run.ramps && tries < 500; tries++) {
     const horiz = r() < 0.5, band = Math.floor(r() * (run.blocks + 1)) * 8 + Math.floor(r() * 2), along = Math.floor(r() * run.blocks) * 8 + 3 + Math.floor(r() * 4);
     const x = horiz ? along : band, y = horiz ? band : along;
-    if (!ramps.some(q => Math.abs(q.x - x) + Math.abs(q.y - y) < 6)) ramps.push({ x, y, horiz });
+    if (at(x, y) === RD && !ramps.some(q => Math.abs(q.x - x) + Math.abs(q.y - y) < 6)) ramps.push({ x, y, horiz });
   }
-  // Street clutter on the sidewalks, and doors where customers wait.
-  const props = [], doors = [];
+  // Potholes jolt you; oil makes you spin.
+  const hazards = [];
+  for (let tries = 0; hazards.length < run.hazards && tries < 2000; tries++) {
+    const x = Math.floor(r() * n), y = Math.floor(r() * n);
+    const bx = x % 8, by = y % 8;
+    if (at(x, y) !== RD || (bx < 2 && by < 2) || ramps.some(q => q.x === x && q.y === y) || hazards.some(h => Math.abs(h.x - x - 0.5) + Math.abs(h.y - y - 0.5) < 3)) continue;
+    hazards.push({ x: x + 0.5, y: y + 0.5, kind: r() < 0.6 ? 'pothole' : 'oil' });
+  }
+  // Street clutter to knock over, dumpsters you can't, and cones round the road works.
+  const props = [], solids = [];
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
     if (t[y * n + x] !== WALK) continue;
-    if (r() < 0.1) props.push({ x: x + 0.3 + r() * 0.4, y: y + 0.3 + r() * 0.4, kind: PROP_KINDS[Math.floor(r() * PROP_KINDS.length)], hit: false, vx: 0, vy: 0, spin: 0, rot: 0, life: 1 });
-    if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => at(x + dx, y + dy) === BLDG)) doors.push({ x: x + 0.5, y: y + 0.5 });
+    const q = r();
+    if (q < 0.09) props.push({ x: x + 0.3 + r() * 0.4, y: y + 0.3 + r() * 0.4, kind: PROP_KINDS[Math.floor(r() * PROP_KINDS.length)], hit: false, vx: 0, vy: 0, spin: 0, rot: 0, life: 1 });
+    else if (q < 0.11 && Math.hypot(x - truck.x, y - truck.y) > 3) solids.push({ x: x + 0.5, y: y + 0.5, r: 0.36, kind: 'dumpster' });
   }
-  // The food truck parks on the sidewalk nearest the middle of town.
-  const mid = n / 2;
-  const truck = doors.slice().sort((a, b) => Math.hypot(a.x - mid, a.y - mid) - Math.hypot(b.x - mid, b.y - mid))[0];
-  return { n, t, bid, bcol, ramps, props, doors, truck, at, r };
+  for (const w of works) for (let i = -1; i <= 1; i += 2) for (let l = 0; l < 2; l++) {
+    const ax = w.horiz ? w.x + i * 3.3 : w.x - 0.5 + l, ay = w.horiz ? w.y - 0.5 + l : w.y + i * 3.3;
+    props.push({ x: ax + (w.horiz ? i * 0.4 : 0), y: ay + (w.horiz ? 0 : i * 0.4), kind: 'cone', hit: false, vx: 0, vy: 0, spin: 0, rot: 0, life: 1 });
+  }
+  const doors = doorsAll.filter(d => at(Math.floor(d.x), Math.floor(d.y)) === WALK);
+  return { n, t, bid, bcol, ramps, props, solids, hazards, works, doors, truck, at, r };
 }
 
 // Paint the whole city once into a canvas (16 px per tile), then draw it rotated every frame.
@@ -5183,6 +5226,15 @@ function renderCity(c) {
       g.fillStyle = '#e8e0d0';   // crosswalks at the edge of each junction
       if (bx < 2 && (by === 2 || by === 7)) for (let i = 1; i < 16; i += 4) g.fillRect(px + i, by === 2 ? py + 1 : py + 11, 2, 4);
       if (by < 2 && (bx === 2 || bx === 7)) for (let i = 1; i < 16; i += 4) g.fillRect(bx === 2 ? px + 1 : px + 11, py + i, 4, 2);
+    } else if (k === DIRT) {
+      g.fillStyle = '#9a7a52'; g.fillRect(px, py, 16, 16);
+      g.fillStyle = '#7a5a3a'; for (let i = 0; i < 6; i++) g.fillRect(px + Math.floor(r() * 15), py + Math.floor(r() * 15), 2, 1);
+      g.fillStyle = '#b89868'; for (let i = 0; i < 3; i++) g.fillRect(px + Math.floor(r() * 14), py + Math.floor(r() * 14), 2, 2);
+    } else if (k === BARR) {
+      g.fillStyle = '#3a3d48'; g.fillRect(px, py, 16, 16);
+      g.fillStyle = '#2b1d2a'; g.fillRect(px, py + 4, 16, 8);
+      for (let i = 0; i < 4; i++) { g.fillStyle = i % 2 ? '#fff5de' : '#f59a2e'; g.fillRect(px + i * 4, py + 5, 4, 6); }
+      g.fillStyle = '#e8472f'; g.fillRect(px + 1, py + 2, 2, 2); g.fillRect(px + 13, py + 2, 2, 2);
     } else if (k === WALK) {
       g.fillStyle = '#c2c6cf'; g.fillRect(px, py, 16, 16);
       g.fillStyle = '#a8adb8'; g.fillRect(px, py + 15, 16, 1); g.fillRect(px + 15, py, 1, 16);
@@ -5214,6 +5266,27 @@ function renderCity(c) {
       if (r() < 0.35) { g.fillRect(px + 5, py + 5, 5, 4); g.fillStyle = '#2b1d2a'; g.fillRect(px + 6, py + 6, 3, 2); }   // rooftop vents
     }
   }
+  // Road hazards are painted on too.
+  for (const h of c.hazards) {
+    const px = Math.round(h.x * 16), py = Math.round(h.y * 16);
+    if (h.kind === 'pothole') {
+      g.fillStyle = '#2b1d2a'; g.fillRect(px - 5, py - 4, 10, 8); g.fillRect(px - 4, py - 5, 8, 10);
+      g.fillStyle = '#1c1624'; g.fillRect(px - 3, py - 3, 6, 6);
+      g.fillStyle = '#5a5f6e'; g.fillRect(px - 5, py + 3, 3, 1);
+    } else {
+      g.fillStyle = 'rgba(20,16,30,.85)'; g.fillRect(px - 7, py - 4, 14, 8); g.fillRect(px - 5, py - 6, 10, 12);
+      g.fillStyle = 'rgba(111,176,214,.5)'; g.fillRect(px - 3, py - 3, 3, 1); g.fillStyle = 'rgba(220,184,234,.5)'; g.fillRect(px + 1, py + 1, 3, 1);
+    }
+  }
+  return cv;
+}
+// A one-pixel-per-tile overview for the corner map.
+function renderMinimap(c) {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = c.n;
+  const g = cv.getContext('2d');
+  const cols = { [RD]: '#5a5f6e', [WALK]: '#8a8f9c', [BLDG]: '#2a3150', [GRASS]: '#3f7a34', [TREE]: '#2e5a2a', [DIRT]: '#9a7a52', [BARR]: '#f59a2e' };
+  for (let y = 0; y < c.n; y++) for (let x = 0; x < c.n; x++) { g.fillStyle = cols[c.t[y * c.n + x]]; g.fillRect(x, y, 1, 1); }
   return cv;
 }
 
@@ -5225,15 +5298,24 @@ function startDrive(k) {
   let sx = start.x, sy = start.y, a = 0;
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (city.at(Math.floor(start.x + dx), Math.floor(start.y + dy)) === RD) { sx = start.x + dx; sy = start.y + dy; a = dx ? Math.PI / 2 : 0; break; }
   D = {
-    k, run, city, img: renderCity(city), phase: 'count', count: 3.2, lastCount: 4, endT: 0,
-    car: { x: sx, y: sy, a, vx: 0, vy: 0, air: 0, airMax: 0 },
+    k, run, city, img: renderCity(city), mini: renderMinimap(city), phase: 'count', count: 3.2, lastCount: 4, endT: 0,
+    car: { x: sx, y: sy, a, vx: 0, vy: 0, air: 0, airMax: 0, slip: 0 },
     cam: { x: sx, y: sy, a },
     time: run.time, coins: 0, tips: 0, delivered: 0, bags: 3, target: null, orderT: 0, par: 10,
-    hand: false, handId: null, driftT: 0, shake: 0, pops: [], skids: [], puffs: [], smashed: 0, stunts: 0,
+    hand: false, handId: null, driftT: 0, shake: 0, pops: [], skids: [], puffs: [], smashed: 0, stunts: 0, peds: [], ouch: 0,
     traffic: [], lastSec: 99,
   };
   const r = mulberry32(run.seed + 1);
   for (let i = 0; i < run.traffic; i++) D.traffic.push(spawnTraffic(r));
+  // A few crashes are already blocking lanes when you set off.
+  for (let i = 0; i < run.wrecks; i++) {
+    const a1 = spawnTraffic(r);
+    a1.wreck = Infinity; a1.v = 0;
+    const a2 = Object.assign({}, a1, { x: a1.x + 0.45, y: a1.y + 0.3, dir: { E: 'N', W: 'S', N: 'W', S: 'E' }[a1.dir], color: ROOFS[Math.floor(r() * ROOFS.length)] });
+    D.traffic.push(a1, a2);
+    for (const [ox, oy] of [[-1.2, 0], [1.4, 0.2], [0, -1.1], [0.3, 1.2]]) city.props.push({ x: a1.x + ox, y: a1.y + oy, kind: 'cone', hit: false, vx: 0, vy: 0, spin: 0, rot: 0, life: 1 });
+  }
+  for (let i = 0; i < run.peds; i++) D.peds.push(spawnPed(r));
   nextDrop();
   input.joy.id = null;
   engineStart();
@@ -5243,19 +5325,40 @@ function startDrive(k) {
 // southbound on the left column and northbound on the right.
 function spawnTraffic(r) {
   const n = D.city.n, blocks = D.run.blocks;
-  for (let tries = 0; tries < 50; tries++) {
+  for (let tries = 0; tries < 80; tries++) {
     const horiz = r() < 0.5, lane = Math.floor(r() * 2), band = Math.floor(r() * (blocks + 1)) * 8 + lane, along = Math.floor(r() * blocks) * 8 + 2 + r() * 6;
     const c = horiz ? { x: along, y: band + 0.5, dir: lane ? 'E' : 'W' } : { x: band + 0.5, y: along, dir: lane ? 'N' : 'S' };
-    if (Math.hypot(c.x - D.car.x, c.y - D.car.y) < 6) continue;
-    return Object.assign(c, { v: 0, vmax: 2.6 + r() * 1.6, color: ROOFS[Math.floor(r() * ROOFS.length)], stopT: 0, nearT: 0, n });
+    if (Math.hypot(c.x - D.car.x, c.y - D.car.y) < 8 || D.city.at(Math.floor(c.x), Math.floor(c.y)) !== RD) continue;
+    if (D.traffic.some(o => Math.hypot(o.x - c.x, o.y - c.y) < 1.5)) continue;
+    // About one driver in six doesn't look out for cross traffic: that's where accidents come from.
+    return Object.assign(c, { v: 0, vmax: 2.6 + r() * 1.8, color: ROOFS[Math.floor(r() * ROOFS.length)], stopT: 0, nearT: 0, wreck: 0, reckless: r() < 0.17 });
   }
-  return { x: 1.5, y: 1.5, dir: 'E', v: 0, vmax: 3, color: '#3f6f8f', stopT: 0, nearT: 0 };
+  return { x: 1.5, y: 1.5, dir: 'E', v: 0, vmax: 3, color: '#3f6f8f', stopT: 0, nearT: 0, wreck: 0 };
+}
+
+// Pedestrians stroll the sidewalks and use the crosswalks.
+function pedTile(x, y) {
+  const k = D.city.at(x, y);
+  if (k === WALK) return true;
+  if (k !== RD) return false;
+  const bx = x % 8, by = y % 8;
+  return (bx < 2 && (by === 2 || by === 7)) || (by < 2 && (bx === 2 || bx === 7));
+}
+function spawnPed(r) {
+  const n = D.city.n;
+  for (let tries = 0; tries < 80; tries++) {
+    const x = Math.floor(r() * n), y = Math.floor(r() * n);
+    if (D.city.at(x, y) !== WALK || Math.hypot(x - D.car.x, y - D.car.y) < 4) continue;
+    return { x: x + 0.5, y: y + 0.5, tx: x, ty: y, px: x, py: y, v: 0.7 + r() * 0.5, shirt: SHIRTS[Math.floor(r() * SHIRTS.length)], down: 0, dodge: 0, dvx: 0, dvy: 0, safe: 0 };
+  }
+  return { x: 2.5, y: 2.5, tx: 2, ty: 2, px: 2, py: 2, v: 1, shirt: '#3a86d4', down: 0, dodge: 0, dvx: 0, dvy: 0, safe: 0 };
 }
 
 function nextDrop() {
   const c = D.car, city = D.city;
   if (D.bags <= 0) { D.target = { x: city.truck.x, y: city.truck.y, truck: true }; return; }
-  const far = city.doors.filter(d => { const dd = Math.hypot(d.x - c.x, d.y - c.y); return dd > 10 && dd < city.n * 0.7; });
+  // Far enough to be a drive, near enough to make it in time, even on the big maps.
+  const far = city.doors.filter(d => { const dd = Math.hypot(d.x - c.x, d.y - c.y); return dd > 10 && dd < 28; });
   const pool = far.length ? far : city.doors;
   const d = pool[Math.floor(Math.random() * pool.length)];
   D.target = { x: d.x, y: d.y };
@@ -5269,7 +5372,7 @@ function driveSolid(x, y) {
   const at = D.city.at;
   for (const [dx, dy] of [[-CAR_R, -CAR_R], [CAR_R, -CAR_R], [-CAR_R, CAR_R], [CAR_R, CAR_R]]) {
     const k = at(Math.floor(x + dx), Math.floor(y + dy));
-    if (k === BLDG || k === TREE) return true;
+    if (k === BLDG || k === TREE || k === BARR) return true;
   }
   return false;
 }
@@ -5290,6 +5393,7 @@ function updateDrive(dt) {
   for (const s of D.skids) s.life -= dt * 0.25;
   D.skids = D.skids.filter(s => s.life > 0);
   for (const p of D.puffs) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; }
+  if (D.phase !== 'play') for (const t of D.traffic) if (t.wreck > 0 && Math.random() < dt * 2) D.puffs.push({ x: t.x, y: t.y, vx: 0, vy: -0.5, life: 0.9, smoke: true });
   D.puffs = D.puffs.filter(p => p.life > 0);
   for (const p of city.props) if (p.hit && p.life > 0) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= Math.exp(-2 * dt); p.vy *= Math.exp(-2 * dt); p.rot += p.spin * dt; p.life -= dt * 0.4; }
 
@@ -5327,9 +5431,13 @@ function updateDrive(dt) {
     else if (throttle < -0.05) vf += (vf > 0.3 ? -CAR_BRAKE : -CAR_ACC * 0.6) * -throttle * dt;
     const grip = Math.max(-1, Math.min(1, vf / 3));   // you need speed to turn; steering flips in reverse
     c.a += steer * CAR_TURN * grip * dt * (hand ? 1.4 : 1);
-    vl *= Math.exp(-(hand ? 1.4 : 9) * dt);
-    vf *= Math.exp(-(ground === GRASS ? 1.5 : hand ? 0.7 : 0.22) * dt);
-    vf = Math.max(-CAR_REV, Math.min(CAR_MAX * (ground === GRASS ? 0.6 : 1), vf));
+    // Oil: almost no grip and a bit of a spin for a moment.
+    c.slip = Math.max(0, (c.slip || 0) - dt);
+    if (c.slip > 0) c.a += dt * 3.2 * Math.sign(vf || 1) * Math.min(1, Math.abs(vf) / 4);
+    vl *= Math.exp(-(c.slip > 0 ? 0.4 : hand ? 1.4 : 9) * dt);
+    const rough = ground === GRASS || ground === DIRT;
+    vf *= Math.exp(-(rough ? 1.5 : hand ? 0.7 : 0.22) * dt);
+    vf = Math.max(-CAR_REV, Math.min(CAR_MAX * (rough ? 0.6 : 1), vf));
   } else {
     c.air -= dt;
     if (c.air <= 0) landJump();
@@ -5372,6 +5480,8 @@ function updateDrive(dt) {
   }
 
   updateTraffic(dt);
+  updatePeds(dt);
+  updateHazards();
 
   // Deliveries: stop in the green ring to hand the bag over.
   D.orderT += dt;
@@ -5402,12 +5512,12 @@ function updateDrive(dt) {
 
 function landJump() {
   const c = D.car, at = D.city.at;
-  if (at(Math.floor(c.x), Math.floor(c.y)) === BLDG || at(Math.floor(c.x), Math.floor(c.y)) === TREE) {
+  if ([BLDG, TREE, BARR].includes(at(Math.floor(c.x), Math.floor(c.y)))) {
     // Came down on a roof: drop onto the nearest street.
     let best = null, bd = 1e9;
     for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
       const k = at(Math.floor(c.x) + dx, Math.floor(c.y) + dy), d = Math.hypot(dx, dy);
-      if ((k === RD || k === WALK || k === GRASS) && d < bd) { bd = d; best = [Math.floor(c.x) + dx + 0.5, Math.floor(c.y) + dy + 0.5]; }
+      if ((k === RD || k === WALK || k === GRASS || k === DIRT) && d < bd) { bd = d; best = [Math.floor(c.x) + dx + 0.5, Math.floor(c.y) + dy + 0.5]; }
     }
     if (best) [c.x, c.y] = best;
   }
@@ -5418,19 +5528,52 @@ function landJump() {
   for (let i = 0; i < 8; i++) D.puffs.push({ x: c.x, y: c.y, vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 3, life: 0.5 });
 }
 
+// Road ahead is closed for works (or the city ends): look a few tiles along.
+function laneClosed(x, y, dir, reach = 3) {
+  const [dx, dy] = DIRV[dir];
+  for (let s = 1; s <= reach; s++) { const k = D.city.at(Math.floor(x + dx * s), Math.floor(y + dy * s)); if (k === BARR || k === BLDG || k === DIRT) return true; }
+  return false;
+}
+function wreckCar(t) {
+  t.wreck = 20; t.v = 0;
+  for (let i = 0; i < 6; i++) D.puffs.push({ x: t.x, y: t.y, vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2, life: 0.6 });
+}
+
 function updateTraffic(dt) {
-  const c = D.car, n = D.city.n;
+  const c = D.car, n = D.city.n, near = 26;
   for (const t of D.traffic) {
+    // Far away traffic takes it easy (cheaper, and you can't see it anyway).
+    const far = Math.abs(t.x - c.x) > near || Math.abs(t.y - c.y) > near;
+    if (t.wreck > 0) {
+      t.wreck -= dt;
+      if (!far && Math.random() < dt * 3) D.puffs.push({ x: t.x + (Math.random() - 0.5) * 0.3, y: t.y, vx: (Math.random() - 0.5) * 0.4, vy: -0.6, life: 0.9, smoke: true });
+      // The tow truck takes it away; a fresh car joins somewhere else.
+      if (t.wreck <= 0) Object.assign(t, spawnTraffic(Math.random));
+      else { crashCheck(t, c, far); continue; }
+    }
     const [dx, dy] = DIRV[t.dir];
     t.nearT -= dt; t.stopT -= dt;
-    // Slow for anything just ahead in the lane, including you.
-    let blocked = t.stopT > 0;
-    for (const o of D.traffic.concat([c])) {
-      if (o === t) continue;
+    // Slow for anything just ahead in the lane: cars, wrecks, you, and people on the crosswalk.
+    let blocked = t.stopT > 0 || laneClosed(t.x, t.y, t.dir, 1);
+    if (!blocked) for (const o of D.traffic) {
+      if (o === t || Math.abs(o.x - t.x) > 2 || Math.abs(o.y - t.y) > 2) continue;
+      if (t.reckless && !(o.wreck > 0) && o.dir !== t.dir) continue;
+      const rx = o.x - t.x, ry = o.y - t.y, along = rx * dx + ry * dy, side = Math.abs(rx * dy - ry * dx);
+      if (along > 0.2 && along < 1.5 && side < 0.6) { blocked = true; break; }
+    }
+    if (!blocked && !far) for (const o of [c].concat(D.peds)) {
+      if (Math.abs(o.x - t.x) > 2 || Math.abs(o.y - t.y) > 2 || o.down > 0) continue;
       const rx = o.x - t.x, ry = o.y - t.y, along = rx * dx + ry * dy, side = Math.abs(rx * dy - ry * dx);
       if (along > 0.2 && along < 1.5 && side < 0.6) { blocked = true; break; }
     }
     t.v += ((blocked ? 0 : t.vmax) - t.v) * Math.min(1, dt * 3);
+    // Stuck at a closed road for a while: turn round into the other lane.
+    t.waitT = blocked && laneClosed(t.x, t.y, t.dir, 1) ? (t.waitT || 0) + dt : 0;
+    if (t.waitT > 1) {
+      const back = { E: 'W', W: 'E', N: 'S', S: 'N' }[t.dir];
+      if (dx) t.y += t.dir === 'E' ? -1 : 1; else t.x += t.dir === 'N' ? -1 : 1;
+      t.dir = back; t.waitT = 0; continue;
+    }
     const prev = dx ? t.x : t.y;
     t.x += dx * t.v * dt; t.y += dy * t.v * dt;
     const next = dx ? t.x : t.y;
@@ -5442,29 +5585,104 @@ function updateTraffic(dt) {
       const right = { E: 'S', W: 'N', N: 'E', S: 'W' }[t.dir];
       const to = turns[m];
       if (to) {
-        const edge = (t.dir === 'E' && line >= n - 1) || (t.dir === 'W' && line <= 0) || (t.dir === 'N' && line <= 0) || (t.dir === 'S' && line >= n - 1);
-        const [tx, ty] = DIRV[to];
         const cx = dx ? line + 0.5 : t.x, cy = dy ? line + 0.5 : t.y;
-        const ok = D.city.at(Math.floor(cx + tx), Math.floor(cy + ty)) === RD;
-        if (ok && (edge || Math.random() < (to === right ? 0.3 : 0.2))) { t.x = cx; t.y = cy; t.dir = to; }
+        const must = (t.dir === 'E' && line >= n - 1) || (t.dir === 'W' && line <= 0) || (t.dir === 'N' && line <= 0) || (t.dir === 'S' && line >= n - 1) || laneClosed(cx, cy, t.dir, 4);
+        const [tx, ty] = DIRV[to];
+        const ok = D.city.at(Math.floor(cx + tx), Math.floor(cy + ty)) === RD && !laneClosed(cx, cy, to, 4);
+        if (ok && (must || Math.random() < (to === right ? 0.3 : 0.2))) { t.x = cx; t.y = cy; t.dir = to; }
       }
     }
-    // Keep inside the city whatever happens.
     t.x = Math.max(0.5, Math.min(n - 0.5, t.x)); t.y = Math.max(0.5, Math.min(n - 0.5, t.y));
-    if (c.air > 0) continue;
-    const d = Math.hypot(t.x - c.x, t.y - c.y), speed = Math.hypot(c.vx, c.vy);
-    if (d < 0.72) {
-      // Bump: push apart, you lose speed, they stop for a moment.
-      const ux = (c.x - t.x) / (d || 1), uy = (c.y - t.y) / (d || 1);
-      c.x = t.x + ux * 0.74; c.y = t.y + uy * 0.74;
-      const into = -(c.vx * ux + c.vy * uy);
-      if (into > 0) { c.vx += ux * into * 1.3; c.vy += uy * into * 1.3; driveBump(into); }
-      t.stopT = 1.2; t.nearT = 3;
-    } else if (d < 1.25 && speed > 5 && t.nearT <= 0) {
-      t.nearT = 4;
-      D.coins += 2; D.stunts += 2;
-      drivePop('Near miss! +2', null, '#6fb0d6'); sfx('hop');
+    // Two cars meeting side-on at a junction: an accident that blocks the road for a while.
+    if (!far) for (const o of D.traffic) {
+      if (o === t || o.wreck > 0 || Math.abs(o.x - t.x) > 0.6 || Math.abs(o.y - t.y) > 0.6) continue;
+      const cross = (DIRV[o.dir][0] !== 0) !== (dx !== 0);
+      if (cross && Math.hypot(o.x - t.x, o.y - t.y) < 0.5 && t.v + o.v > 2) { wreckCar(t); wreckCar(o); if (Math.hypot(t.x - c.x, t.y - c.y) < 12) { noise(0.3, 0.3, 400); drivePop('Accident!', 'Find another way round', '#f59a2e'); } }
     }
+    crashCheck(t, c, far);
+  }
+}
+
+// You and one car: bumps, big hits that wreck it, and near misses.
+function crashCheck(t, c, far) {
+  if (far || c.air > 0) return;
+  const d = Math.hypot(t.x - c.x, t.y - c.y), speed = Math.hypot(c.vx, c.vy);
+  if (d < 0.72) {
+    const ux = (c.x - t.x) / (d || 1), uy = (c.y - t.y) / (d || 1);
+    c.x = t.x + ux * 0.74; c.y = t.y + uy * 0.74;
+    const into = -(c.vx * ux + c.vy * uy);
+    if (into > 0) { c.vx += ux * into * 1.3; c.vy += uy * into * 1.3; driveBump(into); }
+    if (into > 5 && !(t.wreck > 0)) { wreckCar(t); drivePop('Wreck!', null, '#ff6b57'); }
+    t.stopT = 1.2; t.nearT = 3;
+  } else if (d < 1.25 && speed > 5 && t.nearT <= 0 && !(t.wreck > 0)) {
+    t.nearT = 4;
+    D.coins += 2; D.stunts += 2;
+    drivePop('Near miss! +2', null, '#6fb0d6'); sfx('hop');
+  }
+}
+
+// People walk tile to tile along the sidewalks, dive out of your way, and get knocked over if they don't.
+function updatePeds(dt) {
+  const c = D.car, speed = Math.hypot(c.vx, c.vy), fx = Math.cos(c.a), fy = Math.sin(c.a);
+  D.ouch = Math.max(0, D.ouch - dt);
+  for (const p of D.peds) {
+    if (Math.abs(p.x - c.x) > 22 || Math.abs(p.y - c.y) > 22) continue;
+    p.safe -= dt;
+    if (p.down > 0) {
+      p.down -= dt; p.x += p.dvx * dt; p.y += p.dvy * dt; p.dvx *= Math.exp(-4 * dt); p.dvy *= Math.exp(-4 * dt);
+      if (p.down <= 0) { p.tx = Math.floor(p.x); p.ty = Math.floor(p.y); if (!pedTile(p.tx, p.ty)) { p.tx = p.px; p.ty = p.py; } p.safe = 2; }
+      continue;
+    }
+    if (p.dodge > 0) { p.dodge -= dt; p.x += p.dvx * dt; p.y += p.dvy * dt; if (p.dodge <= 0) { p.tx = Math.floor(p.x); p.ty = Math.floor(p.y); if (!pedTile(p.tx, p.ty)) { p.tx = p.px; p.ty = p.py; } } continue; }
+    // Saw you coming: a quick dive to the side.
+    const rx = p.x - c.x, ry = p.y - c.y, along = rx * fx + ry * fy, side = rx * -fy + ry * fx;
+    if (speed > 3 && along > 0 && along < 2.4 && Math.abs(side) < 0.8 && c.air <= 0 && !p.tried) {
+      p.tried = true;
+      if (Math.random() < 0.55) { const s = side >= 0 ? 1 : -1; p.dodge = 0.3; p.dvx = -fy * s * 4; p.dvy = fx * s * 4; continue; }
+    }
+    if (along < -1 || Math.hypot(rx, ry) > 3) p.tried = false;
+    // Walk to the middle of the next tile, then pick another (not straight back if there's a choice).
+    const gx = p.tx + 0.5, gy = p.ty + 0.5, dd = Math.hypot(gx - p.x, gy - p.y);
+    if (dd < 0.05) {
+      const opts = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([ox, oy]) => [p.tx + ox, p.ty + oy]).filter(([x, y]) => pedTile(x, y));
+      const fwd = opts.filter(([x, y]) => x !== p.px || y !== p.py);
+      const pick = (fwd.length ? fwd : opts)[Math.floor(Math.random() * (fwd.length || opts.length))];
+      if (pick) { p.px = p.tx; p.py = p.ty; [p.tx, p.ty] = pick; }
+    } else { p.x += (gx - p.x) / dd * Math.min(dd, p.v * dt); p.y += (gy - p.y) / dd * Math.min(dd, p.v * dt); }
+  }
+  // Knocked over: it costs you, and they get up a bit dizzy.
+  if (c.air > 0 || speed < 1.2) return;
+  for (const p of D.peds) {
+    if (p.down > 0 || p.safe > 0 || Math.abs(p.x - c.x) > 0.6 || Math.abs(p.y - c.y) > 0.6) continue;
+    if (Math.hypot(p.x - c.x, p.y - c.y) > 0.45) continue;
+    p.down = 3; p.dvx = c.vx * 0.8; p.dvy = c.vy * 0.8; p.tried = false;
+    c.vx *= 0.8; c.vy *= 0.8;
+    const lost = Math.min(D.coins, PED_PENALTY);
+    D.coins -= lost; D.hits = (D.hits || 0) + 1;
+    drivePop(lost ? '-' + lost : 'Watch out!', 'You hit someone!', '#ff6b57');
+    sfx('fail'); buzz([40, 30, 40]); D.shake = 0.3;
+  }
+}
+
+// Potholes and oil slicks.
+function updateHazards() {
+  const c = D.car;
+  if (c.air > 0) return;
+  const speed = Math.hypot(c.vx, c.vy);
+  for (const h of D.city.hazards) {
+    if (Math.abs(h.x - c.x) > 0.5 || Math.abs(h.y - c.y) > 0.5) { if (h.on) h.on = false; continue; }
+    if (h.on) continue;
+    h.on = true;
+    if (h.kind === 'pothole' && speed > 2) { c.vx *= 0.8; c.vy *= 0.8; driveBump(4); drivePop('Pothole!', null, '#c2c6cf'); }
+    else if (h.kind === 'oil' && speed > 2) { c.slip = 1.2; drivePop('Oil!', 'Hold on', '#9a6ab3'); sfx('swap'); }
+  }
+  // Dumpsters are solid.
+  for (const o of D.city.solids) {
+    const dx = c.x - o.x, dy = c.y - o.y, d = Math.hypot(dx, dy), min = o.r + CAR_R;
+    if (d >= min || d === 0) continue;
+    c.x = o.x + dx / d * min; c.y = o.y + dy / d * min;
+    const into = -(c.vx * dx + c.vy * dy) / d;
+    if (into > 0) { c.vx += dx / d * into * 1.4; c.vy += dy / d * into * 1.4; driveBump(into); }
   }
 }
 
@@ -5522,17 +5740,33 @@ function renderDrive(dt) {
   X.save(); X.translate(tr.x, tr.y); X.rotate(-v.rot); spr('truckTop', 0, 0, P * 1.2); X.restore();
   if (!tg.truck) { X.save(); X.translate(tg.x, tg.y); X.rotate(-v.rot); spr('person', 0, -0.1 - Math.abs(Math.sin(T * 8)) * 0.1, P * 1.3, { 1: '#e8472f' }); X.restore(); }
   // Street clutter (upright to the camera unless it's flying)
+  const vis = (x, y) => Math.abs(x - cam.x) < 16 && Math.abs(y - cam.y) < 16;
+  for (const o of D.city.solids) { if (!vis(o.x, o.y)) continue; X.save(); X.translate(o.x, o.y); X.rotate(-v.rot); spr('dumpster', 0, 0, P * 1.3, { N: '#2e6e34', n: '#4fa843' }); X.restore(); }
   for (const p of D.city.props) {
-    if (p.life <= 0) continue;
+    if (p.life <= 0 || !vis(p.x, p.y)) continue;
     X.save(); X.translate(p.x, p.y); X.rotate(p.hit ? p.rot : -v.rot); X.globalAlpha = Math.min(1, p.life * 2);
     spr(p.kind, 0, 0, P * 1.2); X.restore();
   }
   X.globalAlpha = 1;
   // Traffic
   for (const t of D.traffic) {
-    X.save(); X.translate(t.x, t.y); X.rotate(Math.atan2(DIRV[t.dir][1], DIRV[t.dir][0]) + Math.PI / 2);
+    if (!vis(t.x, t.y)) continue;
+    const wr = t.wreck > 0;
+    X.save(); X.translate(t.x, t.y); X.rotate(Math.atan2(DIRV[t.dir][1], DIRV[t.dir][0]) + Math.PI / 2 + (wr ? 0.35 : 0));
     X.fillStyle = 'rgba(0,0,0,.25)'; X.fillRect(-0.3, -0.38, 0.66, 0.9);
-    spr('car', 0, 0, P, { 1: t.color, 2: mix(t.color, '#ffffff', 0.3) }); X.restore();
+    const col = wr ? mix(t.color, '#2b1d2a', 0.45) : t.color;
+    spr('car', 0, 0, P, { 1: col, 2: mix(col, '#ffffff', 0.3) });
+    if (wr && Math.sin(T * 10) > 0) { X.fillStyle = '#f59a2e'; X.fillRect(-0.34, -0.44, 0.12, 0.12); X.fillRect(0.22, -0.44, 0.12, 0.12); X.fillRect(-0.34, 0.36, 0.12, 0.12); X.fillRect(0.22, 0.36, 0.12, 0.12); }
+    X.restore();
+  }
+  // People: upright to the camera, flat on their back when knocked over.
+  for (const p of D.peds) {
+    if (!vis(p.x, p.y)) continue;
+    X.save(); X.translate(p.x, p.y); X.rotate(-v.rot + (p.down > 0 ? Math.PI / 2 : 0));
+    const hop = p.down > 0 || p.dodge > 0 ? 0 : Math.abs(Math.sin(T * 9 + p.x * 3)) * 0.04;
+    spr('person', 0, -hop, P * 0.95, { 1: p.shirt });
+    X.restore();
+    if (p.down > 0 || p.safe > 0) { X.save(); X.translate(p.x, p.y); X.rotate(-v.rot + T * 4); spr('dizzy', 0, 0, P * 0.9); X.restore(); }
   }
   // You: bigger in the air, with the shadow left on the ground.
   const z = c.air > 0 ? Math.sin(Math.PI * (1 - c.air / c.airMax)) : 0;
@@ -5541,7 +5775,7 @@ function renderDrive(dt) {
   X.scale(1 + z * 0.45, 1 + z * 0.45);
   spr('car', 0, 0, P, { 1: '#e8472f', 2: '#fff5de' });
   X.restore();
-  for (const p of D.puffs) { X.fillStyle = `rgba(230,220,200,${p.life * 1.4})`; X.fillRect(p.x - 0.08, p.y - 0.08, 0.16, 0.16); }
+  for (const p of D.puffs) { X.fillStyle = p.smoke ? `rgba(70,70,80,${p.life * 0.6})` : `rgba(230,220,200,${p.life * 1.4})`; const s = p.smoke ? 0.22 + (0.9 - p.life) * 0.3 : 0.16; X.fillRect(p.x - s / 2, p.y - s / 2, s, s); }
   X.restore();
 
   // Guidance arrow over the car, pointing at the drop-off.
@@ -5585,6 +5819,14 @@ function drawDriveHUD() {
   X.globalAlpha = 1;
   X.font = '700 13px "Nunito", system-ui, sans-serif'; X.textAlign = 'left'; X.fillStyle = '#fff5de';
   X.fillText(D.bags ? `${D.delivered} delivered` : 'Back to the truck!', L.pause.x - 16, b.y + 92);
+  // Corner map (north up): you, the drop-off and the truck.
+  const ms = Math.min(96, W * 0.24), mx = b.x + b.w - ms, my = b.y + 46;
+  X.fillStyle = PAL.k; X.fillRect(mx - 3, my - 3, ms + 6, ms + 6);
+  X.imageSmoothingEnabled = false; X.drawImage(D.mini, mx, my, ms, ms);
+  const k = ms / D.city.n, dot = (x, y, col, r) => { X.fillStyle = PAL.k; X.fillRect(mx + x * k - r - 1, my + y * k - r - 1, r * 2 + 2, r * 2 + 2); X.fillStyle = col; X.fillRect(mx + x * k - r, my + y * k - r, r * 2, r * 2); };
+  dot(D.city.truck.x, D.city.truck.y, '#6fb0d6', 2);
+  if (!D.target.truck && Math.sin(T * 8) > -0.3) dot(D.target.x, D.target.y, '#8ad65e', 3);
+  dot(D.car.x, D.car.y, '#e8472f', 2.5);
   // Pop-ups
   D.pops.forEach((p, i) => {
     const y = b.y + 130 + i * 44 - (1.6 - p.life) * 12;
@@ -5629,7 +5871,7 @@ function driveResults() {
   $('res-name').textContent = run.name;
   $('res-stars').innerHTML = starHTML(stars);
   $('res-l1').textContent = 'Deliveries'; $('res-served').textContent = D.delivered;
-  $('res-l2').textContent = 'Stunts and smashes'; $('res-failed').textContent = D.stunts;
+  $('res-l2').textContent = 'People knocked over'; $('res-failed').textContent = D.hits || 0;
   $('res-tips').textContent = D.tips;
   $('res-score').textContent = D.coins;
   $('res-next').textContent = (best && D.coins ? 'New best! ' : `Best: ${save.drive[k]}. `) + (stars < 3 ? `${run.stars[stars]} coins for the next star.` : 'Three stars!');
