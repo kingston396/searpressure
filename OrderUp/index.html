@@ -1076,6 +1076,12 @@ function firstOfStop(i) { return LEVELS.findIndex(l => l.stop === LEVELS[i].stop
 // Testers: open the game with #unlockall on the end of the link to open every kitchen.
 function unlockAll() { try { return /unlockall/i.test(location.hash); } catch (e) { return false; } }
 function totalStars() { return LEVELS.reduce((n, lv, i) => n + bestStars(i), 0); }
+// A campaign stop only shows up in the list once the last kitchen of the stop before it is open.
+function stopVisible(si) {
+  if (si === 0 || unlockAll() || STOPS[si].extra) return true;
+  let last = -1; LEVELS.forEach((l, i) => { if (l.stop === si - 1) last = i; });
+  return last < 0 || unlocked(last);
+}
 function unlocked(i) {
   if (unlockAll()) return true;
   const lv = LEVELS[i];
@@ -6640,6 +6646,7 @@ function buildLevelList() {
   setTimeout(buildDriveList, 0);
   box.innerHTML = '';
   STOPS.forEach((stop, si) => {
+    if (!stopVisible(si)) return;
     const head = document.createElement('div');
     head.className = 'stop-head';
     const open = LEVELS.some((l, i) => l.stop === si && unlocked(i));

@@ -118,7 +118,7 @@ Helpers find their way around with grid pathfinding and use the same Grab and Ch
 
 **Testers:** add `#unlockall` to the end of the game's link to open every kitchen, including this one.
 
-Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers, 5 each for every stop from the Smokehouse on, including the Thanksgiving Finale). Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
+Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers, 5 each for every stop from the Smokehouse on, including the Thanksgiving Finale). A stop stays out of the kitchen list until the last kitchen of the stop before it is open, so the road ahead is a surprise. The Judge's Table follows the same rule. Roadside Specials is always listed. Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
 
 ## Rewards
 
