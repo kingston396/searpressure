@@ -62,6 +62,7 @@ namespace SearPressure.UnityHost
             renderer2D = new CanvasRenderer2D(fonts);
             audioOut = gameObject.AddComponent<AudioOut>();
             game = new Game(this, canvas);
+            game.onlineEnabled = NetConfig.OnlineEnabled;
             ApplyScreen(true);
         }
 

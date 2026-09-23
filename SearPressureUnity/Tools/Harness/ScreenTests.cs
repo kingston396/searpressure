@@ -34,6 +34,12 @@ static partial class Tests
         Check(g.screen == "scr-pause" && g.paused, "pause card");
         Program.Shot(g, "s_pause.png");
         Program.Shot(Landscape(), "s_land.png");
+        // Online hidden (the store build until a relay is deployed).
+        var g3 = Program.NewGame(new HarnessPlatform()); g3.onlineEnabled = false; Program.Run(g3, 0.2);
+        Program.Shot(g3, "s_title_offline.png");
+        Check(!HasHit(g3, "btn-online"), "no Play with a friend button when online is off");
+        g3.show("scr-online"); Program.Run(g3, 0.1);
+        Check(g3.screen == "scr-title", "the online screen can't be opened when online is off");
         Console.WriteLine(fails == 0 ? "ALL PASSED" : fails + " FAILED");
     }
 
@@ -42,6 +48,12 @@ static partial class Tests
         var g = Program.NewGame(new HarnessPlatform { unlock = true }, 844, 390, 2);
         Program.Run(g, 0.2); g.play(Lvl("Curb Service")); Program.Run(g, 4); g.spawnOrder(); Program.Run(g, 1);
         return g;
+    }
+
+    static bool HasHit(Game g, string id)
+    {
+        var f = typeof(Game).GetField("uiHits", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        return ((List<(string id, Rect r)>)f.GetValue(g)).Any(x => x.id == id);
     }
 
     // Tap a UI element by its id (as the player would), using last frame's hit boxes.

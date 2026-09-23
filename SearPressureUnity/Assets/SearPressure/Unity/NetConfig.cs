@@ -4,6 +4,9 @@ namespace SearPressure.UnityHost
     public static class NetConfig
     {
         // Set this to your deployed relay, e.g. "wss://sear-pressure-relay.onrender.com".
+        // Online play is hidden until a relay is deployed. Set RelayUrl, then turn this on.
+        public static bool OnlineEnabled = false;
+
         public static string RelayUrl = "ws://127.0.0.1:8080";
 
         // Release builds must use wss:// (phones block plain ws:// to the internet).
@@ -13,7 +16,7 @@ namespace SearPressure.UnityHost
 #if UNITY_WEBGL && !UNITY_EDITOR
             return null;
 #else
-            if (string.IsNullOrEmpty(RelayUrl)) return null;
+            if (!OnlineEnabled || string.IsNullOrEmpty(RelayUrl)) return null;
             return new WsRelayTransport(RelayUrl);
 #endif
         }

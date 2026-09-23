@@ -38,6 +38,8 @@ namespace SearPressure
         string onlineStatus = "Both phones need an internet connection.";
         string onlineCode = "";
         bool onlineButtonsEnabled = true;
+        // Online play is offered only when this is on (the host turns it off until a relay is deployed).
+        public bool onlineEnabled = true;
 
         // ---- small helpers the web version used for DOM text ----
         public void buildLevelList() { }            // the list is drawn live every frame
@@ -78,7 +80,7 @@ namespace SearPressure
             Rule();
             if (NET.role == null && Button("btn-tutorial", save.tutorialDone ? "Replay the tutorial" : "New here? Start with the tutorial", save.tutorialDone ? "ghost" : "btn")) startTutorial();
             bool on = NET.role != null && (NET.role == "host" ? NET.guests.Count > 0 : true);
-            if (!on && Button("btn-online", "Play with a friend", "alt")) { onlineButtonsEnabled = true; onlineStatus = "Both phones need an internet connection. Once you're connected, the game data goes between your phones through the relay server."; show("scr-online"); }
+            if (!on && onlineEnabled && Button("btn-online", "Play with a friend", "alt")) { onlineButtonsEnabled = true; onlineStatus = "Both phones need an internet connection. Once you're connected, the game data goes between your phones through the relay server."; show("scr-online"); }
             if (Button("btn-shop", "Shop", "ghost", fmtCoins(save.wallet) + " coins to spend")) openShop(null);
             var dl = dailyLevel();
             if (Button("btn-daily", "Daily challenge", "ghost", DAILY.twist.name + " at " + dl.baseName + " · " + (questDone() ? "Quest done ✓" : "Quest: " + QUEST_REWARD + " coins"))) { dailyLevel(); openIntro(DAILY_IDX); }

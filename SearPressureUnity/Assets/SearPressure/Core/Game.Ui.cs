@@ -30,6 +30,7 @@ namespace SearPressure
 
         public void show(string id)
         {
+            if (id == "scr-online" && !onlineEnabled) id = "scr-title";
             screen = id;
             if (id != null) scrollOf[id] = 0;
             uiPressed = null; uiClick = null;
