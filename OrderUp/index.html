@@ -194,6 +194,8 @@
   .shop-item button { font: 400 16px "Pixelify Sans", system-ui, sans-serif; border: 0; border-radius: 8px; padding: 8px 10px; background: var(--mustard); color: var(--text); box-shadow: 0 3px 0 var(--mustard-dk); cursor: pointer; white-space: nowrap; }
   .shop-item button:disabled { background: var(--paper-2); box-shadow: none; color: var(--muted); cursor: default; }
   .shop-item.owned { border-color: #3f9b45; }
+  .shop-item .fork { color: #a8301d; }
+  .shop-item button.confirm { background: var(--tomato); color: #fff; box-shadow: 0 3px 0 var(--tomato-dk); }
   .shop-slot { font: 500 12px "DM Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
   .ward-gear { display: flex; flex-direction: column; gap: 6px; }
   .gear-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
@@ -2750,6 +2752,12 @@ function startLevel(idx, opts = {}) {
   const lv = idx === 'tutorial' ? TUTORIAL : idx === 'daily' ? dailyLevel(opts.dailyKey) : LEVELS[idx];
   $('tut').hidden = true;
   let map = lv.map;
+  // No two services alike: a seed per service may mirror the kitchen, shuffles the crates and
+  // schedules random events. The daily quest, versus and online friends all share the host's seed.
+  const calm = !!lv.tutorial || CALM;
+  const vary = opts.vary ?? (lv.daily ? DAILY.seed + 7 : Math.floor(Math.random() * 2147483647));
+  const vr = mulberry32(vary);
+  if (!calm && vr() < 0.5) map = map.map(row => row.split('').reverse().join(''));
   // Tall screens get tall kitchens: transpose wide maps in portrait. Online, the host decides for both.
   const transposed = opts.transpose ?? (window.innerHeight > window.innerWidth && map[0].length > map.length);
   if (transposed) map = map[0].split('').map((_, x) => map.map(row => row[x]).join(''));
@@ -2782,6 +2790,11 @@ function startLevel(idx, opts = {}) {
   }
   // Versus: every phone runs its own copy of the kitchen, solo with two chefs.
   const shared = NET.role && !opts.versus;
+  if (!calm) {
+    const crates = tiles.filter(t => t.type === 'crate'), kinds = crates.map(t => t.kind);
+    for (let k = kinds.length - 1; k > 0; k--) { const j = Math.floor(vr() * (k + 1)); [kinds[k], kinds[j]] = [kinds[j], kinds[k]]; }
+    crates.forEach((t, k) => { t.kind = kinds[k]; });
+  }
   const nChefs = shared ? Math.max(2, Math.min(MAX_PLAYERS, opts.players || 2)) : 2;
   const starts = [spawns['1'], spawns['2']];
   for (let i = 2; i < nChefs; i++) {
@@ -2814,12 +2827,60 @@ function startLevel(idx, opts = {}) {
   G.rng = lv.daily ? mulberry32(DAILY.seed) : opts.seed != null ? mulberry32(opts.seed) : Math.random;
   if (lv.oneChef && (!NET.role || opts.versus)) G.chefs.length = 1;
   input.grab = input.chop = input.swap = false;
+  G.vary = vary;
+  G.events = calm ? [] : scheduleEvents(lv, vr);
+  G.evRng = mulberry32(vary + 3);
   if (!lv.tutorial) G.attempt = beginAttempt(levelKey(idx));
   if (lv.judge) { judgeSay('start', 0); G.judge.t = 6; }
 }
 
 // More cooks, more tickets on the rail (one extra per extra human, up to the ticket rail's width).
 function maxOrders() { return Math.min(6, G.lv.maxOrders + (G.humans || 1) - 1); }
+
+/* ---------- random kitchen events ---------- */
+
+const CALM = /[?&]calm\b/.test(location.search);   // tests: no mirroring, shuffles or events
+const EVENTS = {
+  rush:    { name: 'Lunch rush', sub: 'Orders are pouring in', dur: 20 },
+  tipper:  { name: 'Big tippers', sub: 'Tips doubled for 25 seconds', dur: 25 },
+  vip:     { name: 'VIP guest!', sub: 'The next ticket pays double' },
+  outage:  { name: 'Out of stock!', sub: '' },
+  patient: { name: 'Slow night', sub: '+10 seconds on every ticket' },
+};
+// One or two events per service, at random times, never the same kind twice.
+function scheduleEvents(lv, vr) {
+  const kinds = Object.keys(EVENTS), out = [];
+  const n = lv.time >= 200 ? 2 : 1;
+  for (let k = 0; k < n; k++) {
+    let kind; do kind = kinds[Math.floor(vr() * kinds.length)]; while (out.some(e => e.kind === kind));
+    out.push({ kind, at: lv.time * (k ? 0.58 + vr() * 0.17 : 0.22 + vr() * 0.2), done: false });
+  }
+  return out;
+}
+function startEvent(kind) {
+  const E = EVENTS[kind];
+  let sub = E.sub;
+  if (E.dur) G.evt = { kind, name: E.name, t: E.dur };
+  if (kind === 'rush') G.nextOrder = Math.min(G.nextOrder, 1);
+  else if (kind === 'vip') G.vipNext = true;
+  else if (kind === 'patient') for (const o of G.orders) { o.timeLeft += 10; o.total += 10; }
+  else if (kind === 'outage') {
+    const want = new Set(menuItems().flat().map(k => k.split(':')[0]));
+    const crates = G.tiles.filter(t => t.type === 'crate');
+    const pick = crates.filter(t => want.has(t.kind));
+    const t = (pick.length ? pick : crates)[Math.floor(G.evRng() * (pick.length || crates.length))];
+    if (!t) return;
+    t.out = 15; sub = `No ${t.kind} for 15 seconds`;
+  }
+  addFloat('hud', 0, 0, E.name, '#f5d33e', sub);
+  sfx('order');
+}
+function tipBoost() { return (G.lv.tipMul || 1) * (G.evt && G.evt.kind === 'tipper' ? 2 : 1); }
+function updateEvents(dt) {
+  if (G.phase === 'play') for (const ev of G.events || []) if (!ev.done && G.lv.time - G.time >= ev.at) { ev.done = true; startEvent(ev.kind); }
+  if (G.evt) { G.evt.t -= dt; if (G.evt.t <= 0) G.evt = null; }
+  for (const t of G.tiles) if (t.out > 0) t.out = Math.max(0, t.out - dt);
+}
 
 function tileAt(x, y) {
   if (!G || x < 0 || y < 0 || x >= G.cols || y >= G.rows) return null;
@@ -2972,6 +3033,7 @@ function grabPlan(c) {
   if (!t) return null;
   const h = c.held, it = t.item;
   if (t.fire > 0) return { label: 'Fire!', dim: true, run() { say(c, 'Put the fire out first'); sfx('nope'); } };
+  if (t.type === 'crate' && t.out > 0 && (!h || h.type === 'plate')) return { label: 'Out', dim: true, run() { say(c, 'Out of stock'); sfx('nope'); } };
   if (!h) {
     if (t.type === 'plates') return t.count > 0 ? { label: 'Plate', run() { t.count--; c.held = newPlate(); sfx('pick'); } } : null;
     if (t.type === 'hatch') return t.dirty > 0 ? { label: 'Grab', run() { c.held = { type: 'dirty', n: t.dirty }; t.dirty = 0; sfx('pick'); } } : null;
@@ -2983,11 +3045,11 @@ function grabPlan(c) {
     return null;
   }
   if (t.type === 'trash') {
-    if (h.type === 'ing') return { label: 'Bin', run() { c.held = null; sfx('trash'); } };
+    if (h.type === 'ing') return { label: 'Bin', run() { c.held = null; G.binned = (G.binned || 0) + 1; sfx('trash'); } };
     if (h.type === 'dirty') return { label: 'Bin', dim: true, run() { say(c, 'Wash them in the sink'); sfx('nope'); } };
     if (h.type === 'ext') return null;
-    if (h.type === 'bag') return { label: 'Bin', run() { c.held = null; sfx('trash'); } };
-    if (h.items.length) return { label: 'Bin', run() { if (isCookware(h)) emptyCookware(h); else { h.items = []; delete h.hotAt; delete h.over; } sfx('trash'); } };
+    if (h.type === 'bag') return { label: 'Bin', run() { c.held = null; G.binned = (G.binned || 0) + 1; sfx('trash'); } };
+    if (h.items.length) return { label: 'Bin', run() { G.binned = (G.binned || 0) + 1; if (isCookware(h)) emptyCookware(h); else { h.items = []; delete h.hotAt; delete h.over; } sfx('trash'); } };
     return null;
   }
   if (t.type === 'bagger') {
@@ -3086,14 +3148,15 @@ function serve(c) {
   const flaw = judgeFlaw(h);
   if (flaw) { judgeReject(c, h, flaw); return; }
   const o = G.orders[idx];
-  const tip = Math.round(TIP_MAX * (G.lv.tipMul || 1) * (1 + (c.gear ? c.gear.tip : 0)) * o.timeLeft / o.total);
+  const tip = Math.round(TIP_MAX * tipBoost() * (1 + (c.gear ? c.gear.tip : 0)) * o.timeLeft / o.total);
   const earned = orderReward(o) + tip;
   G.score += earned; G.tips += tip; G.served++;
   G.orders.splice(idx, 1);
   c.held = null;
   if (h.type === 'plate') G.returns.push(PLATE_RETURN);
   const st = c.target;
-  addFloat('tile', st.x + 0.5, st.y + 0.2, '+' + earned, '#f5b82e', tip >= 7 * (G.lv.tipMul || 1) ? 'Speedy!' : null);
+  if (tip >= 7 * tipBoost()) G.speedy = (G.speedy || 0) + 1;
+  addFloat('tile', st.x + 0.5, st.y + 0.2, '+' + earned, '#f5b82e', tip >= 7 * tipBoost() ? 'Speedy!' : null);
   G.coinPulse = 1;
   sfx('serve'); buzz(25);
   if (G.lv.judge && (!G.judge || G.judge.t <= 0 || G.judge.mood === 0) && Math.random() < 0.7) judgeSay('good', 0);
@@ -3115,7 +3178,7 @@ function deliver(c) {
   const idx = G.orders.findIndex(o => o.delivery && sameItems(orderItems(o), h.items));
   if (idx < 0) { say(c, G.orders.some(o => o.delivery) ? 'Wrong bag for this driver' : 'No delivery for that'); sfx('nope'); return; }
   const o = G.orders[idx];
-  const tip = o.late ? 0 : Math.round(TIP_MAX * (G.lv.tipMul || 1) * (1 + (c.gear ? c.gear.tip : 0)) * o.timeLeft / o.total);
+  const tip = o.late ? 0 : Math.round(TIP_MAX * tipBoost() * (1 + (c.gear ? c.gear.tip : 0)) * o.timeLeft / o.total);
   const earned = orderReward(o) + tip;
   G.score += earned; G.tips += tip; G.served++;
   G.orders.splice(idx, 1);
@@ -3161,6 +3224,7 @@ function spawnOrder() {
   if (G.lv.delivery && G.tiles.some(t => t.type === 'pickup') && G.rng() < G.lv.delivery) {
     o.delivery = true; o.total = o.timeLeft = Math.round(total * 1.25); o.reward += DELIVERY_BONUS;
   }
+  if (G.vipNext) { o.vip = true; o.reward *= 2; G.vipNext = false; }
   G.orders.push(o);
   sfx('order');
 }
@@ -3375,7 +3439,7 @@ function update(dt) {
       if (Math.random() < dt * 3) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(255,255,255,.55)', 0.9, 'steam');
       if (cw.cook >= 1) { cw.cook = 1; cw.hotAt = G.clock; sfx('ding'); }
     } else {
-      cw.burn += dt / burn / (1 + (cw.mitts || 0));
+      cw.burn += dt / burn / (1 + (cw.mitts || 0)) / (upOn('heavypots') ? 1.25 : 1);
       cw.hotAt = G.clock;
       warnBeep(cw, dt);
       if (Math.random() < dt * 4 * cw.burn) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(90,90,90,.6)', 1.2, 'steam');
@@ -3410,11 +3474,13 @@ function update(dt) {
   }
 
   // Orders (the tutorial hands them out itself, and nobody waits too long)
+  updateEvents(dt);
   if (!G.lv.tutorial) G.nextOrder -= dt;
   if (G.nextOrder <= 0) {
     if (G.orders.length < maxOrders()) spawnOrder();
     const [a, b] = G.lv.interval.map(v => v / crewFactor(G.humans));
     G.nextOrder = G.orders.length <= 1 ? Math.min(3, a) : a + G.rng() * (b - a);
+    if (G.evt && G.evt.kind === 'rush') G.nextOrder *= 0.45;
   }
   for (let i = G.orders.length - 1; i >= 0; i--) {
     const o = G.orders[i];
@@ -3463,7 +3529,7 @@ function cookHeat(t, dt) {
     if (it.cook >= 1) { it.cook = 1; it.state = 'cooked'; it.hotAt = G.clock; sfx('ding'); }
   } else if (it.state === 'cooked') {
     it.hotAt = G.clock;
-    it.burn += dt / HEAT[t.type].burn / (1 + (it.mitts || 0));
+    it.burn += dt / HEAT[t.type].burn / (1 + (it.mitts || 0)) / burnGuard(t.type);
     warnBeep(it, dt);
     if (Math.random() < dt * 4 * it.burn) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(90,90,90,.6)', 1.2, 'steam');
     if (it.burn >= 1) { it.state = 'burnt'; burnUp(t); }
@@ -3472,6 +3538,7 @@ function cookHeat(t, dt) {
 
 // Food burning: smoke, and in kitchens with fire, the counter goes up in flames.
 function burnUp(t) {
+  G.fires = (G.fires || 0) + 1;
   sfx('burn');
   strike('burn');
   for (let i = 0; i < 8; i++) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(40,40,40,.7)', 1.6, 'steam');
@@ -3605,6 +3672,11 @@ function drawTile(t) {
   if (t.type === 'crate') {
     sprTL('crate', x, y, P);
     if (!t.item) drawIng(t.kind, 'raw', x + 0.5, y + 0.4, P);
+    if (t.out > 0) {   // out of stock
+      X.fillStyle = 'rgba(28,33,51,.6)'; X.fillRect(x, y, 1, 1);
+      X.fillStyle = '#e8472f';
+      for (let k = 2; k < 14; k++) { X.fillRect(x + k * P, y + k * P, 2 * P, 2 * P); X.fillRect(x + (15 - k) * P, y + k * P, 2 * P, 2 * P); }
+    }
   } else if (t.type === 'board') {
     sprTL('board', x, y, P);
     if (!t.item) spr('knife', x + 0.5, y + 0.4, P);
@@ -3875,6 +3947,14 @@ function drawHUD(dt) {
   X.fillStyle = '#fff5de'; X.fillText(String(G.score), cx - 26, cy + 1);
   spr('coin', cx - 8, cy, 3);
 
+  // Active event, under the timer.
+  if (G.evt) {
+    const tag = `${G.evt.name} ${Math.ceil(G.evt.t)}s`, ty = b.y + (G.lv.judge ? 72 : 44);
+    X.font = '700 13px "Pixelify Sans", monospace'; X.textAlign = 'center'; X.textBaseline = 'middle';
+    const tw2 = X.measureText(tag).width + 16;
+    X.fillStyle = '#f5d33e'; X.fillRect(Math.round(W / 2 - tw2 / 2), ty, tw2, 18);
+    X.fillStyle = '#2b2230'; X.fillText(tag, W / 2, ty + 10);
+  }
   // Order tickets
   const R = L.orders, n = maxOrders(), gap = 6;
   const cw = Math.min(122, (R.w - gap * (n - 1)) / n), ch = R.h;
@@ -3893,6 +3973,11 @@ function drawHUD(dt) {
     const col = frac > 0.5 ? '#3f9b45' : frac > 0.25 ? '#f5b82e' : '#e8472f';
     X.fillStyle = '#e8dcbc'; X.fillRect(px + 5, y + 5, cw - 10, 6);
     X.fillStyle = col; X.fillRect(px + 5, y + 5, Math.max(3, Math.round((cw - 10) * frac / 3) * 3), 6);
+    if (o.vip) {   // VIP: gold frame and a star
+      X.strokeStyle = '#f5d33e'; X.lineWidth = 3; X.strokeRect(px + 1.5, y + 1.5, cw - 3, ch - 3);
+      X.fillStyle = '#b9821a'; X.font = '700 15px "Pixelify Sans", monospace'; X.textAlign = 'left'; X.textBaseline = 'top';
+      X.fillText('★', px + 5, y + 13);
+    }
     if (o.delivery) {
       // Delivery badge, and an orange frame that flashes while the driver waits.
       if (o.late && Math.sin(T * 12) > 0) { X.strokeStyle = '#f59a2e'; X.lineWidth = 3; X.strokeRect(px + 1.5, y + 1.5, cw - 3, ch - 3); }
@@ -4224,7 +4309,7 @@ function onNetMessage(m, from) {
     if (Array.isArray(m.fits)) NET.fits = m.fits.map(String);
     if (Array.isArray(m.gears)) NET.gears = m.gears.map(cleanGear);
     const versus = m.vs != null;
-    startLevel(m.lv, { transpose: m.tr, dailyKey: m.dk, players: m.n, versus, seed: versus ? +m.vs : undefined });
+    startLevel(m.lv, { transpose: m.tr, dailyKey: m.dk, players: m.n, versus, seed: versus ? +m.vs : undefined, vary: m.vary });
     NET.vs = {}; NET.vsT = 0;
     G.active = versus ? 0 : NET.slot;
     for (const c of G.chefs) { c.tx = c.x; c.ty = c.y; }
@@ -4246,9 +4331,10 @@ function snapshot() {
   const ci = t => (t ? G.tiles.indexOf(t) : -1);
   return {
     t: 'snap',
-    tl: G.netTiles.map(t => [t.item, +t.fire.toFixed(2), t.count, t.dirty, +(t.wash || 0).toFixed(2), +(t.brew || 0).toFixed(2), !!t.brewing, t.jar, +(t.blend || 0).toFixed(2), !!t.blending]),
+    tl: G.netTiles.map(t => [t.item, +t.fire.toFixed(2), t.count, t.dirty, +(t.wash || 0).toFixed(2), +(t.brew || 0).toFixed(2), !!t.brewing, t.jar, +(t.blend || 0).toFixed(2), !!t.blending, +(t.out || 0).toFixed(1)]),
+    xe: G.evt ? [G.evt.kind, G.evt.name, +G.evt.t.toFixed(1)] : null,
     ch: G.chefs.map(c => [+c.x.toFixed(3), +c.y.toFixed(3), +c.fx.toFixed(2), +c.fy.toFixed(2), c.held, c.task ? [c.task.kind, ci(c.task.tile)] : null, c.moving, +c.walk.toFixed(2), c.toast, +c.toastT.toFixed(2), c.spraying]),
-    or: G.orders.map(o => [o.id, o.recipe, o.total, +o.timeLeft.toFixed(2), orderItems(o), orderReward(o), o.delivery ? (o.late ? 2 : 1) : 0]),
+    or: G.orders.map(o => [o.id, o.recipe, o.total, +o.timeLeft.toFixed(2), orderItems(o), orderReward(o), o.delivery ? (o.late ? 2 : 1) : 0, !!o.vip]),
     g: [G.score, G.tips, G.served, G.failed, +G.time.toFixed(2), G.phase, +G.countdown.toFixed(2), +G.endT.toFixed(2)],
     ev: NET.events.splice(0),
     jd: [G.strikes || 0, G.judge ? G.judge.text : null, G.judge ? +G.judge.t.toFixed(1) : 0, G.judge ? G.judge.mood : 0, !!G.kicked, +(G.clock || 0).toFixed(1), G.judge ? G.judge.who : null],
@@ -4260,7 +4346,7 @@ function applySnapshot(m) {
   m.tl.forEach((a, i) => {
     const t = G.netTiles[i];
     if (!t) return;
-    [t.item, t.fire, t.count, t.dirty, t.wash, t.brew, t.brewing, t.jar, t.blend, t.blending] = a;
+    [t.item, t.fire, t.count, t.dirty, t.wash, t.brew, t.brewing, t.jar, t.blend, t.blending, t.out] = a;
   });
   m.ch.forEach((a, i) => {
     const c = G.chefs[i];
@@ -4277,9 +4363,10 @@ function applySnapshot(m) {
       c.tx = x; c.ty = y; c.fx = fx; c.fy = fy; c.moving = moving; c.walk = walk;
     }
   });
-  G.orders = m.or.map(([id, recipe, total, timeLeft, items, reward, dl]) => {
+  G.evt = m.xe ? { kind: m.xe[0], name: m.xe[1], t: m.xe[2] } : null;
+  G.orders = m.or.map(([id, recipe, total, timeLeft, items, reward, dl, vip]) => {
     const old = G.orders.find(o => o.id === id);
-    return { id, recipe, total, timeLeft, items, reward, delivery: dl > 0, late: dl === 2, x: old ? old.x : null };
+    return { id, recipe, total, timeLeft, items, reward, delivery: dl > 0, late: dl === 2, vip: !!vip, x: old ? old.x : null };
   });
   if (m.jd) {
     const [strikes, text, t, mood, kicked, clock, who] = m.jd;
@@ -4855,37 +4942,47 @@ function spawnHelper(kind) {
 const GEAR_SLOTS = [['hat', 'Hat'], ['apron', 'Apron'], ['gloves', 'Gloves'], ['shoes', 'Shoes']];
 // Stats: chop, wash, walk, carry (walking while holding a plate or cup), spray, tip, burn (slower burning).
 const GEAR = [
-  { id: 'headband', slot: 'hat', name: "Chopper's Headband", text: 'Chopping +6%', price: 300, fx: { chop: 0.06 }, col: '#e8472f' },
-  { id: 'butchercap', slot: 'hat', name: "Butcher's Cap", text: 'Chopping +9%, washing −5%', price: 550, fx: { chop: 0.09, wash: -0.05 }, col: '#8a5a36' },
-  { id: 'visor', slot: 'hat', name: 'Speed Visor', text: 'Walking +5%', price: 450, fx: { walk: 0.05 }, col: '#3a86d4' },
-  { id: 'helmet', slot: 'hat', name: "Firefighter's Helmet", text: 'Puts out fires 9% faster', price: 250, fx: { spray: 0.09 }, col: '#f5d33e' },
-  { id: 'tipapron', slot: 'apron', name: 'Tip Jar Apron', text: '+8% tips on dishes this chef serves', price: 500, fx: { tip: 0.08 }, col: '#3f9b45' },
-  { id: 'butcherapron', slot: 'apron', name: "Butcher's Apron", text: 'Chopping +5%', price: 300, fx: { chop: 0.05 }, col: '#c98b52' },
-  { id: 'rubberapron', slot: 'apron', name: 'Rubber Apron', text: 'Washing +9%', price: 250, fx: { wash: 0.09 }, col: '#f5b82e' },
-  { id: 'waiterapron', slot: 'apron', name: "Waiter's Apron", text: 'Walking +7% while carrying a plate or cup', price: 500, fx: { carry: 0.07 }, col: '#2b2230' },
-  { id: 'dishgloves', slot: 'gloves', name: 'Dish Gloves', text: 'Washing +7%', price: 250, fx: { wash: 0.07 }, col: '#ec8a92' },
-  { id: 'mitts', slot: 'gloves', name: 'Oven Mitts', text: 'Food this chef puts on the heat takes 8% longer to burn', price: 450, fx: { burn: 0.08 }, col: '#e8472f' },
-  { id: 'gripgloves', slot: 'gloves', name: 'Grip Gloves', text: 'Chopping +5%', price: 300, fx: { chop: 0.05 }, col: '#5a5f6e' },
-  { id: 'firegloves', slot: 'gloves', name: 'Fire Gloves', text: 'Puts out fires 7% faster, with slightly longer reach', price: 250, fx: { spray: 0.07, reach: 0.3 }, col: '#f59a2e' },
-  { id: 'runners', slot: 'shoes', name: 'Running Shoes', text: 'Walking +6%', price: 500, fx: { walk: 0.06 }, col: '#3a86d4' },
-  { id: 'clogs', slot: 'shoes', name: 'Kitchen Clogs', text: 'Walking +3%, chopping +3%', price: 450, fx: { walk: 0.03, chop: 0.03 }, col: '#3f9b45' },
-  { id: 'skates', slot: 'shoes', name: 'Roller Skates', text: 'Walking +9%, chopping −5%', price: 750, fx: { walk: 0.09, chop: -0.05 }, col: '#ec8a92' },
-  { id: 'loafers', slot: 'shoes', name: 'Slip-On Loafers', text: 'Walking +3%, washing +4%', price: 350, fx: { walk: 0.03, wash: 0.04 }, col: '#8a5a36' },
+  { id: 'headband', slot: 'hat', name: "Chopper's Headband", text: 'Chopping +6%', price: 600, fx: { chop: 0.06 }, col: '#e8472f' },
+  { id: 'butchercap', slot: 'hat', name: "Butcher's Cap", text: 'Chopping +9%, washing −5%', price: 1100, fx: { chop: 0.09, wash: -0.05 }, col: '#8a5a36' },
+  { id: 'visor', slot: 'hat', name: 'Speed Visor', text: 'Walking +5%', price: 900, fx: { walk: 0.05 }, col: '#3a86d4' },
+  { id: 'helmet', slot: 'hat', name: "Firefighter's Helmet", text: 'Puts out fires 9% faster', price: 500, fx: { spray: 0.09 }, col: '#f5d33e' },
+  { id: 'tipapron', slot: 'apron', name: 'Tip Jar Apron', text: '+8% tips on dishes this chef serves', price: 1000, fx: { tip: 0.08 }, col: '#3f9b45' },
+  { id: 'butcherapron', slot: 'apron', name: "Butcher's Apron", text: 'Chopping +5%', price: 600, fx: { chop: 0.05 }, col: '#c98b52' },
+  { id: 'rubberapron', slot: 'apron', name: 'Rubber Apron', text: 'Washing +9%', price: 500, fx: { wash: 0.09 }, col: '#f5b82e' },
+  { id: 'waiterapron', slot: 'apron', name: "Waiter's Apron", text: 'Walking +7% while carrying a plate or cup', price: 1000, fx: { carry: 0.07 }, col: '#2b2230' },
+  { id: 'dishgloves', slot: 'gloves', name: 'Dish Gloves', text: 'Washing +7%', price: 500, fx: { wash: 0.07 }, col: '#ec8a92' },
+  { id: 'mitts', slot: 'gloves', name: 'Oven Mitts', text: 'Food this chef puts on the heat takes 8% longer to burn', price: 900, fx: { burn: 0.08 }, col: '#e8472f' },
+  { id: 'gripgloves', slot: 'gloves', name: 'Grip Gloves', text: 'Chopping +5%', price: 600, fx: { chop: 0.05 }, col: '#5a5f6e' },
+  { id: 'firegloves', slot: 'gloves', name: 'Fire Gloves', text: 'Puts out fires 7% faster, with slightly longer reach', price: 500, fx: { spray: 0.07, reach: 0.3 }, col: '#f59a2e' },
+  { id: 'runners', slot: 'shoes', name: 'Running Shoes', text: 'Walking +6%', price: 1000, fx: { walk: 0.06 }, col: '#3a86d4' },
+  { id: 'clogs', slot: 'shoes', name: 'Kitchen Clogs', text: 'Walking +3%, chopping +3%', price: 900, fx: { walk: 0.03, chop: 0.03 }, col: '#3f9b45' },
+  { id: 'skates', slot: 'shoes', name: 'Roller Skates', text: 'Walking +9%, chopping −5%', price: 1500, fx: { walk: 0.09, chop: -0.05 }, col: '#ec8a92' },
+  { id: 'loafers', slot: 'shoes', name: 'Slip-On Loafers', text: 'Walking +3%, washing +4%', price: 700, fx: { walk: 0.03, wash: 0.04 }, col: '#8a5a36' },
 ];
+// `fork`: two versions of the same upgrade; owning one locks the other for good.
 const UPGRADES = [
-  { id: 'fryer', group: 'kitchen', name: 'Turbo Fryer', text: 'Fryers cook 15% faster', price: 600, icon: ['fries', { 1: '#f5d33e', 2: '#f59a2e' }] },
-  { id: 'griddle', group: 'kitchen', name: 'Cast-Iron Griddle', text: 'Griddles cook 15% faster', price: 600, icon: ['eggFried', { 1: '#ffffff', 2: '#f5b82e' }] },
-  { id: 'pots', group: 'kitchen', name: 'Pressure Pots', text: 'Pots and pans cook 15% faster', price: 700, icon: ['pot', { 1: '#e5552f' }] },
-  { id: 'oven', group: 'kitchen', name: 'Convection Oven', text: 'Ovens cook 15% faster', price: 700, icon: ['pizza', { 1: '#d9953f', 2: '#c8402a', 3: '#f5d33e', 4: '#f5d33e' }] },
-  { id: 'smoker', group: 'kitchen', name: 'Smoker Pro', text: 'Smokers cook 20% faster', price: 600, icon: ['ribs', { 1: '#6a2e1c', 2: '#3a160c', 3: '#e8c8a0' }] },
-  { id: 'blender', group: 'kitchen', name: 'Industrial Blender', text: 'Blending 30% faster', price: 300, icon: ['shake', { 1: '#f4a3b8' }] },
-  { id: 'espresso', group: 'kitchen', name: 'Espresso Machine', text: 'Coffee brews 30% faster', price: 250, icon: ['mug'] },
-  { id: 'plates', group: 'kitchen', name: 'Extra Plate Rack', text: '+1 clean plate in every kitchen', price: 500, icon: ['plate'] },
-  { id: 'booths', group: 'kitchen', name: 'Comfy Booths', text: 'Customers wait 10% longer', price: 1200, icon: ['person', { 1: '#9a6ab3' }] },
-  { id: 'engine', group: 'van', name: 'Turbo Engine', text: 'Top speed +10% on Delivery Runs', price: 800, icon: ['car', { 1: '#e8472f', 2: '#fff5de' }] },
-  { id: 'tyres', group: 'van', name: 'Grippy Tyres', text: 'Better grip; drifts are easier to control', price: 600, icon: ['car', { 1: '#3a3d48', 2: '#8a8f9c' }] },
-  { id: 'cargo', group: 'van', name: 'Bigger Cargo Box', text: 'Carry 4 bags instead of 3', price: 1000, icon: ['bag'] },
+  { id: 'fryer', fork: 'fryer', group: 'kitchen', name: 'Turbo Fryer', text: 'Fryers cook 15% faster', price: 1200, icon: ['fries', { 1: '#f5d33e', 2: '#f59a2e' }] },
+  { id: 'safefryer', fork: 'fryer', group: 'kitchen', name: 'Safety Fryer', text: 'Fryer food takes 25% longer to burn', price: 1200, icon: ['fries', { 1: '#fff1a8', 2: '#d9953f' }] },
+  { id: 'griddle', fork: 'griddle', group: 'kitchen', name: 'Cast-Iron Griddle', text: 'Griddles cook 15% faster', price: 1200, icon: ['eggFried', { 1: '#ffffff', 2: '#f5b82e' }] },
+  { id: 'nonstick', fork: 'griddle', group: 'kitchen', name: 'Non-Stick Griddle', text: 'Griddle food takes 25% longer to burn', price: 1200, icon: ['eggFried', { 1: '#fff5de', 2: '#f59a2e' }] },
+  { id: 'pots', fork: 'pots', group: 'kitchen', name: 'Pressure Pots', text: 'Pots and pans cook 15% faster', price: 1400, icon: ['pot', { 1: '#e5552f' }] },
+  { id: 'heavypots', fork: 'pots', group: 'kitchen', name: 'Heavy Pots', text: 'Pots and pans take 25% longer to burn', price: 1400, icon: ['pot', { 1: '#6a3a1a' }] },
+  { id: 'oven', fork: 'oven', group: 'kitchen', name: 'Convection Oven', text: 'Ovens cook 15% faster', price: 1400, icon: ['pizza', { 1: '#d9953f', 2: '#c8402a', 3: '#f5d33e', 4: '#f5d33e' }] },
+  { id: 'stoneoven', fork: 'oven', group: 'kitchen', name: 'Stone Oven', text: 'Oven food takes 25% longer to burn', price: 1400, icon: ['pizza', { 1: '#c98b52', 2: '#a8301d', 3: '#fff1a8', 4: '#fff1a8' }] },
+  { id: 'smoker', group: 'kitchen', name: 'Smoker Pro', text: 'Smokers cook 20% faster', price: 1200, icon: ['ribs', { 1: '#6a2e1c', 2: '#3a160c', 3: '#e8c8a0' }] },
+  { id: 'blender', group: 'kitchen', name: 'Industrial Blender', text: 'Blending 30% faster', price: 600, icon: ['shake', { 1: '#f4a3b8' }] },
+  { id: 'espresso', group: 'kitchen', name: 'Espresso Machine', text: 'Coffee brews 30% faster', price: 500, icon: ['mug'] },
+  { id: 'plates', group: 'kitchen', name: 'Extra Plate Rack', text: '+1 clean plate in every kitchen', price: 1000, icon: ['plate'] },
+  { id: 'booths', group: 'kitchen', name: 'Comfy Booths', text: 'Customers wait 10% longer', price: 2400, icon: ['person', { 1: '#9a6ab3' }] },
+  { id: 'engine', fork: 'van', group: 'van', name: 'Turbo Engine', text: 'Top speed +10% on Delivery Runs', price: 1600, icon: ['car', { 1: '#e8472f', 2: '#fff5de' }] },
+  { id: 'tyres', fork: 'van', group: 'van', name: 'Grippy Tyres', text: 'Better grip; drifts are easier to control', price: 1200, icon: ['car', { 1: '#3a3d48', 2: '#8a8f9c' }] },
+  { id: 'cargo', group: 'van', name: 'Bigger Cargo Box', text: 'Carry 4 bags instead of 3', price: 2000, icon: ['bag'] },
 ];
+// The other half of a fork this player already owns, if any.
+function forkTaken(it) { return it.fork ? UPGRADES.find(u => u.fork === it.fork && u.id !== it.id && owns(u.id)) : null; }
+// Slower burning from the "safe" half of each fork.
+const BURN_UP = { fryer: 'safefryer', griddle: 'nonstick', oven: 'stoneoven' };
+function burnGuard(type) { return BURN_UP[type] && upOn(BURN_UP[type]) ? 1.25 : 1; }
 // How much faster each heat station cooks with its upgrade.
 const HEAT_UP = { fryer: ['fryer', 0.15], griddle: ['griddle', 0.15], oven: ['oven', 0.15], smoker: ['smoker', 0.2] };
 
@@ -4933,25 +5030,54 @@ function hasPlayed(key) {
   if (key.startsWith('drive')) return !!(save.drive || [])[+key.slice(5)];
   return !!(save.daily && 'daily:' + save.daily.key === key && save.daily.plays);
 }
+// Each level can only ever pay its three-star target in total. Once that's used up (or three
+// stars are earned) the level is completed, and replays pay 10% of what you earn.
+const REPLAY_RATE = 0.1;
+function budgetOf(key) { return key.startsWith('drive') ? DRIVE_RUNS[+key.slice(5)].stars[2] : LEVELS[+key.slice(1)].stars[2]; }
+function earnedAt(key) { return (save.earned || {})[key] || 0; }
+function isCompleted(key) { return priorStars(key) >= 3 || earnedAt(key) >= budgetOf(key); }
 // Every start counts as an attempt (restarts and quits too), so the first try can't be retried.
 function beginAttempt(key) {
-  const att = { key, first: !hasPlayed(key), mastered: priorStars(key) >= 3 };
+  const daily = key.startsWith('daily:');
+  const att = { key, daily, first: !hasPlayed(key), completed: !daily && isCompleted(key) };
   save.plays = save.plays || {};
   save.plays[key] = (save.plays[key] || 0) + 1; persist();
   return att;
 }
 function firstTryBonus(target3) { return Math.round(target3 * 0.5 / 10) * 10; }
 function settle(att, earned, stars, target3) {
-  if (!att) return { paid: 0, text: '' };
-  if (att.mastered) return { paid: 0, text: 'Already three-starred: replays here earn no coins, but your best score still counts.' };
-  const bonus = att.first && stars >= 3 ? firstTryBonus(target3) : 0;
-  const paid = addToWallet(earned + bonus);
-  return { paid, text: (bonus ? `First-try three stars! +${fmtCoins(earned)} coins and a +${fmtCoins(bonus)} bonus` : `+${fmtCoins(earned)} coins`) + ` to your wallet (${fmtCoins(save.wallet)} to spend).` + (stars >= 3 ? ' This one pays no more coins now.' : '') };
+  if (!att || att.daily) return { paid: 0, text: '' };
+  earned = Math.max(0, Math.round(earned || 0));
+  if (att.completed) {
+    const paid = addToWallet(Math.round(earned * REPLAY_RATE));
+    return { paid, text: `Completed level: replays pay 10%. +${fmtCoins(paid)} coins (${fmtCoins(save.wallet)} to spend).` };
+  }
+  save.earned = save.earned || {};
+  const budget = budgetOf(att.key), left = Math.max(0, budget - earnedAt(att.key));
+  const base = Math.min(earned, left), bonus = att.first && stars >= 3 ? firstTryBonus(target3) : 0;
+  save.earned[att.key] = stars >= 3 ? budget : earnedAt(att.key) + base;
+  const paid = addToWallet(base + bonus);
+  const done = save.earned[att.key] >= budget;
+  return { paid, text: (bonus ? `First-try three stars! +${fmtCoins(base)} coins and a +${fmtCoins(bonus)} bonus` : `+${fmtCoins(base)} coins`) + ` (${fmtCoins(save.wallet)} to spend).`
+    + (done ? ' Level completed: replays now pay 10%.' : ` ${fmtCoins(budget - save.earned[att.key])} more to earn here.`) + (earned > base ? ` (${fmtCoins(earned - base)} over this level's limit.)` : '') };
+}
+function settleQuest() {
+  const q = DAILY.quest, lv = G.lv;
+  const scoreOk = G.score >= lv.stars[2] && !G.kicked, goalOk = q.ok(G);
+  const already = questDone();
+  save.daily = save.daily && save.daily.key === DAILY.key ? save.daily : { key: DAILY.key, best: 0, plays: 0 };
+  if (scoreOk && goalOk && !already) {
+    save.daily.quest = true; persist();
+    const paid = addToWallet(QUEST_REWARD);
+    return { paid, text: `Daily quest complete! +${QUEST_REWARD} coins (${fmtCoins(save.wallet)} to spend).` };
+  }
+  if (already) return { paid: 0, text: 'Today’s quest is already done. A new one arrives tomorrow.' };
+  return { paid: 0, text: `Quest: ${scoreOk ? '✓' : '✗'} score ${fmtCoins(lv.stars[2])} (you got ${fmtCoins(G.score)}) · ${goalOk ? '✓' : '✗'} ${q.text}. Try again!` };
 }
 function coinNote(key, target3) {
-  if (priorStars(key) >= 3) return 'Three-starred already: replays earn no coins, just a better best score.';
-  if (!hasPlayed(key)) return `First try: three stars on your first attempt pays a +${fmtCoins(firstTryBonus(target3))} coin bonus.`;
-  return '';
+  if (isCompleted(key)) return 'Completed: replays pay 10% of the coins you earn.';
+  const left = budgetOf(key) - earnedAt(key);
+  return (!hasPlayed(key) ? `First try: three stars on your first attempt pays a +${fmtCoins(firstTryBonus(target3))} bonus. ` : '') + `Coins left to earn here: ${fmtCoins(left)} of ${fmtCoins(budgetOf(key))}.`;
 }
 function fmtCoins(n) { return Number(n || 0).toLocaleString('en-US'); }
 
@@ -5018,7 +5144,7 @@ function chefCanvas(o, slot, size = 48, scarf = [CHEF_COLORS[slot], CHEF_DARK[sl
   return c;
 }
 
-let shopTab = 'gear';
+let shopTab = 'gear', shopConfirm = null;
 function iconCanvas(name, sw, size = 40) {
   const d = Math.max(1, Math.round(Math.min(window.devicePixelRatio || 1, 3)));
   const c = document.createElement('canvas');
@@ -5037,8 +5163,9 @@ function buildShop() {
   $('shop-wallet').textContent = fmtCoins(save.wallet || 0) + ' coins';
   for (const t of ['gear', 'kitchen', 'van']) $('shop-t-' + t).setAttribute('aria-pressed', String(shopTab === t));
   $('shop-note').textContent = shopTab === 'gear' ? 'Gear is personal: each chef wears one item per slot (pick in Wear gear), and bonuses from different slots add up.'
-    : shopTab === 'kitchen' ? 'Kitchen upgrades are bought once and always on (not in versus or the daily challenge).'
-    : 'Van upgrades help on the secret Delivery Runs.';
+    : shopTab === 'kitchen' ? 'Kitchen upgrades are always on once bought (not in versus or the daily quest). Paired upgrades are a choice: buy one and the other is gone for good.'
+    : 'Van upgrades help on the secret Delivery Runs. Engine or tyres: you only get one.';
+  $('shop-note').textContent += ' Every purchase is permanent: no refunds.';
   const list = $('shop-list'); list.innerHTML = '';
   const row = (icon, it) => {
     const own = owns(it.id), el = document.createElement('div');
@@ -5046,9 +5173,13 @@ function buildShop() {
     const txt = document.createElement('div');
     txt.append(Object.assign(document.createElement('div'), { className: 'iname', textContent: it.name }), Object.assign(document.createElement('div'), { className: 'itext', textContent: it.text }));
     const b = document.createElement('button'); b.type = 'button'; b.id = 'buy-' + it.id;
-    const short = it.price - (save.wallet || 0);
-    b.textContent = own ? 'Owned' : short > 0 ? `${fmtCoins(it.price)}` : `Buy ${fmtCoins(it.price)}`;
-    b.disabled = own || short > 0;
+    const short = it.price - (save.wallet || 0), rival = !own && forkTaken(it);
+    const confirming = shopConfirm === it.id && !own && !rival && short <= 0;
+    b.textContent = own ? 'Owned' : rival ? 'Locked' : confirming ? 'Confirm' : short > 0 ? `${fmtCoins(it.price)}` : `Buy ${fmtCoins(it.price)}`;
+    if (confirming) b.classList.add('confirm');
+    b.disabled = own || !!rival || short > 0;
+    if (rival) txt.appendChild(Object.assign(document.createElement('div'), { className: 'itext', textContent: `You chose ${rival.name} instead.` }));
+    else if (it.fork && !own) { const other = UPGRADES.find(u => u.fork === it.fork && u.id !== it.id); txt.appendChild(Object.assign(document.createElement('div'), { className: 'itext fork', textContent: confirming ? `Tap Confirm to buy. ${other.name} will be locked forever.` : `Or ${other.name}: pick one.` })); }
     if (!own && short > 0) b.title = `${fmtCoins(short)} more coins`;
     b.onclick = () => buy(it);
     el.append(icon, txt, b);
@@ -5062,7 +5193,10 @@ function buildShop() {
   } else for (const u of UPGRADES.filter(q => q.group === shopTab)) row(iconCanvas(u.icon[0], u.icon[1], 40), u);
 }
 function buy(it) {
-  if (owns(it.id) || (save.wallet || 0) < it.price) return;
+  if (owns(it.id) || (save.wallet || 0) < it.price || forkTaken(it)) return;
+  // Forks ask twice: the second tap confirms.
+  if (it.fork && shopConfirm !== it.id) { shopConfirm = it.id; sfx('warn'); buildShop(); return; }
+  shopConfirm = null;
   save.wallet -= it.price;
   save.owned = save.owned || {}; save.owned[it.id] = true;
   // New gear goes straight on chef 1 if that slot is empty.
@@ -5253,6 +5387,15 @@ function drawStoryArt() {
 
 /* ---------- daily challenge: one kitchen, twist and ticket order for everyone each day ---------- */
 
+// The daily quest: the day's three-star score plus one extra goal, worth 400 coins once a day.
+const QUEST_REWARD = 400;
+const DAILY_QUESTS = [
+  { id: 'nomiss', text: () => 'Don’t miss a single order', ok: g => g.failed === 0 },
+  { id: 'nofire', text: () => 'No fires at all', ok: g => !g.fires, needs: lv => lv.fire },
+  { id: 'speedy', text: () => 'Serve 5 orders with a speedy tip', ok: g => (g.speedy || 0) >= 5 },
+  { id: 'nobin', text: () => 'Never use the bin', ok: g => !g.binned },
+  { id: 'served', text: n => `Serve at least ${n} orders`, n: lv => Math.round(lv.time / 16), ok: (g, n) => g.served >= n },
+];
 const DAILY_TWISTS = [
   { id: 'rush', name: 'Rush Hour', blurb: 'Tickets come in 25% faster.', starMul: 1.2, apply: lv => { lv.interval = lv.interval.map(v => v * 0.8); } },
   { id: 'tips', name: 'Big Tippers', blurb: 'Speed tips are doubled.', starMul: 1.15, apply: lv => { lv.tipMul = 2; } },
@@ -5275,14 +5418,17 @@ function dailyLevel(key = todayKey()) {
   twist.apply(lv);
   const mul = twist.starMul || lv.time / base.time;
   lv.stars = base.stars.map(v => Math.round(v * mul / 10) * 10);
-  DAILY = { key, lv, twist, seed: seedOf(key + ':orders') };
+  const qs = DAILY_QUESTS.filter(q => !q.needs || q.needs(lv));
+  const q = qs[Math.floor(r() * qs.length)], qn = q.n ? q.n(lv) : 0;
+  DAILY = { key, lv, twist, seed: seedOf(key + ':orders'), quest: { id: q.id, n: qn, text: q.text(qn), ok: g => q.ok(g, qn) } };
   return lv;
 }
 function lvOf(i) { return i === 'daily' ? (G && G.lv.daily ? G.lv : dailyLevel()) : i === 'tutorial' ? TUTORIAL : LEVELS[i]; }
+function questDone() { return !!(save.daily && save.daily.key === todayKey() && save.daily.quest); }
 function dailyBest() { return save.daily && save.daily.key === todayKey() ? save.daily.best : 0; }
 function syncDailyButton() {
-  const lv = dailyLevel(), best = dailyBest();
-  $('daily-sub').textContent = `${DAILY.twist.name} at ${lv.baseName}${best ? ' · Today’s best ' + best : ''}`;
+  const lv = dailyLevel(), done = questDone();
+  $('daily-sub').textContent = `${DAILY.twist.name} at ${lv.baseName} · ${done ? 'Quest done ✓' : 'Quest: ' + QUEST_REWARD + ' coins'}`;
 }
 function dailyDate() { return new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
 
@@ -5312,6 +5458,7 @@ function driveStars(k, coins) { return DRIVE_RUNS[k].stars.filter(s => coins >= 
 const RD = 0, WALK = 1, BLDG = 2, GRASS = 3, TREE = 4, DIRT = 5, BARR = 6;   // city tiles
 const CAR_MAX = 9, CAR_REV = 3, CAR_ACC = 7, CAR_BRAKE = 14, CAR_TURN = 2.7, CAR_R = 0.32;
 const PED_PENALTY = 10;
+function CALM_DRIVE() { try { return /[?&]calm\b/.test(location.search); } catch (e) { return false; } }
 // Delivery-van upgrades from the shop (the standalone test build has no shop, so they stay off there).
 function vanUp(id) { return !!(save.owned && save.owned[id]); }
 const DIRV = { E: [1, 0], W: [-1, 0], N: [0, -1], S: [0, 1] };
@@ -5615,7 +5762,8 @@ function tutTapDrive(x, y) {
 }
 
 function startDrive(k, opts = {}) {
-  const run = DRIVE_RUNS[k], city = driveCity(run);
+  // A new city every run (same size, traffic and targets).
+  const run = Object.assign({}, DRIVE_RUNS[k], { seed: opts.seed ?? (CALM_DRIVE() ? DRIVE_RUNS[k].seed : Math.floor(Math.random() * 1e9)) }), city = driveCity(run);
   G = null; paused = false; show(null);
   const start = city.truck;
   // Start on the road next to the truck, facing along it.
@@ -6332,7 +6480,7 @@ function openIntro(i) {
   $('intro-no').textContent = lv.daily ? 'Daily challenge · ' + dailyDate() : STOPS[lv.stop].name + ' · No.' + String(i + 1).padStart(2, '0');
   $('intro-time').textContent = fmtTime(lv.time) + ' service';
   $('intro-name').textContent = lv.name;
-  $('intro-tip').textContent = lv.daily ? `Today’s twist: ${DAILY.twist.name}. ${DAILY.twist.blurb} ${lv.tip}` : lv.tip;
+  $('intro-tip').textContent = lv.daily ? `Daily quest (${QUEST_REWARD} coins${questDone() ? ', done today' : ''}): score ${fmtCoins(lv.stars[2])} or more AND ${DAILY.quest.text.toLowerCase()}. Today’s twist: ${DAILY.twist.name}. ${DAILY.twist.blurb} ${lv.tip}` : lv.tip;
   const m = $('intro-menu'); m.innerHTML = '';
   lv.recipes.forEach(r => {
     const d = document.createElement('div'); d.className = 'dish';
@@ -6341,7 +6489,7 @@ function openIntro(i) {
     const p = document.createElement('span'); p.className = 'dprice'; p.textContent = RECIPES[r].extras ? RECIPES[r].reward + '+ · your way' : RECIPES[r].reward + ' + tip';
     d.append(n, p); m.appendChild(d);
   });
-  const cn = coinNote(levelKey(i), starTargets(i, NET.mode === 'versus' ? 1 : netPlayers())[2]);
+  const cn = lv.daily ? '' : coinNote(levelKey(i), starTargets(i, NET.mode === 'versus' ? 1 : netPlayers())[2]);
   $('intro-coins').textContent = cn; $('intro-coins').hidden = !cn;
   $('intro-note').textContent = lv.note || '';
   $('intro-note').hidden = !lv.note;
@@ -6387,7 +6535,7 @@ function play(i) {
   if (NET.role === 'host') {
     // Chef slots are fixed for the whole service, so a friend leaving doesn't reshuffle anyone.
     NET.guests.forEach((g, k) => { g.slot = k + 1; g.remote = { mx: 0, my: 0, held: false, grab: false, chop: false }; });
-    for (const g of NET.guests) if (g.conn.open) g.conn.send({ t: 'start', lv: i, tr: G.transposed, dk: DAILY && DAILY.key, n: G.chefs.length, me: g.slot, fits: NET.fits, gears: NET.gears, vs: versus ? seed : null });
+    for (const g of NET.guests) if (g.conn.open) g.conn.send({ t: 'start', lv: i, tr: G.transposed, dk: DAILY && DAILY.key, n: G.chefs.length, me: g.slot, fits: NET.fits, gears: NET.gears, vs: versus ? seed : null, vary: G.vary });
   }
 }
 function syncPauseButtons() {
@@ -6415,7 +6563,7 @@ function showResults() {
   const need = starTargets(i, G.humans)[0];
   if (stars && !lv.daily) { save.stars = save.stars || []; if (stars > (save.stars[i] || 0)) { save.stars[i] = stars; persist(); } }
   logRun(stars);
-  const pay = settle(G.attempt, G.score, stars, starTargets(i, G.humans)[2]);
+  const pay = lv.daily ? settleQuest() : settle(G.attempt, G.score, stars, starTargets(i, G.humans)[2]);
   $('res-wallet').hidden = !pay.text;
   $('res-wallet').textContent = pay.text;
   $('rate-box').hidden = !PLAYTEST.db;
@@ -6503,7 +6651,7 @@ $('btn-drive-tut').onclick = () => { audioInit(); startDrive(0, { tutorial: true
 $('btn-shop').onclick = () => { audioInit(); openShop(); };
 $('btn-shop-close').onclick = () => { syncShopButton(); show('scr-title'); };
 $('btn-shop-wear').onclick = () => { openWardrobe(); wardBack = 'scr-shop'; $('ward-gear').scrollIntoView({ block: 'center' }); };
-for (const t of ['gear', 'kitchen', 'van']) $('shop-t-' + t).onclick = () => { shopTab = t; buildShop(); };
+for (const t of ['gear', 'kitchen', 'van']) $('shop-t-' + t).onclick = () => { shopTab = t; shopConfirm = null; buildShop(); };
 $('btn-settings').onclick = () => { audioInit(); openSettings('scr-title'); };
 $('btn-pause-settings').onclick = () => openSettings('scr-pause');
 $('btn-settings-close').onclick = () => show(settingsBack);
@@ -6541,7 +6689,7 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !/cla
 
 // Test hook for automated play-throughs.
 window.__sprite = (n, sw) => { if (n.startsWith('chef')) chefSprite(n.split('_')[0], n.split('_')[1]); return sprite(n, sw); };
-window.__orderUp = { get D() { return D; }, startDrive, get G() { return G; }, startLevel: play, spawnOrder, dailyLevel, dailyTwist: () => DAILY.twist.name, input, RECIPES, LEVELS, NET, TUT_STEPS, setHelpers: ks => { chosenHelpers = ks; } };
+window.__orderUp = { startEvent, tipBoost, grabLabel: c => { const g = grabPlan(c); return g ? g.label + (g.dim ? ' (dim)' : '') : null; }, dailyQuest: () => DAILY && DAILY.quest && { id: DAILY.quest.id, text: DAILY.quest.text }, get D() { return D; }, startDrive, get G() { return G; }, startLevel: play, spawnOrder, dailyLevel, dailyTwist: () => DAILY.twist.name, input, RECIPES, LEVELS, NET, TUT_STEPS, setHelpers: ks => { chosenHelpers = ks; } };
 </script>
 </body>
 </html>

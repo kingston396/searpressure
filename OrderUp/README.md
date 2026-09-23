@@ -114,7 +114,7 @@ Each served order pays its menu price plus a tip of up to 10 coins, scaled by ho
 ## Rewards
 
 - **Chef outfits** (Wardrobe on the title screen): 10 outfits with different hats and jackets, unlocked by total stars (6, 14, 24, 34, 48, 62, 78 and 90), plus Judge's Whites for passing the Judge's Table. Each chef can wear a different one. Online, each player's first chef's outfit is sent to their friend. Outfits are `OUTFITS`; hat shapes are `HATS` (they replace the top six rows of the chef sprites).
-- **Daily challenge** (title screen): the date picks one campaign kitchen and a twist: Rush Hour (tickets 25% faster), Big Tippers (double tips), Double Shift (+90 seconds) or Short-Staffed (one chef, solo). The ticket order is seeded from the date too, so everyone gets the same service that day. Star targets scale with the twist. The day's best score is saved separately and doesn't touch campaign stars or unlocks. Works online too (the host's date is used).
+- **Daily quest** (title screen): the date picks one campaign kitchen, a twist (Rush Hour, Big Tippers, Double Shift or Short-Staffed) and a goal. The ticket order, layout and events are seeded from the date, so everyone gets the same service that day. Beat the day's three-star score and the extra goal for 400 coins (see Wallet and shop). The day's best score is saved separately and doesn't touch campaign stars. Works online too (the host's date is used).
 - **Story scenes:** before the first kitchen of each stop (and the Judge's Table), Rosa (the truck's owner) and Mo (her co-driver) have a short scene with the food truck on the road (`STORY`). Each plays once; Skip is always there. Not shown online.
 - **Bonus kitchens** (Roadside Specials): Midnight Diner, State Fair and Ghost Kitchen, opened by total stars (20 / 45 / 70). They're tuned like stops 2, 5 and 7 (`tier` in the level data).
 
@@ -136,24 +136,46 @@ A driving mini-game in the spirit of Crazy Taxi and The Simpsons: Hit & Run. It 
 
 ## Wallet and shop
 
-Every coin you earn (kitchens, the daily challenge, versus, co-op and Delivery Runs) goes into a wallet, shown on the results screen and on the title's **Shop** button. Stars and best scores work as before. Items are bought once (`GEAR`, `UPGRADES`).
+Coins you earn go into a wallet, spent in the **Shop**. The economy is built so nobody can buy everything: choose carefully.
 
-- **First-try bonus:** three stars on your very first attempt at a kitchen, Delivery Run or day's daily challenge pays a bonus of half its three-star target (e.g. +100 on Salad Days, +280 on The Big Feast). Every start counts as an attempt, including restarts and quits.
-- **No repeat gold:** once a level has three stars it pays no more coins. You can still replay it for a better best score. Intro cards say which applies (`settle`, `coinNote`).
+- **Each level has a coin budget** equal to its three-star target, across all your attempts (e.g. Salad Days 190, The Big Feast 550). A run pays what's left of the budget; three stars empties it. Once the budget is used up the level is **completed**, and replays pay **10%** of the coins you earn. Intro cards show "Coins left to earn here" (`budgetOf`, `settle`).
+- **First-try bonus:** three stars on your very first attempt pays an extra half of the three-star target, on top of the budget. Every start counts as an attempt, restarts and quits too.
+- **Daily quest:** the day's kitchen and twist, plus a goal: reach the day's three-star score **and** one extra challenge picked by the date (no missed orders, no fires, 5 speedy tips, never use the bin, or serve a set number of orders). Completing it pays **400 coins**, once a day. It's the only renewable income besides 10% replays.
+- **Supply vs cost:** all 38 levels' budgets add up to about 14,000 coins plus first-try bonuses; the shop costs about 30,000 (prices were doubled), so a thorough player affords roughly 60% of it.
+- **Every purchase is permanent** (no refunds). Owned gear can be swapped between slots and chefs freely.
 
-- **Chef gear:** four slots (hat, apron, gloves, shoes), each with four items; every bonus is under 10%, and some have a small downside. Each chef wears one item per slot, picked in the Wardrobe (or **Wear gear** in the shop); both chefs can wear the same item, and bonuses from different slots add up. New gear goes straight onto chef 1 if that slot is empty. Online, your chef wears your gear.
+**Chef gear:** four slots (hat, apron, gloves, shoes), four items each; every bonus is under 10% and some have a small downside. Each chef wears one item per slot (Wardrobe, or **Wear gear** in the shop); bonuses from different slots add up. Online, your chef wears your gear.
 
 | Slot | Items (effect on the chef wearing it, price) |
 | --- | --- |
-| Hat | Chopper's Headband (chop +6%, 300) · Butcher's Cap (chop +9%, wash −5%, 550) · Speed Visor (walk +5%, 450) · Firefighter's Helmet (fires out 9% faster, 250) |
-| Apron | Tip Jar Apron (+8% tips on their dishes, 500) · Butcher's Apron (chop +5%, 300) · Rubber Apron (wash +9%, 250) · Waiter's Apron (walk +7% carrying a plate or cup, 500) |
-| Gloves | Dish Gloves (wash +7%, 250) · Oven Mitts (food they put on the heat burns 8% slower, 450) · Grip Gloves (chop +5%, 300) · Fire Gloves (fires out 7% faster, longer reach, 250) |
-| Shoes | Running Shoes (walk +6%, 500) · Kitchen Clogs (walk +3%, chop +3%, 450) · Roller Skates (walk +9%, chop −5%, 750) · Slip-On Loafers (walk +3%, wash +4%, 350) |
+| Hat | Chopper's Headband (chop +6%, 600) · Butcher's Cap (chop +9%, wash −5%, 1,100) · Speed Visor (walk +5%, 900) · Firefighter's Helmet (fires out 9% faster, 500) |
+| Apron | Tip Jar Apron (+8% tips on their dishes, 1,000) · Butcher's Apron (chop +5%, 600) · Rubber Apron (wash +9%, 500) · Waiter's Apron (walk +7% carrying a plate or cup, 1,000) |
+| Gloves | Dish Gloves (wash +7%, 500) · Oven Mitts (food they put on the heat burns 8% slower, 900) · Grip Gloves (chop +5%, 600) · Fire Gloves (fires out 7% faster, longer reach, 500) |
+| Shoes | Running Shoes (walk +6%, 1,000) · Kitchen Clogs (walk +3%, chop +3%, 900) · Roller Skates (walk +9%, chop −5%, 1,500) · Slip-On Loafers (walk +3%, wash +4%, 700) |
 
-- **Kitchen upgrades** (always on once bought): Turbo Fryer, Cast-Iron Griddle, Pressure Pots, Convection Oven (each 15% faster, 600–700), Smoker Pro (20% faster, 600), Industrial Blender and Espresso Machine (30% faster, 300 / 250), Extra Plate Rack (+1 plate, 500), Comfy Booths (customers wait 10% longer, 1,200).
-- **Delivery van:** Turbo Engine (top speed +10%, 800), Grippy Tyres (better grip and easier drifts, 600), Bigger Cargo Box (4 bags, 1,000).
-- **Fair play:** gear and upgrades are off in online versus and the daily challenge. In co-op, the host's kitchen upgrades apply and each player's own gear applies to their chef. The standalone driving test has no shop.
-- Star targets are unchanged, so upgrades make stars easier: that's the reward for saving up.
+**Kitchen upgrades and forks.** Paired upgrades are a permanent choice: buying one locks the other forever (the shop asks you to tap twice).
+
+| Station | Option A | Option B | Price each |
+| --- | --- | --- | --- |
+| Fryer | Turbo Fryer: cooks 15% faster | Safety Fryer: burns 25% slower | 1,200 |
+| Griddle | Cast-Iron: cooks 15% faster | Non-Stick: burns 25% slower | 1,200 |
+| Pots and pans | Pressure Pots: cook 15% faster | Heavy Pots: burn 25% slower | 1,400 |
+| Oven | Convection: cooks 15% faster | Stone Oven: burns 25% slower | 1,400 |
+| Van | Turbo Engine: top speed +10% (1,600) | Grippy Tyres: better grip and drifts (1,200) | |
+
+Single upgrades: Smoker Pro (20% faster, 1,200), Industrial Blender (30% faster, 600), Espresso Machine (30% faster, 500), Extra Plate Rack (+1 plate, 1,000), Comfy Booths (customers wait 10% longer, 2,400), Bigger Cargo Box (4 bags, 2,000).
+
+Gear and upgrades are off in online versus and the daily quest. In co-op the host's kitchen upgrades apply and each player's gear applies to their chef.
+
+## No two services alike
+
+Every service gets a random seed (`startLevel`: `vary`):
+
+- **Layout:** the kitchen may be mirrored left to right, and the crates are shuffled to new spots.
+- **Events:** one or two per service (two in kitchens of 3:20 or longer), at random times: **Lunch rush** (orders pour in for 20 s), **Big tippers** (tips doubled for 25 s), **VIP guest** (the next ticket, marked with a gold star, pays double), **Out of stock** (a crate the menu needs is empty for 15 s) and **Slow night** (+10 s on every ticket). The active one shows under the timer.
+- **Delivery Runs:** a new city every run (same size, traffic and targets).
+- **Shared where it should be:** the daily quest uses the date as its seed (everyone gets the same kitchen, layout and events), versus players share one seed, and online co-op friends get the host's layout and events.
+- Add `?calm` to the URL to turn all of this off (used by the automated tests).
 
 ## Settings, music and installing
 

@@ -372,6 +372,7 @@ function driveStars(k, coins) { return DRIVE_RUNS[k].stars.filter(s => coins >= 
 const RD = 0, WALK = 1, BLDG = 2, GRASS = 3, TREE = 4, DIRT = 5, BARR = 6;   // city tiles
 const CAR_MAX = 9, CAR_REV = 3, CAR_ACC = 7, CAR_BRAKE = 14, CAR_TURN = 2.7, CAR_R = 0.32;
 const PED_PENALTY = 10;
+function CALM_DRIVE() { try { return /[?&]calm\b/.test(location.search); } catch (e) { return false; } }
 // Delivery-van upgrades from the shop (the standalone test build has no shop, so they stay off there).
 function vanUp(id) { return !!(save.owned && save.owned[id]); }
 const DIRV = { E: [1, 0], W: [-1, 0], N: [0, -1], S: [0, 1] };
@@ -675,7 +676,8 @@ function tutTapDrive(x, y) {
 }
 
 function startDrive(k, opts = {}) {
-  const run = DRIVE_RUNS[k], city = driveCity(run);
+  // A new city every run (same size, traffic and targets).
+  const run = Object.assign({}, DRIVE_RUNS[k], { seed: opts.seed ?? (CALM_DRIVE() ? DRIVE_RUNS[k].seed : Math.floor(Math.random() * 1e9)) }), city = driveCity(run);
   G = null; paused = false; show(null);
   const start = city.truck;
   // Start on the road next to the truck, facing along it.
