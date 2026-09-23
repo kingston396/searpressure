@@ -105,6 +105,15 @@ namespace SearPressure
             Emit(x0, y0, u0, v0, c); Emit(x1, y1, u1, v0, c); Emit(x2, y2, u1, v1, c);
             Emit(x0, y0, u0, v0, c); Emit(x2, y2, u1, v1, c); Emit(x3, y3, u0, v1, c);
         }
+        void QuadCorners(double x, double y, double w, double h, int tex, Glyph g, Rgba c)
+        {
+            if (c.a == 0) return;
+            Tx(x, y, out var x0, out var y0); Tx(x + w, y, out var x1, out var y1);
+            Tx(x + w, y + h, out var x2, out var y2); Tx(x, y + h, out var x3, out var y3);
+            UseTex(tex);
+            Emit(x0, y0, g.tlu, g.tlv, c); Emit(x1, y1, g.tru, g.trv, c); Emit(x2, y2, g.bru, g.brv, c);
+            Emit(x0, y0, g.tlu, g.tlv, c); Emit(x2, y2, g.bru, g.brv, c); Emit(x3, y3, g.blu, g.blv, c);
+        }
         void Tri(float ax, float ay, float bx, float by, float cx, float cy, Rgba c)
         {
             UseTex(0);
@@ -361,7 +370,8 @@ namespace SearPressure
                     if (g.x1 > g.x0 && g.y1 > g.y0)
                     {
                         double gx = pen + g.x0 * inv, gy = baseY + g.y0 * inv, gw = (g.x1 - g.x0) * inv, gh = (g.y1 - g.y0) * inv;
-                        Quad(gx, gy, gw, gh, tex, g.u0, g.v0, g.u1, g.v1, c);
+                        if (g.corners) QuadCorners(gx, gy, gw, gh, tex, g, c);
+                        else Quad(gx, gy, gw, gh, tex, g.u0, g.v0, g.u1, g.v1, c);
                     }
                     pen += g.advance * inv;
                 }

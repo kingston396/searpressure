@@ -11,6 +11,10 @@ namespace SearPressure
         public float x0, y0, x1, y1;
         public float u0, v0, u1, v1;
         public float advance;
+        // Texture corners for the quad's top-left, top-right, bottom-right and bottom-left
+        // (Unity's font atlas can store a glyph rotated). Leave `corners` false to use u0..v1.
+        public bool corners;
+        public float tlu, tlv, tru, trv, bru, brv, blu, blv;
     }
 
     // Supplied by the platform: Unity's dynamic fonts in the game, SkiaSharp in the test harness.

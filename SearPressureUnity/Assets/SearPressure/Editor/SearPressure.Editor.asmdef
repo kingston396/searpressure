@@ -1,0 +1,14 @@
+{
+    "name": "SearPressure.Editor",
+    "rootNamespace": "SearPressure.EditorTools",
+    "references": ["SearPressure.Core", "SearPressure.Unity"],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

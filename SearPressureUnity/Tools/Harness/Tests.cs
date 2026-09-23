@@ -16,6 +16,10 @@ static partial class Tests
         switch (which)
         {
             case "smoke": Smoke(); break;
+            case "kitchen": Kitchen(); break;
+            case "kitchen2": Kitchen2(); break;
+            case "screens": Screens(); break;
+            case "economy": Economy(); break;
             default:
                 {
                     bool handled = false;

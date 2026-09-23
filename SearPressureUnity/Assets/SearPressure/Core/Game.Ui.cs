@@ -81,7 +81,6 @@ namespace SearPressure
                 if (code == "Backspace") { if (typed.Length > 0) typed = typed.Substring(0, typed.Length - 1); return true; }
                 if (code == "Enter") { focusField = null; if (screen == "scr-online") joinGame(); return true; }
                 if (code == "Escape") { focusField = null; return true; }
-                if (code.StartsWith("Key") && code.Length == 4) { if (typed.Length < 4) typed += code[3]; return true; }
                 return true;
             }
             if (screen == null) return false;
