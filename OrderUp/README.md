@@ -138,9 +138,9 @@ A driving mini-game in the spirit of Crazy Taxi and The Simpsons: Hit & Run. It 
 
 Coins you earn go into a wallet, spent in the **Shop**. The economy is built so nobody can buy everything: choose carefully.
 
-- **Each level has a coin budget** equal to its three-star target, across all your attempts (e.g. Salad Days 190, The Big Feast 550). A run pays what's left of the budget; three stars empties it. Once the budget is used up the level is **completed**, and replays pay **10%** of the coins you earn. Intro cards show "Coins left to earn here" (`budgetOf`, `settle`).
+- **Each level has a coin budget** equal to its three-star target, across all your attempts (e.g. Salad Days 190, The Big Feast 550). A run pays what's left of the budget; three stars empties it. Once the budget is used up the level is **completed**, and replays pay **20%** of the coins you earn. Intro cards show "Coins left to earn here" (`budgetOf`, `settle`).
 - **First-try bonus:** three stars on your very first attempt pays an extra half of the three-star target, on top of the budget. Every start counts as an attempt, restarts and quits too.
-- **Daily quest:** the day's kitchen and twist, plus a goal: reach the day's three-star score **and** one extra challenge picked by the date (no missed orders, no fires, 5 speedy tips, never use the bin, or serve a set number of orders). Completing it pays **400 coins**, once a day. It's the only renewable income besides 10% replays.
+- **Daily quest:** the day's kitchen and twist, plus a goal: reach the day's three-star score **and** one extra challenge picked by the date (no missed orders, no fires, 5 speedy tips, never use the bin, or serve a set number of orders). Completing it pays **400 coins**, once a day. It's the only renewable income besides 20% replays.
 - **Supply vs cost:** all 38 levels' budgets add up to about 14,000 coins plus first-try bonuses; the shop costs about 30,000 (prices were doubled), so a thorough player affords roughly 60% of it.
 - **Every purchase is permanent** (no refunds). Owned gear can be swapped between slots and chefs freely.
 
@@ -172,9 +172,9 @@ Gear and upgrades are off in online versus and the daily quest. In co-op the hos
 Every service gets a random seed (`startLevel`: `vary`):
 
 - **Layout:** the kitchen may be mirrored left to right, and the crates are shuffled to new spots.
-- **Events:** one or two per service (two in kitchens of 3:20 or longer), at random times: **Lunch rush** (orders pour in for 20 s), **Big tippers** (tips doubled for 25 s), **VIP guest** (the next ticket, marked with a gold star, pays double), **Out of stock** (a crate the menu needs is empty for 15 s) and **Slow night** (+10 s on every ticket). The active one shows under the timer.
+- **Events** (only on replays of a level you've already three-starred, and on the daily quest; never on attempts before three stars): one or two per service (two in kitchens of 3:20 or longer), at random times: **Lunch rush** (orders pour in for 20 s), **Big tippers** (tips doubled for 25 s), **VIP guest** (the next ticket, marked with a gold star, pays double), **Out of stock** (a crate the menu needs is empty for 15 s) and **Slow night** (+10 s on every ticket). The active one shows under the timer.
 - **Delivery Runs:** a new city every run (same size, traffic and targets).
-- **Shared where it should be:** the daily quest uses the date as its seed (everyone gets the same kitchen, layout and events), versus players share one seed, and online co-op friends get the host's layout and events.
+- **Shared where it should be:** the daily quest uses the date as its seed (everyone gets the same kitchen, layout and events), versus players share one seed, and online co-op friends get the host's layout and events (the host's progress decides whether events are on).
 - Add `?calm` to the URL to turn all of this off (used by the automated tests).
 
 ## Settings, music and installing

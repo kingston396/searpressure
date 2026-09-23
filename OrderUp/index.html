@@ -2828,7 +2828,11 @@ function startLevel(idx, opts = {}) {
   if (lv.oneChef && (!NET.role || opts.versus)) G.chefs.length = 1;
   input.grab = input.chop = input.swap = false;
   G.vary = vary;
-  G.events = calm ? [] : scheduleEvents(lv, vr);
+  // Random events only on replays of a level you've already three-starred (and on the daily quest).
+  // Online, the host decides so every phone plays the same service.
+  const eventsOn = opts.events ?? (lv.daily || (typeof idx === 'number' && bestStars(idx) >= 3));
+  G.eventsOn = !calm && eventsOn;
+  G.events = G.eventsOn ? scheduleEvents(lv, vr) : [];
   G.evRng = mulberry32(vary + 3);
   if (!lv.tutorial) G.attempt = beginAttempt(levelKey(idx));
   if (lv.judge) { judgeSay('start', 0); G.judge.t = 6; }
@@ -4309,7 +4313,7 @@ function onNetMessage(m, from) {
     if (Array.isArray(m.fits)) NET.fits = m.fits.map(String);
     if (Array.isArray(m.gears)) NET.gears = m.gears.map(cleanGear);
     const versus = m.vs != null;
-    startLevel(m.lv, { transpose: m.tr, dailyKey: m.dk, players: m.n, versus, seed: versus ? +m.vs : undefined, vary: m.vary });
+    startLevel(m.lv, { transpose: m.tr, dailyKey: m.dk, players: m.n, versus, seed: versus ? +m.vs : undefined, vary: m.vary, events: !!m.events });
     NET.vs = {}; NET.vsT = 0;
     G.active = versus ? 0 : NET.slot;
     for (const c of G.chefs) { c.tx = c.x; c.ty = c.y; }
@@ -5031,8 +5035,8 @@ function hasPlayed(key) {
   return !!(save.daily && 'daily:' + save.daily.key === key && save.daily.plays);
 }
 // Each level can only ever pay its three-star target in total. Once that's used up (or three
-// stars are earned) the level is completed, and replays pay 10% of what you earn.
-const REPLAY_RATE = 0.1;
+// stars are earned) the level is completed, and replays pay 20% of what you earn.
+const REPLAY_RATE = 0.2;
 function budgetOf(key) { return key.startsWith('drive') ? DRIVE_RUNS[+key.slice(5)].stars[2] : LEVELS[+key.slice(1)].stars[2]; }
 function earnedAt(key) { return (save.earned || {})[key] || 0; }
 function isCompleted(key) { return priorStars(key) >= 3 || earnedAt(key) >= budgetOf(key); }
@@ -5050,7 +5054,7 @@ function settle(att, earned, stars, target3) {
   earned = Math.max(0, Math.round(earned || 0));
   if (att.completed) {
     const paid = addToWallet(Math.round(earned * REPLAY_RATE));
-    return { paid, text: `Completed level: replays pay 10%. +${fmtCoins(paid)} coins (${fmtCoins(save.wallet)} to spend).` };
+    return { paid, text: `Completed level: replays pay 20%. +${fmtCoins(paid)} coins (${fmtCoins(save.wallet)} to spend).` };
   }
   save.earned = save.earned || {};
   const budget = budgetOf(att.key), left = Math.max(0, budget - earnedAt(att.key));
@@ -5059,7 +5063,7 @@ function settle(att, earned, stars, target3) {
   const paid = addToWallet(base + bonus);
   const done = save.earned[att.key] >= budget;
   return { paid, text: (bonus ? `First-try three stars! +${fmtCoins(base)} coins and a +${fmtCoins(bonus)} bonus` : `+${fmtCoins(base)} coins`) + ` (${fmtCoins(save.wallet)} to spend).`
-    + (done ? ' Level completed: replays now pay 10%.' : ` ${fmtCoins(budget - save.earned[att.key])} more to earn here.`) + (earned > base ? ` (${fmtCoins(earned - base)} over this level's limit.)` : '') };
+    + (done ? ' Level completed: replays now pay 20% and have random events.' : ` ${fmtCoins(budget - save.earned[att.key])} more to earn here.`) + (earned > base ? ` (${fmtCoins(earned - base)} over this level's limit.)` : '') };
 }
 function settleQuest() {
   const q = DAILY.quest, lv = G.lv;
@@ -5075,7 +5079,7 @@ function settleQuest() {
   return { paid: 0, text: `Quest: ${scoreOk ? '✓' : '✗'} score ${fmtCoins(lv.stars[2])} (you got ${fmtCoins(G.score)}) · ${goalOk ? '✓' : '✗'} ${q.text}. Try again!` };
 }
 function coinNote(key, target3) {
-  if (isCompleted(key)) return 'Completed: replays pay 10% of the coins you earn.';
+  if (isCompleted(key)) return 'Completed: replays pay 20% of the coins you earn' + (priorStars(key) >= 3 && key[0] === 'k' ? ', and random events can hit mid-service.' : '.');
   const left = budgetOf(key) - earnedAt(key);
   return (!hasPlayed(key) ? `First try: three stars on your first attempt pays a +${fmtCoins(firstTryBonus(target3))} bonus. ` : '') + `Coins left to earn here: ${fmtCoins(left)} of ${fmtCoins(budgetOf(key))}.`;
 }
@@ -6535,7 +6539,7 @@ function play(i) {
   if (NET.role === 'host') {
     // Chef slots are fixed for the whole service, so a friend leaving doesn't reshuffle anyone.
     NET.guests.forEach((g, k) => { g.slot = k + 1; g.remote = { mx: 0, my: 0, held: false, grab: false, chop: false }; });
-    for (const g of NET.guests) if (g.conn.open) g.conn.send({ t: 'start', lv: i, tr: G.transposed, dk: DAILY && DAILY.key, n: G.chefs.length, me: g.slot, fits: NET.fits, gears: NET.gears, vs: versus ? seed : null, vary: G.vary });
+    for (const g of NET.guests) if (g.conn.open) g.conn.send({ t: 'start', lv: i, tr: G.transposed, dk: DAILY && DAILY.key, n: G.chefs.length, me: g.slot, fits: NET.fits, gears: NET.gears, vs: versus ? seed : null, vary: G.vary, events: G.eventsOn });
   }
 }
 function syncPauseButtons() {
