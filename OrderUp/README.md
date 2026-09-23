@@ -134,6 +134,24 @@ A driving mini-game in the spirit of Crazy Taxi and The Simpsons: Hit & Run. It 
 - Offline only. Best coins are saved per run.
 - **Test it on its own:** `drive-test.html` is a small standalone page (about 50 KB) with only the driving game, all three runs open, and its own save, so it never touches the main game's progress. Rebuild it after changing the game with `node OrderUp/tools/build-drive.js`. It copies the driving code straight out of `index.html` and wraps it in `tools/drive-shell.html`.
 
+## Wallet and shop
+
+Every coin you earn (kitchens, the daily challenge, versus, co-op and Delivery Runs) goes into a wallet, shown on the results screen and on the title's **Shop** button. Stars and best scores work as before. Items are bought once (`GEAR`, `UPGRADES`).
+
+- **Chef gear:** four slots (hat, apron, gloves, shoes), each with four items; every bonus is under 10%, and some have a small downside. Each chef wears one item per slot, picked in the Wardrobe (or **Wear gear** in the shop); both chefs can wear the same item, and bonuses from different slots add up. New gear goes straight onto chef 1 if that slot is empty. Online, your chef wears your gear.
+
+| Slot | Items (effect on the chef wearing it, price) |
+| --- | --- |
+| Hat | Chopper's Headband (chop +6%, 300) · Butcher's Cap (chop +9%, wash −5%, 550) · Speed Visor (walk +5%, 450) · Firefighter's Helmet (fires out 9% faster, 250) |
+| Apron | Tip Jar Apron (+8% tips on their dishes, 500) · Butcher's Apron (chop +5%, 300) · Rubber Apron (wash +9%, 250) · Waiter's Apron (walk +7% carrying a plate or cup, 500) |
+| Gloves | Dish Gloves (wash +7%, 250) · Oven Mitts (food they put on the heat burns 8% slower, 450) · Grip Gloves (chop +5%, 300) · Fire Gloves (fires out 7% faster, longer reach, 250) |
+| Shoes | Running Shoes (walk +6%, 500) · Kitchen Clogs (walk +3%, chop +3%, 450) · Roller Skates (walk +9%, chop −5%, 750) · Slip-On Loafers (walk +3%, wash +4%, 350) |
+
+- **Kitchen upgrades** (always on once bought): Turbo Fryer, Cast-Iron Griddle, Pressure Pots, Convection Oven (each 15% faster, 600–700), Smoker Pro (20% faster, 600), Industrial Blender and Espresso Machine (30% faster, 300 / 250), Extra Plate Rack (+1 plate, 500), Comfy Booths (customers wait 10% longer, 1,200).
+- **Delivery van:** Turbo Engine (top speed +10%, 800), Grippy Tyres (better grip and easier drifts, 600), Bigger Cargo Box (4 bags, 1,000).
+- **Fair play:** gear and upgrades are off in online versus and the daily challenge. In co-op, the host's kitchen upgrades apply and each player's own gear applies to their chef. The standalone driving test has no shop.
+- Star targets are unchanged, so upgrades make stars easier: that's the reward for saving up.
+
 ## Settings, music and installing
 
 - **Settings** (title screen, or from the pause menu): sound effects, music, vibration, screen shake, and **left-handed controls**, which put the stick on the right and the buttons on the left.

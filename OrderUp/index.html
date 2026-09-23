@@ -185,6 +185,21 @@
     .ticket h2 { font-size: 26px; margin: 4px 0; }
     .result-stars { font-size: 34px !important; }
   }
+  .wallet-line { margin: 0; font-weight: 800; color: #3f9b45; }
+  .shop-list { display: flex; flex-direction: column; gap: 8px; }
+  .shop-item { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; background: #fff; border: 2px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .shop-item canvas { background: #f3ecdc; border-radius: 6px; }
+  .shop-item .iname { font: 700 16px/1.1 "Pixelify Sans", "Courier New", monospace; }
+  .shop-item .itext { font: 600 13px/1.25 Nunito, system-ui, sans-serif; color: var(--muted); }
+  .shop-item button { font: 400 16px "Pixelify Sans", system-ui, sans-serif; border: 0; border-radius: 8px; padding: 8px 10px; background: var(--mustard); color: var(--text); box-shadow: 0 3px 0 var(--mustard-dk); cursor: pointer; white-space: nowrap; }
+  .shop-item button:disabled { background: var(--paper-2); box-shadow: none; color: var(--muted); cursor: default; }
+  .shop-item.owned { border-color: #3f9b45; }
+  .shop-slot { font: 500 12px "DM Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+  .ward-gear { display: flex; flex-direction: column; gap: 6px; }
+  .gear-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .gear-row .slot { width: 58px; font-weight: 800; font-size: 13px; }
+  .gear-chip { font: 600 13px Nunito, system-ui, sans-serif; border: 2px solid var(--line); background: #fff; border-radius: 999px; padding: 4px 10px; cursor: pointer; color: var(--text); }
+  .gear-chip[aria-pressed="true"] { border-color: #3f9b45; background: #eef8e8; }
   .rate-box { display: flex; flex-direction: column; gap: 6px; background: var(--paper-2); border-radius: 8px; padding: 10px 12px; }
   .rate-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .rate-btn { font: 700 14px/1.1 "Pixelify Sans", "Courier New", monospace; color: var(--text); background: #fff; border: 2px solid var(--line); border-radius: 8px; padding: 9px 4px; cursor: pointer; }
@@ -212,6 +227,7 @@
     <hr class="rule">
     <button id="btn-tutorial" class="btn" type="button">New here? Start with the tutorial</button>
     <button id="btn-online" class="btn alt" type="button">Play with a friend</button>
+    <button id="btn-shop" class="btn ghost daily-btn" type="button"><span>Shop</span><span id="shop-sub" class="small"></span></button>
     <button id="btn-daily" class="btn ghost daily-btn" type="button"><span>Daily challenge</span><span id="daily-sub" class="small"></span></button>
     <div id="online-banner" class="banner" hidden><p id="online-banner-text"></p><div class="banner-btns"><button id="btn-mode" class="btn alt small" type="button" hidden>Switch to versus</button><button id="btn-online-leave" class="btn ghost small" type="button">Leave</button></div></div>
     <div class="mono">Pick a kitchen</div>
@@ -230,6 +246,9 @@
     <p class="small" id="ward-stars"></p>
     <div class="rate-row ward-tabs"><button id="ward-c0" class="rate-btn" type="button" aria-pressed="true">Chef 1</button><button id="ward-c1" class="rate-btn" type="button" aria-pressed="false">Chef 2</button></div>
     <div id="ward-list" class="helper-list"></div>
+    <div class="mono">Gear</div>
+    <p class="small" id="ward-gear-note"></p>
+    <div id="ward-gear" class="ward-gear"></div>
     <button id="btn-ward-close" class="btn" type="button">Done</button>
   </div>
 </section>
@@ -301,6 +320,24 @@
   </div>
 </section>
 
+<section id="scr-shop" class="screen dim" hidden>
+  <div class="ticket">
+    <div class="head-row"><span class="mono">Shop</span><span class="mono" id="shop-wallet"></span></div>
+    <h2>Shop</h2>
+    <div class="rate-row shop-tabs">
+      <button id="shop-t-gear" class="rate-btn" type="button" aria-pressed="true">Chef gear</button>
+      <button id="shop-t-kitchen" class="rate-btn" type="button" aria-pressed="false">Kitchen</button>
+      <button id="shop-t-van" class="rate-btn" type="button" aria-pressed="false">Delivery van</button>
+    </div>
+    <p class="small" id="shop-note"></p>
+    <div id="shop-list" class="shop-list"></div>
+    <div class="btn-row">
+      <button id="btn-shop-wear" class="btn ghost" type="button">Wear gear</button>
+      <button id="btn-shop-close" class="btn" type="button">Done</button>
+    </div>
+  </div>
+</section>
+
 <section id="scr-settings" class="screen dim" hidden>
   <div class="ticket">
     <span class="mono">Settings</span>
@@ -343,6 +380,7 @@
       <span>Tips</span><span id="res-tips">0</span>
       <span>Total</span><span id="res-score" class="total">0</span>
     </div>
+    <p id="res-wallet" class="wallet-line" hidden></p>
     <p id="res-next" class="small"></p>
     <div id="rate-box" class="rate-box" hidden>
       <span class="mono">How did that feel?</span>
@@ -1017,7 +1055,7 @@ const MAX_PLAYERS = 4;
    ========================================================================= */
 
 const SAVE_KEY = 'orderup.v1';
-let save = { best: [], stars: [], muted: false, tutorialDone: false, outfits: ['classic', 'classic'], story: {}, daily: null, music: true, buzz: true, shake: true, lefty: false };
+let save = { best: [], stars: [], muted: false, tutorialDone: false, outfits: ['classic', 'classic'], story: {}, daily: null, music: true, buzz: true, shake: true, lefty: false, wallet: 0, owned: {}, gear: [[], []] };
 try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s) save = Object.assign(save, s); } catch (e) {}
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
 // Co-op scaling: each extra human player makes service 25% busier and raises star targets to match.
@@ -2721,7 +2759,7 @@ function startLevel(idx, opts = {}) {
     const t = { x, y, type: 'floor', item: null, fire: 0, spreadT: 0, sprayed: false };
     if (ch === '#') t.type = 'counter';
     else if (ch === 'X') t.type = 'serve';
-    else if (ch === 'P') { t.type = 'plates'; t.count = lv.plates; }
+    else if (ch === 'P') { t.type = 'plates'; t.count = lv.plates + (owns('plates') && !lv.daily && !opts.versus && !lv.tutorial ? 1 : 0); }
     else if (ch === 'R') t.type = 'trash';
     else if (ch === 'C') t.type = 'board';
     else if (ch === 'S') { t.type = 'stove'; t.item = newPot(); }
@@ -2757,7 +2795,7 @@ function startLevel(idx, opts = {}) {
   }
   const chefs = starts.map((sp, i) => ({
     x: sp.x, y: sp.y, fx: 0, fy: 1, held: null, color: CHEF_COLORS[i], dark: CHEF_DARK[i], moving: false,
-    task: null, taskSfx: 0, spraying: false, walk: 0, target: null, toast: null, toastT: 0, fit: chefFit(i, opts.versus),
+    task: null, taskSfx: 0, spraying: false, walk: 0, target: null, toast: null, toastT: 0, fit: chefFit(i, opts.versus), gear: chefGear(i, lv.daily || opts.versus || lv.tutorial),
   }));
   G = {
     lvIdx: idx, lv, rows, cols, tiles, chefs, active: 0,
@@ -2768,7 +2806,7 @@ function startLevel(idx, opts = {}) {
     plateTile: tiles.find(t => t.type === 'plates'), hatch: tiles.find(t => t.type === 'hatch'),
     transposed, netTiles: tiles.filter(t => t.type !== 'floor'),
     strikes: 0, clock: 0, judge: null, kicked: false, shake: 0,
-    humans: shared ? nChefs : 1, versus: !!opts.versus,
+    humans: shared ? nChefs : 1, versus: !!opts.versus, fair: !!(lv.daily || opts.versus),
     crateKinds: new Set(tiles.filter(t => t.type === 'crate').map(t => t.kind)),
   };
   // The daily challenge deals the same tickets to everyone; one chef only when it's Short-Staffed (solo).
@@ -2804,7 +2842,8 @@ function moveChef(c, mx, my, dt) {
     c.task = null;
   }
   if (mag < 0.15) return;
-  const sp = SPEED * Math.min(1, mag) * dt;
+  const gr = c.gear, carrying = c.held && (c.held.type === 'plate' || (c.held.type === 'ing' && CUPS.includes(c.held.kind)));
+  const sp = SPEED * (1 + (gr ? gr.walk + (carrying ? gr.carry : 0) : 0)) * Math.min(1, mag) * dt;
   // Axis-separated moves with a small step so we slide along counters.
   const nx = c.x + mx / Math.max(1, mag) * sp;
   if (!collides(nx, c.y)) c.x = nx;
@@ -3005,7 +3044,11 @@ function say(c, text) { c.toast = text; c.toastT = 1.6; }
 
 function doGrab(c) {
   const p = grabPlan(c);
-  if (p) { p.run(); c.task = null; }
+  if (p) {
+    p.run(); c.task = null;
+    const t = c.target;
+    if (c.gear && c.gear.burn && t && t.item && (HEAT[t.type] || t.type === 'stove')) t.item.mitts = c.gear.burn;
+  }
   else {
     sfx('nope');
     if (c.held && c.target) say(c, potHint(c.target.item, c.held) || potHint(c.held, c.target.item) || toppingHint(c.target.item, c.held) || "Can't put that there");
@@ -3041,7 +3084,7 @@ function serve(c) {
   const flaw = judgeFlaw(h);
   if (flaw) { judgeReject(c, h, flaw); return; }
   const o = G.orders[idx];
-  const tip = Math.round(TIP_MAX * (G.lv.tipMul || 1) * o.timeLeft / o.total);
+  const tip = Math.round(TIP_MAX * (G.lv.tipMul || 1) * (1 + (c.gear ? c.gear.tip : 0)) * o.timeLeft / o.total);
   const earned = orderReward(o) + tip;
   G.score += earned; G.tips += tip; G.served++;
   G.orders.splice(idx, 1);
@@ -3070,7 +3113,7 @@ function deliver(c) {
   const idx = G.orders.findIndex(o => o.delivery && sameItems(orderItems(o), h.items));
   if (idx < 0) { say(c, G.orders.some(o => o.delivery) ? 'Wrong bag for this driver' : 'No delivery for that'); sfx('nope'); return; }
   const o = G.orders[idx];
-  const tip = o.late ? 0 : Math.round(TIP_MAX * (G.lv.tipMul || 1) * o.timeLeft / o.total);
+  const tip = o.late ? 0 : Math.round(TIP_MAX * (G.lv.tipMul || 1) * (1 + (c.gear ? c.gear.tip : 0)) * o.timeLeft / o.total);
   const earned = orderReward(o) + tip;
   G.score += earned; G.tips += tip; G.served++;
   G.orders.splice(idx, 1);
@@ -3102,7 +3145,7 @@ function spawnOrder() {
   let r = opts[Math.floor(G.rng() * opts.length)];
   if (r === G.lastRecipe && opts.length > 1 && G.rng() < 0.5) r = opts[Math.floor(G.rng() * opts.length)];
   G.lastRecipe = r;
-  const R = RECIPES[r], total = Math.round(R.time * (G.lv.timeScale || 1));
+  const R = RECIPES[r], total = Math.round(R.time * (G.lv.timeScale || 1) * (upOn('booths') ? 1.1 : 1));
   const items = R.items.slice();
   let reward = R.reward;
   if (R.extras) {
@@ -3284,12 +3327,12 @@ function update(dt) {
       const it = b.item;
       const into = chopResult(it);
       if (!into) { ch.task = null; continue; }
-      it.chop += dt / CHOP_TIME;
+      it.chop += dt / CHOP_TIME * (1 + (ch.gear ? ch.gear.chop : 0));
       if (ch.taskSfx <= 0) { sfx('chop'); ch.taskSfx = 0.22; addPuff(b.x + 0.5, b.y + 0.45, '#ffffff', 0.4, 'chip'); }
       if (it.chop >= 1) { it.state = into; it.chop = 0; ch.task = null; sfx('chopped'); }
     } else {
       if (b.dirty <= 0) { ch.task = null; continue; }
-      b.wash += dt / WASH_TIME;
+      b.wash += dt / WASH_TIME * (1 + (ch.gear ? ch.gear.wash : 0));
       if (ch.taskSfx <= 0) { sfx('splash'); ch.taskSfx = 0.3; addPuff(b.x + 0.5, b.y + 0.45, 'rgba(220,240,255,.9)', 0.7, 'steam'); }
       if (b.wash >= 1) {
         b.wash = 0; b.dirty--;
@@ -3307,7 +3350,7 @@ function update(dt) {
     if (t.fire > 0) continue;
     if (onHeat(t)) { cookHeat(t, dt); continue; }
     if (t.type === 'blender' && t.blending) {
-      t.blend += dt / BLEND_TIME;
+      t.blend += dt / BLEND_TIME * (upOn('blender') ? 1.3 : 1);
       if (t.blend >= 1) {
         const [kind, state] = BLENDS.find(b => sameItems(b.needs, t.jar)).result;
         t.item = newIng(kind, state);
@@ -3316,7 +3359,7 @@ function update(dt) {
       continue;
     }
     if (t.type === 'coffee' && t.brewing) {
-      t.brew += dt / BREW_TIME;
+      t.brew += dt / BREW_TIME * (upOn('espresso') ? 1.3 : 1);
       if (Math.random() < dt * 3) addPuff(t.x + 0.5, t.y + 0.3, 'rgba(255,255,255,.5)', 0.8, 'steam');
       if (t.brew >= 1) { t.brewing = false; t.brew = 0; t.item = newIng('coffee'); sfx('ding'); }
       continue;
@@ -3326,11 +3369,11 @@ function update(dt) {
     if (!full || cw.burnt) continue;
     const cook = cw.type === 'pot' ? POT_COOK : PAN_COOK, burn = cw.type === 'pot' ? POT_BURN : PAN_BURN;
     if (cw.cook < 1) {
-      cw.cook += dt / cook;
+      cw.cook += dt / cook * (upOn('pots') ? 1.15 : 1);
       if (Math.random() < dt * 3) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(255,255,255,.55)', 0.9, 'steam');
       if (cw.cook >= 1) { cw.cook = 1; cw.hotAt = G.clock; sfx('ding'); }
     } else {
-      cw.burn += dt / burn;
+      cw.burn += dt / burn / (1 + (cw.mitts || 0));
       cw.hotAt = G.clock;
       warnBeep(cw, dt);
       if (Math.random() < dt * 4 * cw.burn) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(90,90,90,.6)', 1.2, 'steam');
@@ -3412,13 +3455,13 @@ function warnBeep(o, dt) {
 function cookHeat(t, dt) {
   const it = t.item, [from, secs] = heatFood(t, it);
   if (it.state === from) {
-    it.cook += dt / secs;
+    it.cook += dt / secs * heatBoost(t.type);
     if (t.type === 'smoker') { if (Math.random() < dt * 3) addPuff(t.x + 0.72, t.y - 0.05, 'rgba(200,200,200,.5)', 1.4, 'steam'); }
     else if (Math.random() < dt * 4) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(255,255,255,.5)', 0.7, 'steam');
     if (it.cook >= 1) { it.cook = 1; it.state = 'cooked'; it.hotAt = G.clock; sfx('ding'); }
   } else if (it.state === 'cooked') {
     it.hotAt = G.clock;
-    it.burn += dt / HEAT[t.type].burn;
+    it.burn += dt / HEAT[t.type].burn / (1 + (it.mitts || 0));
     warnBeep(it, dt);
     if (Math.random() < dt * 4 * it.burn) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(90,90,90,.6)', 1.2, 'steam');
     if (it.burn >= 1) { it.state = 'burnt'; burnUp(t); }
@@ -3463,9 +3506,9 @@ function updateFire(ctrls, dt) {
     for (const t of G.tiles) {
       if (t.fire <= 0) continue;
       const dx = t.x + 0.5 - active.x, dy = t.y + 0.5 - active.y, d = Math.hypot(dx, dy);
-      if (d > SPRAY_RANGE || (dx * active.fx + dy * active.fy) / d < 0.55) continue;
+      if (d > SPRAY_RANGE + (active.gear ? active.gear.reach : 0) || (dx * active.fx + dy * active.fy) / d < 0.55) continue;
       t.sprayed = true;
-      t.fire -= dt * 1.6;
+      t.fire -= dt * 1.6 * (1 + (active.gear ? active.gear.spray : 0));
       if (t.fire <= 0) { t.fire = 0; sfx('out'); for (let i = 0; i < 5; i++) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(200,200,200,.7)', 1, 'steam'); }
     }
   }
@@ -4072,7 +4115,7 @@ async function joinGame() {
     conn.on('data', m => onNetMessage(m));
     conn.on('close', () => netDropped());
     conn.on('error', () => netDropped());
-    conn.on('open', () => { sfx('order'); conn.send({ t: 'fit', o: (save.outfits || [])[0] || 'classic' }); netStatus('Connected! Waiting for the host to pick a kitchen.'); });
+    conn.on('open', () => { sfx('order'); conn.send({ t: 'fit', o: (save.outfits || [])[0] || 'classic', g: myLoadout(0) }); netStatus('Connected! Waiting for the host to pick a kitchen.'); });
   });
   peer.on('error', err => { if (!NET.conn || !NET.conn.open) netFail(err); });
 }
@@ -4087,8 +4130,9 @@ function netPlayers() { return NET.role === 'host' ? 1 + NET.guests.length : NET
 // Host: everyone's outfits by chef slot (host first, then friends in join order).
 function sendFits() {
   NET.fits = [(save.outfits || [])[0] || 'classic'].concat(NET.guests.map(g => g.fit));
-  netSend({ t: 'fits', fits: NET.fits });
-  if (G) G.chefs.forEach((c, i) => { if (!c.ai) c.fit = chefFit(i); });
+  NET.gears = [myLoadout(0)].concat(NET.guests.map(g => g.gear || []));
+  netSend({ t: 'fits', fits: NET.fits, gears: NET.gears });
+  if (G) G.chefs.forEach((c, i) => { if (!c.ai) { c.fit = chefFit(i); c.gear = chefGear(i, G.fair); } });
   syncOnlineBanner();
 }
 // Host: one friend left. The rest play on; with nobody left it's back to the online screen.
@@ -4156,7 +4200,7 @@ function onNetMessage(m, from) {
     if (!from || !NET.guests.includes(from)) return;   // ignore stragglers from a friend who already left
     const r = from.remote;
     if (m.t === 'bye') guestLeft(from);
-    else if (m.t === 'fit') { from.fit = String(m.o || 'classic'); sendFits(); }
+    else if (m.t === 'fit') { from.fit = String(m.o || 'classic'); from.gear = cleanGear(m.g); sendFits(); }
     else if (m.t === 'in') { r.mx = +m.mx || 0; r.my = +m.my || 0; r.held = !!m.held; }
     else if (m.t === 'act') { if (m.a === 'grab') r.grab = true; if (m.a === 'chop') { r.chop = true; r.held = true; } }
     else if (m.t === 'pause') setPaused(!!m.on, true);   // and tell everyone else
@@ -4171,11 +4215,12 @@ function onNetMessage(m, from) {
     if (m.b && typeof m.b === 'object') for (const k of Object.keys(m.b)) if (+k !== NET.slot) NET.vs[k] = { score: +m.b[k].score || 0, served: +m.b[k].served || 0, done: !!m.b[k].done, left: !!m.b[k].left };
     return;
   }
-  if (m.t === 'fits') { NET.fits = Array.isArray(m.fits) ? m.fits.map(String) : []; if (G) G.chefs.forEach((c, i) => { if (!c.ai) c.fit = chefFit(i); }); syncOnlineBanner(); return; }
+  if (m.t === 'fits') { NET.fits = Array.isArray(m.fits) ? m.fits.map(String) : []; NET.gears = Array.isArray(m.gears) ? m.gears.map(cleanGear) : []; if (G) G.chefs.forEach((c, i) => { if (!c.ai) c.gear = chefGear(i, G.fair); }); if (G) G.chefs.forEach((c, i) => { if (!c.ai) c.fit = chefFit(i); }); syncOnlineBanner(); return; }
   if (m.t === 'start') {
     paused = false; show(null);
     NET.slot = Math.max(1, Math.min(MAX_PLAYERS - 1, +m.me || 1));
     if (Array.isArray(m.fits)) NET.fits = m.fits.map(String);
+    if (Array.isArray(m.gears)) NET.gears = m.gears.map(cleanGear);
     const versus = m.vs != null;
     startLevel(m.lv, { transpose: m.tr, dailyKey: m.dk, players: m.n, versus, seed: versus ? +m.vs : undefined });
     NET.vs = {}; NET.vsT = 0;
@@ -4801,6 +4846,80 @@ function spawnHelper(kind) {
 
 
 /* =========================================================================
+   Shop: coins you earn go into a wallet; spend them on chef gear (one item per
+   slot, per chef, bonuses stack) and kitchen or delivery-van upgrades.
+   ========================================================================= */
+
+const GEAR_SLOTS = [['hat', 'Hat'], ['apron', 'Apron'], ['gloves', 'Gloves'], ['shoes', 'Shoes']];
+// Stats: chop, wash, walk, carry (walking while holding a plate or cup), spray, tip, burn (slower burning).
+const GEAR = [
+  { id: 'headband', slot: 'hat', name: "Chopper's Headband", text: 'Chopping +6%', price: 300, fx: { chop: 0.06 }, col: '#e8472f' },
+  { id: 'butchercap', slot: 'hat', name: "Butcher's Cap", text: 'Chopping +9%, washing −5%', price: 550, fx: { chop: 0.09, wash: -0.05 }, col: '#8a5a36' },
+  { id: 'visor', slot: 'hat', name: 'Speed Visor', text: 'Walking +5%', price: 450, fx: { walk: 0.05 }, col: '#3a86d4' },
+  { id: 'helmet', slot: 'hat', name: "Firefighter's Helmet", text: 'Puts out fires 9% faster', price: 250, fx: { spray: 0.09 }, col: '#f5d33e' },
+  { id: 'tipapron', slot: 'apron', name: 'Tip Jar Apron', text: '+8% tips on dishes this chef serves', price: 500, fx: { tip: 0.08 }, col: '#3f9b45' },
+  { id: 'butcherapron', slot: 'apron', name: "Butcher's Apron", text: 'Chopping +5%', price: 300, fx: { chop: 0.05 }, col: '#c98b52' },
+  { id: 'rubberapron', slot: 'apron', name: 'Rubber Apron', text: 'Washing +9%', price: 250, fx: { wash: 0.09 }, col: '#f5b82e' },
+  { id: 'waiterapron', slot: 'apron', name: "Waiter's Apron", text: 'Walking +7% while carrying a plate or cup', price: 500, fx: { carry: 0.07 }, col: '#2b2230' },
+  { id: 'dishgloves', slot: 'gloves', name: 'Dish Gloves', text: 'Washing +7%', price: 250, fx: { wash: 0.07 }, col: '#ec8a92' },
+  { id: 'mitts', slot: 'gloves', name: 'Oven Mitts', text: 'Food this chef puts on the heat takes 8% longer to burn', price: 450, fx: { burn: 0.08 }, col: '#e8472f' },
+  { id: 'gripgloves', slot: 'gloves', name: 'Grip Gloves', text: 'Chopping +5%', price: 300, fx: { chop: 0.05 }, col: '#5a5f6e' },
+  { id: 'firegloves', slot: 'gloves', name: 'Fire Gloves', text: 'Puts out fires 7% faster, with slightly longer reach', price: 250, fx: { spray: 0.07, reach: 0.3 }, col: '#f59a2e' },
+  { id: 'runners', slot: 'shoes', name: 'Running Shoes', text: 'Walking +6%', price: 500, fx: { walk: 0.06 }, col: '#3a86d4' },
+  { id: 'clogs', slot: 'shoes', name: 'Kitchen Clogs', text: 'Walking +3%, chopping +3%', price: 450, fx: { walk: 0.03, chop: 0.03 }, col: '#3f9b45' },
+  { id: 'skates', slot: 'shoes', name: 'Roller Skates', text: 'Walking +9%, chopping −5%', price: 750, fx: { walk: 0.09, chop: -0.05 }, col: '#ec8a92' },
+  { id: 'loafers', slot: 'shoes', name: 'Slip-On Loafers', text: 'Walking +3%, washing +4%', price: 350, fx: { walk: 0.03, wash: 0.04 }, col: '#8a5a36' },
+];
+const UPGRADES = [
+  { id: 'fryer', group: 'kitchen', name: 'Turbo Fryer', text: 'Fryers cook 15% faster', price: 600, icon: ['fries', { 1: '#f5d33e', 2: '#f59a2e' }] },
+  { id: 'griddle', group: 'kitchen', name: 'Cast-Iron Griddle', text: 'Griddles cook 15% faster', price: 600, icon: ['eggFried', { 1: '#ffffff', 2: '#f5b82e' }] },
+  { id: 'pots', group: 'kitchen', name: 'Pressure Pots', text: 'Pots and pans cook 15% faster', price: 700, icon: ['pot', { 1: '#e5552f' }] },
+  { id: 'oven', group: 'kitchen', name: 'Convection Oven', text: 'Ovens cook 15% faster', price: 700, icon: ['pizza', { 1: '#d9953f', 2: '#c8402a', 3: '#f5d33e', 4: '#f5d33e' }] },
+  { id: 'smoker', group: 'kitchen', name: 'Smoker Pro', text: 'Smokers cook 20% faster', price: 600, icon: ['ribs', { 1: '#6a2e1c', 2: '#3a160c', 3: '#e8c8a0' }] },
+  { id: 'blender', group: 'kitchen', name: 'Industrial Blender', text: 'Blending 30% faster', price: 300, icon: ['shake', { 1: '#f4a3b8' }] },
+  { id: 'espresso', group: 'kitchen', name: 'Espresso Machine', text: 'Coffee brews 30% faster', price: 250, icon: ['mug'] },
+  { id: 'plates', group: 'kitchen', name: 'Extra Plate Rack', text: '+1 clean plate in every kitchen', price: 500, icon: ['plate'] },
+  { id: 'booths', group: 'kitchen', name: 'Comfy Booths', text: 'Customers wait 10% longer', price: 1200, icon: ['person', { 1: '#9a6ab3' }] },
+  { id: 'engine', group: 'van', name: 'Turbo Engine', text: 'Top speed +10% on Delivery Runs', price: 800, icon: ['car', { 1: '#e8472f', 2: '#fff5de' }] },
+  { id: 'tyres', group: 'van', name: 'Grippy Tyres', text: 'Better grip; drifts are easier to control', price: 600, icon: ['car', { 1: '#3a3d48', 2: '#8a8f9c' }] },
+  { id: 'cargo', group: 'van', name: 'Bigger Cargo Box', text: 'Carry 4 bags instead of 3', price: 1000, icon: ['bag'] },
+];
+// How much faster each heat station cooks with its upgrade.
+const HEAT_UP = { fryer: ['fryer', 0.15], griddle: ['griddle', 0.15], oven: ['oven', 0.15], smoker: ['smoker', 0.2] };
+
+SPR.gearhat = ['....kkkk....', '..kk1111kk..', '.k11111111k.', '.k11111111k.', 'k1111111111k', 'kkkkkkkkkkkk'];
+SPR.gearapron = ['...kk..kk...', '...k1kk1k...', '..kk1111kk..', '.k11111111k.', '.k11kkkk11k.', '.k11k22k11k.', '.k11kkkk11k.', '.k11111111k.', '..k111111k..', '...kkkkkk...'];
+SPR.geargloves = ['.k.k.k....', 'k1k1k1k...', 'k1k1k1k.k.', 'k111111k1k', 'k11111111k', 'k1111111k.', '.k11111k..', '.k22222k..', '.kkkkkkk..'];
+SPR.gearshoes = ['.kkkk.......', '.k11k.......', '.k11kkkkk...', '.k1111111kk.', 'k1111111111k', 'k2222222222k', 'kkkkkkkkkkkk'];
+const gearById = id => GEAR.find(g => g.id === id);
+function owns(id) { return !!(save.owned && save.owned[id]); }
+// Upgrades count unless the service is meant to be even for everyone (versus, the daily challenge).
+function upOn(id) { return owns(id) && !(G && G.fair); }
+function heatBoost(type) { for (const [id, [t, k]] of Object.entries(HEAT_UP)) if (t === type && upOn(id)) return 1 + k; return 1; }
+// A loadout is [hat, apron, gloves, shoes] item ids; stats add up across slots.
+function gearStats(ids) {
+  const st = { chop: 0, wash: 0, walk: 0, carry: 0, spray: 0, tip: 0, burn: 0, reach: 0 };
+  for (const id of ids || []) { const g = gearById(id); if (g) for (const k in g.fx) st[k] += g.fx[k]; }
+  return st;
+}
+function myLoadout(i) { const L0 = (save.gear || [])[i]; return Array.isArray(L0) ? L0.filter(owns) : []; }
+// Which gear a chef wears: yours solo; online, your chef wears yours and your friends' wear theirs.
+function chefGear(i, fair) {
+  if (fair) return gearStats([]);
+  if (!NET.role) return gearStats(myLoadout(i));
+  const me = NET.role === 'host' ? 0 : NET.slot;
+  return gearStats(i === me ? myLoadout(0) : (NET.gears || [])[i]);
+}
+// Gear lists from other phones: only real item ids, one per slot at most.
+function cleanGear(a) { return Array.isArray(a) ? a.map(String).filter(gearById).slice(0, GEAR_SLOTS.length) : []; }
+function addToWallet(n) {
+  n = Math.max(0, Math.round(n || 0));
+  save.wallet = (save.wallet || 0) + n; persist();
+  return n;
+}
+function fmtCoins(n) { return Number(n || 0).toLocaleString('en-US'); }
+
+/* =========================================================================
    Rewards: chef outfits, the road-trip story and the daily challenge
    ========================================================================= */
 
@@ -4863,7 +4982,97 @@ function chefCanvas(o, slot, size = 48, scarf = [CHEF_COLORS[slot], CHEF_DARK[sl
   return c;
 }
 
-let wardSlot = 0;
+let shopTab = 'gear';
+function iconCanvas(name, sw, size = 40) {
+  const d = Math.max(1, Math.round(Math.min(window.devicePixelRatio || 1, 3)));
+  const c = document.createElement('canvas');
+  c.width = c.height = size * d; c.style.width = c.style.height = size + 'px'; c.style.imageRendering = 'pixelated';
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  const prev = X; X = g;
+  const s0 = sprite(name, sw), px = Math.max(1, Math.floor(size * d * 0.8 / Math.max(s0.width, s0.height)));
+  spr(name, size * d / 2, size * d / 2, px, sw);
+  X = prev;
+  return c;
+}
+const gearIcon = (g, size) => iconCanvas('gear' + g.slot, { 1: g.col, 2: mix(g.col, '#000000', 0.35) }, size);
+function syncShopButton() { $('shop-sub').textContent = fmtCoins(save.wallet || 0) + ' coins to spend'; }
+function openShop(tab) { if (tab) shopTab = tab; buildShop(); show('scr-shop'); }
+function buildShop() {
+  $('shop-wallet').textContent = fmtCoins(save.wallet || 0) + ' coins';
+  for (const t of ['gear', 'kitchen', 'van']) $('shop-t-' + t).setAttribute('aria-pressed', String(shopTab === t));
+  $('shop-note').textContent = shopTab === 'gear' ? 'Gear is personal: each chef wears one item per slot (pick in Wear gear), and bonuses from different slots add up.'
+    : shopTab === 'kitchen' ? 'Kitchen upgrades are bought once and always on (not in versus or the daily challenge).'
+    : 'Van upgrades help on the secret Delivery Runs.';
+  const list = $('shop-list'); list.innerHTML = '';
+  const row = (icon, it) => {
+    const own = owns(it.id), el = document.createElement('div');
+    el.className = 'shop-item' + (own ? ' owned' : '');
+    const txt = document.createElement('div');
+    txt.append(Object.assign(document.createElement('div'), { className: 'iname', textContent: it.name }), Object.assign(document.createElement('div'), { className: 'itext', textContent: it.text }));
+    const b = document.createElement('button'); b.type = 'button'; b.id = 'buy-' + it.id;
+    const short = it.price - (save.wallet || 0);
+    b.textContent = own ? 'Owned' : short > 0 ? `${fmtCoins(it.price)}` : `Buy ${fmtCoins(it.price)}`;
+    b.disabled = own || short > 0;
+    if (!own && short > 0) b.title = `${fmtCoins(short)} more coins`;
+    b.onclick = () => buy(it);
+    el.append(icon, txt, b);
+    list.appendChild(el);
+  };
+  if (shopTab === 'gear') {
+    for (const [slot, label] of GEAR_SLOTS) {
+      list.appendChild(Object.assign(document.createElement('div'), { className: 'shop-slot', textContent: label + 's' }));
+      for (const g of GEAR.filter(q => q.slot === slot)) row(gearIcon(g, 40), g);
+    }
+  } else for (const u of UPGRADES.filter(q => q.group === shopTab)) row(iconCanvas(u.icon[0], u.icon[1], 40), u);
+}
+function buy(it) {
+  if (owns(it.id) || (save.wallet || 0) < it.price) return;
+  save.wallet -= it.price;
+  save.owned = save.owned || {}; save.owned[it.id] = true;
+  // New gear goes straight on chef 1 if that slot is empty.
+  if (it.slot) {
+    save.gear = save.gear || [[], []];
+    const si = GEAR_SLOTS.findIndex(q => q[0] === it.slot);
+    save.gear[0] = save.gear[0] || [];
+    if (!save.gear[0][si]) save.gear[0][si] = it.id;
+  }
+  persist(); sfx('serve'); buzz(25);
+  buildShop(); syncShopButton();
+  if (NET.role === 'guest') netSend({ t: 'fit', o: (save.outfits || [])[0] || 'classic', g: myLoadout(0) });
+  if (NET.role === 'host') sendFits();
+}
+function statsText(st) {
+  const names = { chop: 'chopping', wash: 'washing', walk: 'walking', carry: 'walking with a plate', spray: 'firefighting', tip: 'tips', burn: 'burn time' };
+  const parts = Object.keys(names).filter(k => st[k]).map(k => `${names[k]} ${st[k] > 0 ? '+' : '\u2212'}${Math.round(Math.abs(st[k]) * 100)}%`);
+  return parts.length ? parts.join(', ') : 'no bonuses yet';
+}
+function buildWardGear() {
+  save.gear = save.gear || [[], []];
+  const lo = save.gear[wardSlot] = save.gear[wardSlot] || [];
+  const box = $('ward-gear'); box.innerHTML = '';
+  const any = GEAR.some(g => owns(g.id));
+  $('ward-gear-note').textContent = any ? `${NET.role ? 'Your chef' : 'Chef ' + (wardSlot + 1)}: ${statsText(gearStats(myLoadout(wardSlot)))}.` : 'Buy hats, aprons, gloves and shoes in the Shop, then pick one per slot here.';
+  GEAR_SLOTS.forEach(([slot, label], si) => {
+    const mine = GEAR.filter(g => g.slot === slot && owns(g.id));
+    if (!mine.length) return;
+    const r = document.createElement('div'); r.className = 'gear-row';
+    r.appendChild(Object.assign(document.createElement('span'), { className: 'slot', textContent: label }));
+    for (const g of [null].concat(mine)) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'gear-chip';
+      b.textContent = g ? g.name : 'None';
+      b.setAttribute('aria-pressed', String((lo[si] || null) === (g ? g.id : null)));
+      b.onclick = () => {
+        lo[si] = g ? g.id : null; persist(); sfx('pick'); buildWardGear();
+        if (NET.role === 'guest' && wardSlot === 0) netSend({ t: 'fit', o: (save.outfits || [])[0] || 'classic', g: myLoadout(0) });
+        if (NET.role === 'host' && wardSlot === 0) sendFits();
+      };
+      r.appendChild(b);
+    }
+    box.appendChild(r);
+  });
+}
+
+let wardSlot = 0, wardBack = 'scr-title';
 function openWardrobe() {
   wardSlot = 0;
   $('ward-c1').hidden = !!NET.role;
@@ -4877,6 +5086,7 @@ function buildWardrobe() {
   $('ward-stars').textContent = `You have ${total} star${total === 1 ? '' : 's'}. New outfits unlock as you collect more.`;
   $('ward-c0').setAttribute('aria-pressed', String(wardSlot === 0));
   $('ward-c1').setAttribute('aria-pressed', String(wardSlot === 1));
+  buildWardGear();
   const list = $('ward-list'); list.innerHTML = '';
   for (const o of OUTFITS) {
     const ok = outfitUnlocked(o);
@@ -4889,7 +5099,7 @@ function buildWardrobe() {
       Object.assign(document.createElement('span'), { className: 'hblurb', textContent: ok ? (save.outfits[wardSlot] === o.id ? 'Wearing' : 'Tap to wear') : o.judge ? "Pass the Judge's Table" : `★ ${o.need}` }));
     b.onclick = () => {
       save.outfits[wardSlot] = o.id; persist(); sfx('pick'); buildWardrobe();
-      if (NET.role === 'guest' && wardSlot === 0) netSend({ t: 'fit', o: o.id });
+      if (NET.role === 'guest' && wardSlot === 0) netSend({ t: 'fit', o: o.id, g: myLoadout(0) });
       if (NET.role === 'host' && wardSlot === 0) sendFits();
     };
     list.appendChild(b);
@@ -5066,6 +5276,8 @@ function driveStars(k, coins) { return DRIVE_RUNS[k].stars.filter(s => coins >= 
 const RD = 0, WALK = 1, BLDG = 2, GRASS = 3, TREE = 4, DIRT = 5, BARR = 6;   // city tiles
 const CAR_MAX = 9, CAR_REV = 3, CAR_ACC = 7, CAR_BRAKE = 14, CAR_TURN = 2.7, CAR_R = 0.32;
 const PED_PENALTY = 10;
+// Delivery-van upgrades from the shop (the standalone test build has no shop, so they stay off there).
+function vanUp(id) { return !!(save.owned && save.owned[id]); }
 const DIRV = { E: [1, 0], W: [-1, 0], N: [0, -1], S: [0, 1] };
 const ROOFS = ['#b24f5b', '#9a6ab3', '#3f6f8f', '#8a5a36', '#5a5f6e', '#c98b52', '#2e6e34', '#a86f3e', '#6a4a9a'];
 const SHIRTS = ['#e8472f', '#3a86d4', '#f5b82e', '#3f9b45', '#9a6ab3', '#ec8a92', '#6fb0d6', '#f59a2e'];
@@ -5303,7 +5515,7 @@ const DRIVE_TUT = [
   { text: 'Drift: at speed, hold the Drift button and steer to slide round a corner. A long slide pays coins.', ui: 'drift', done: () => D.driftT > 0.5 },
   { text: 'Follow the green arrow (and the green dot on the map) to the customer. Stop inside the green ring to hand the bag over.', ui: 'arrow', done: () => D.delivered >= 1 },
   { text: 'Cones, hydrants and bins pay a coin when you knock them over. People don\u2019t: hitting someone costs 10 coins.', next: true },
-  { text: 'Watch for road works, crashes, potholes and oil. After three bags, go back to the truck to reload. The clock starts when you tap Go!', next: true, finish: true },
+  { text: 'Watch for road works, crashes, potholes and oil. When your bags run out, go back to the truck to reload. The clock starts when you tap Go!', next: true, finish: true },
 ];
 function tutGoDrive(i) {
   D.tut = { i, s: {} };
@@ -5315,7 +5527,7 @@ function tutFinishDrive() {
   D.tut = null;
   save.driveTut = true; persist();
   // The real run starts now, from where you are.
-  Object.assign(D, { time: D.run.time, coins: 0, tips: 0, delivered: 0, stunts: 0, smashed: 0, hits: 0, bags: 3, lastSec: 99 });
+  Object.assign(D, { time: D.run.time, coins: 0, tips: 0, delivered: 0, stunts: 0, smashed: 0, hits: 0, bags: D.cap || 3, lastSec: 99 });
   nextDrop();
   drivePop('Go!', 'The clock is running', '#8ad65e'); sfx('go');
 }
@@ -5377,7 +5589,7 @@ function startDrive(k, opts = {}) {
     k, run, city, img: renderCity(city), mini: renderMinimap(city), phase: 'count', count: 3.2, lastCount: 4, endT: 0,
     car: { x: sx, y: sy, a, vx: 0, vy: 0, air: 0, airMax: 0, slip: 0 },
     cam: { x: sx, y: sy, a },
-    time: run.time, coins: 0, tips: 0, delivered: 0, bags: 3, target: null, orderT: 0, par: 10,
+    time: run.time, coins: 0, tips: 0, delivered: 0, bags: vanUp('cargo') ? 4 : 3, cap: vanUp('cargo') ? 4 : 3, target: null, orderT: 0, par: 10,
     hand: false, handId: null, driftT: 0, shake: 0, pops: [], skids: [], puffs: [], smashed: 0, stunts: 0, peds: [], ouch: 0,
     traffic: [], lastSec: 99,
   };
@@ -5513,10 +5725,11 @@ function updateDrive(dt) {
     // Oil: almost no grip and a bit of a spin for a moment.
     c.slip = Math.max(0, (c.slip || 0) - dt);
     if (c.slip > 0) c.a += dt * 3.2 * Math.sign(vf || 1) * Math.min(1, Math.abs(vf) / 4);
-    vl *= Math.exp(-(c.slip > 0 ? 0.4 : hand ? 1.4 : 9) * dt);
+    const tyres = vanUp('tyres');
+    vl *= Math.exp(-(c.slip > 0 ? (tyres ? 0.8 : 0.4) : hand ? (tyres ? 2 : 1.4) : (tyres ? 11 : 9)) * dt);
     const rough = ground === GRASS || ground === DIRT;
     vf *= Math.exp(-(rough ? 1.5 : hand ? 0.7 : 0.22) * dt);
-    vf = Math.max(-CAR_REV, Math.min(CAR_MAX * (rough ? 0.6 : 1), vf));
+    vf = Math.max(-CAR_REV, Math.min(CAR_MAX * (vanUp('engine') ? 1.1 : 1) * (rough ? 0.6 : 1), vf));
   } else {
     c.air -= dt;
     if (c.air <= 0) landJump();
@@ -5567,7 +5780,7 @@ function updateDrive(dt) {
   const tg = D.target, dist = Math.hypot(tg.x - c.x, tg.y - c.y);
   if (dist < 1.5 && speed < 3 && c.air <= 0) {
     if (tg.truck) {
-      D.bags = 3; D.time += 3;
+      D.bags = D.cap || 3; D.time += 3;
       drivePop('Bags loaded!', '+3s', '#6fb0d6'); sfx('pick');
     } else {
       const tip = Math.max(0, Math.round(10 * (1 - D.orderT / D.par)));
@@ -5577,7 +5790,7 @@ function updateDrive(dt) {
     }
     nextDrop();
   }
-  engineSet(speed / CAR_MAX);
+  engineSet(Math.min(1, speed / CAR_MAX));
 
   // Camera: follows a little ahead of the car and turns with it.
   let da = c.a - D.cam.a;
@@ -5896,7 +6109,7 @@ function drawDriveHUD() {
   X.fillStyle = '#fff5de'; X.fillText(String(D.coins), cx - 26, cy + 1);
   spr('coin', cx - 8, cy, 3);
   // Bags left, under the pause button
-  for (let i = 0; i < 3; i++) { X.globalAlpha = i < D.bags ? 1 : 0.25; spr('bag', L.pause.x + i * 30, b.y + 64, 2.2); }
+  for (let i = 0; i < (D.cap || 3); i++) { X.globalAlpha = i < D.bags ? 1 : 0.25; spr('bag', L.pause.x + i * 30, b.y + 64, 2.2); }
   X.globalAlpha = 1;
   X.font = '700 13px "Nunito", system-ui, sans-serif'; X.textAlign = 'left'; X.fillStyle = '#fff5de';
   X.fillText(D.bags ? `${D.delivered} delivered` : 'Back to the truck!', L.pause.x - 16, b.y + 92);
@@ -5948,6 +6161,9 @@ function driveResults() {
   save.drive = save.drive || [];
   const best = !save.drive[k] || D.coins > save.drive[k];
   if (best) { save.drive[k] = D.coins; persist(); }
+  const paid = addToWallet(D.coins);
+  $('res-wallet').hidden = !paid;
+  $('res-wallet').textContent = `+${fmtCoins(paid)} coins to your wallet · ${fmtCoins(save.wallet)} to spend in the shop`;
   $('res-no').textContent = 'Delivery Run ' + (k + 1);
   $('res-over').textContent = "Time's up";
   $('res-name').textContent = run.name;
@@ -6016,13 +6232,14 @@ function rateRun(rating) {
 
 const $ = id => document.getElementById(id);
 let paused = false;
-const SCREENS = ['scr-settings', 'scr-wardrobe', 'scr-story', 'scr-title', 'scr-online', 'scr-howto', 'scr-intro', 'scr-pause', 'scr-results'];
+const SCREENS = ['scr-shop', 'scr-settings', 'scr-wardrobe', 'scr-story', 'scr-title', 'scr-online', 'scr-howto', 'scr-intro', 'scr-pause', 'scr-results'];
 function show(id) { for (const s of SCREENS) $(s).hidden = s !== id; }
 
 function starHTML(n) { return [0, 1, 2].map(i => i < n ? '★' : '<span class="off">★</span>').join(''); }
 
 function buildLevelList() {
   syncDailyButton();
+  syncShopButton();
   const box = $('levels');
   setTimeout(buildDriveList, 0);
   box.innerHTML = '';
@@ -6129,7 +6346,7 @@ function play(i) {
   if (NET.role === 'host') {
     // Chef slots are fixed for the whole service, so a friend leaving doesn't reshuffle anyone.
     NET.guests.forEach((g, k) => { g.slot = k + 1; g.remote = { mx: 0, my: 0, held: false, grab: false, chop: false }; });
-    for (const g of NET.guests) if (g.conn.open) g.conn.send({ t: 'start', lv: i, tr: G.transposed, dk: DAILY && DAILY.key, n: G.chefs.length, me: g.slot, fits: NET.fits, vs: versus ? seed : null });
+    for (const g of NET.guests) if (g.conn.open) g.conn.send({ t: 'start', lv: i, tr: G.transposed, dk: DAILY && DAILY.key, n: G.chefs.length, me: g.slot, fits: NET.fits, gears: NET.gears, vs: versus ? seed : null });
   }
 }
 function syncPauseButtons() {
@@ -6157,6 +6374,9 @@ function showResults() {
   const need = starTargets(i, G.humans)[0];
   if (stars && !lv.daily) { save.stars = save.stars || []; if (stars > (save.stars[i] || 0)) { save.stars[i] = stars; persist(); } }
   logRun(stars);
+  const paid = lv.tutorial ? 0 : addToWallet(G.score);
+  $('res-wallet').hidden = !paid;
+  $('res-wallet').textContent = `+${fmtCoins(paid)} coins to your wallet · ${fmtCoins(save.wallet)} to spend in the shop`;
   $('rate-box').hidden = !PLAYTEST.db;
   $('rate-thanks').hidden = true;
   for (const b of document.querySelectorAll('.rate-btn')) b.setAttribute('aria-pressed', 'false');
@@ -6219,7 +6439,7 @@ $('btn-retry').onclick = () => (D ? startDrive(D.k) : play(G.lvIdx));
 $('btn-next').onclick = () => { if (!maybeStory(G.lvIdx + 1)) openIntro(G.lvIdx + 1); };
 $('btn-daily').onclick = () => { audioInit(); dailyLevel(); openIntro('daily'); };
 $('btn-wardrobe').onclick = () => { audioInit(); openWardrobe(); };
-$('btn-ward-close').onclick = () => show('scr-title');
+$('btn-ward-close').onclick = () => { const back = wardBack; wardBack = 'scr-title'; if (back === 'scr-shop') openShop(); else show(back); };
 $('ward-c0').onclick = () => { wardSlot = 0; buildWardrobe(); };
 $('ward-c1').onclick = () => { wardSlot = 1; buildWardrobe(); };
 $('btn-story-next').onclick = () => storyNext(false);
@@ -6239,6 +6459,10 @@ for (const [id, get, set] of SETTINGS) $(id).onclick = () => { set(!get()); pers
 let settingsBack = 'scr-title';
 function openSettings(back) { settingsBack = back; syncMute(); show('scr-settings'); }
 $('btn-drive-tut').onclick = () => { audioInit(); startDrive(0, { tutorial: true }); };
+$('btn-shop').onclick = () => { audioInit(); openShop(); };
+$('btn-shop-close').onclick = () => { syncShopButton(); show('scr-title'); };
+$('btn-shop-wear').onclick = () => { openWardrobe(); wardBack = 'scr-shop'; $('ward-gear').scrollIntoView({ block: 'center' }); };
+for (const t of ['gear', 'kitchen', 'van']) $('shop-t-' + t).onclick = () => { shopTab = t; buildShop(); };
 $('btn-settings').onclick = () => { audioInit(); openSettings('scr-title'); };
 $('btn-pause-settings').onclick = () => openSettings('scr-pause');
 $('btn-settings-close').onclick = () => show(settingsBack);

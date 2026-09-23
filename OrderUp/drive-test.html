@@ -372,6 +372,8 @@ function driveStars(k, coins) { return DRIVE_RUNS[k].stars.filter(s => coins >= 
 const RD = 0, WALK = 1, BLDG = 2, GRASS = 3, TREE = 4, DIRT = 5, BARR = 6;   // city tiles
 const CAR_MAX = 9, CAR_REV = 3, CAR_ACC = 7, CAR_BRAKE = 14, CAR_TURN = 2.7, CAR_R = 0.32;
 const PED_PENALTY = 10;
+// Delivery-van upgrades from the shop (the standalone test build has no shop, so they stay off there).
+function vanUp(id) { return !!(save.owned && save.owned[id]); }
 const DIRV = { E: [1, 0], W: [-1, 0], N: [0, -1], S: [0, 1] };
 const ROOFS = ['#b24f5b', '#9a6ab3', '#3f6f8f', '#8a5a36', '#5a5f6e', '#c98b52', '#2e6e34', '#a86f3e', '#6a4a9a'];
 const SHIRTS = ['#e8472f', '#3a86d4', '#f5b82e', '#3f9b45', '#9a6ab3', '#ec8a92', '#6fb0d6', '#f59a2e'];
@@ -609,7 +611,7 @@ const DRIVE_TUT = [
   { text: 'Drift: at speed, hold the Drift button and steer to slide round a corner. A long slide pays coins.', ui: 'drift', done: () => D.driftT > 0.5 },
   { text: 'Follow the green arrow (and the green dot on the map) to the customer. Stop inside the green ring to hand the bag over.', ui: 'arrow', done: () => D.delivered >= 1 },
   { text: 'Cones, hydrants and bins pay a coin when you knock them over. People don\u2019t: hitting someone costs 10 coins.', next: true },
-  { text: 'Watch for road works, crashes, potholes and oil. After three bags, go back to the truck to reload. The clock starts when you tap Go!', next: true, finish: true },
+  { text: 'Watch for road works, crashes, potholes and oil. When your bags run out, go back to the truck to reload. The clock starts when you tap Go!', next: true, finish: true },
 ];
 function tutGoDrive(i) {
   D.tut = { i, s: {} };
@@ -621,7 +623,7 @@ function tutFinishDrive() {
   D.tut = null;
   save.driveTut = true; persist();
   // The real run starts now, from where you are.
-  Object.assign(D, { time: D.run.time, coins: 0, tips: 0, delivered: 0, stunts: 0, smashed: 0, hits: 0, bags: 3, lastSec: 99 });
+  Object.assign(D, { time: D.run.time, coins: 0, tips: 0, delivered: 0, stunts: 0, smashed: 0, hits: 0, bags: D.cap || 3, lastSec: 99 });
   nextDrop();
   drivePop('Go!', 'The clock is running', '#8ad65e'); sfx('go');
 }
@@ -683,7 +685,7 @@ function startDrive(k, opts = {}) {
     k, run, city, img: renderCity(city), mini: renderMinimap(city), phase: 'count', count: 3.2, lastCount: 4, endT: 0,
     car: { x: sx, y: sy, a, vx: 0, vy: 0, air: 0, airMax: 0, slip: 0 },
     cam: { x: sx, y: sy, a },
-    time: run.time, coins: 0, tips: 0, delivered: 0, bags: 3, target: null, orderT: 0, par: 10,
+    time: run.time, coins: 0, tips: 0, delivered: 0, bags: vanUp('cargo') ? 4 : 3, cap: vanUp('cargo') ? 4 : 3, target: null, orderT: 0, par: 10,
     hand: false, handId: null, driftT: 0, shake: 0, pops: [], skids: [], puffs: [], smashed: 0, stunts: 0, peds: [], ouch: 0,
     traffic: [], lastSec: 99,
   };
@@ -819,10 +821,11 @@ function updateDrive(dt) {
     // Oil: almost no grip and a bit of a spin for a moment.
     c.slip = Math.max(0, (c.slip || 0) - dt);
     if (c.slip > 0) c.a += dt * 3.2 * Math.sign(vf || 1) * Math.min(1, Math.abs(vf) / 4);
-    vl *= Math.exp(-(c.slip > 0 ? 0.4 : hand ? 1.4 : 9) * dt);
+    const tyres = vanUp('tyres');
+    vl *= Math.exp(-(c.slip > 0 ? (tyres ? 0.8 : 0.4) : hand ? (tyres ? 2 : 1.4) : (tyres ? 11 : 9)) * dt);
     const rough = ground === GRASS || ground === DIRT;
     vf *= Math.exp(-(rough ? 1.5 : hand ? 0.7 : 0.22) * dt);
-    vf = Math.max(-CAR_REV, Math.min(CAR_MAX * (rough ? 0.6 : 1), vf));
+    vf = Math.max(-CAR_REV, Math.min(CAR_MAX * (vanUp('engine') ? 1.1 : 1) * (rough ? 0.6 : 1), vf));
   } else {
     c.air -= dt;
     if (c.air <= 0) landJump();
@@ -873,7 +876,7 @@ function updateDrive(dt) {
   const tg = D.target, dist = Math.hypot(tg.x - c.x, tg.y - c.y);
   if (dist < 1.5 && speed < 3 && c.air <= 0) {
     if (tg.truck) {
-      D.bags = 3; D.time += 3;
+      D.bags = D.cap || 3; D.time += 3;
       drivePop('Bags loaded!', '+3s', '#6fb0d6'); sfx('pick');
     } else {
       const tip = Math.max(0, Math.round(10 * (1 - D.orderT / D.par)));
@@ -883,7 +886,7 @@ function updateDrive(dt) {
     }
     nextDrop();
   }
-  engineSet(speed / CAR_MAX);
+  engineSet(Math.min(1, speed / CAR_MAX));
 
   // Camera: follows a little ahead of the car and turns with it.
   let da = c.a - D.cam.a;
@@ -1202,7 +1205,7 @@ function drawDriveHUD() {
   X.fillStyle = '#fff5de'; X.fillText(String(D.coins), cx - 26, cy + 1);
   spr('coin', cx - 8, cy, 3);
   // Bags left, under the pause button
-  for (let i = 0; i < 3; i++) { X.globalAlpha = i < D.bags ? 1 : 0.25; spr('bag', L.pause.x + i * 30, b.y + 64, 2.2); }
+  for (let i = 0; i < (D.cap || 3); i++) { X.globalAlpha = i < D.bags ? 1 : 0.25; spr('bag', L.pause.x + i * 30, b.y + 64, 2.2); }
   X.globalAlpha = 1;
   X.font = '700 13px "Nunito", system-ui, sans-serif'; X.textAlign = 'left'; X.fillStyle = '#fff5de';
   X.fillText(D.bags ? `${D.delivered} delivered` : 'Back to the truck!', L.pause.x - 16, b.y + 92);

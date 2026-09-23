@@ -84,6 +84,7 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 - Fixed: the kitchen intro card's "On the menu" list was empty since the helper picker was added.
 - Online co-op for 2–4 players (host plus up to three friends), with friends able to leave mid-service, and an optional own TURN relay (`?turn=`).
 - Polish: settings (sound, music, vibration, screen shake, left-handed controls), seeded chiptune music per stop, and an installable offline PWA when hosted.
+- Wallet and shop: coins are kept; 16 chef gear items in 4 slots (per-chef loadouts, stacking bonuses under 10% each), 9 kitchen upgrades and 3 delivery-van upgrades.
 
 ## Difficulty (done)
 - Smooth rising curve across all 31 kitchens (tools/tune.js), and co-op scaling (+25% pace and star targets per extra player).
