@@ -76,7 +76,8 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 - ~~Stop 3: Texas BBQ Smokehouse~~ Done: 3 kitchens with the smoker, brisket slicing, recipe-driven pots (mac & cheese) and griddle cornbread.
 - ~~Stop 4: Tex-Mex Border Town~~ Done: 3 kitchens with build-your-own tickets (tacos, burritos, nachos), rice and bean pots, and guacamole.
 - ~~Stop 5: New Orleans Cajun~~ Done: ordered pots (gumbo, jambalaya) and fried beignets.
-- Stops 6–9.
+- ~~Stop 6: New York Deli & Pizza~~ Done: the oven, dough stretching, layered pizza toppings, pastrami on rye and toasted bagels.
+- Stops 7–9.
 - Polish: with 5 tickets on a portrait phone, 5-ingredient builds show their icons at the smallest size. Could use a two-row icon layout or a tap-to-zoom ticket.
 - Versus mode.
 - Driving mini-game.
