@@ -141,7 +141,7 @@ Coins you earn go into a wallet, spent in the **Shop**. The economy is built so 
 - **Each level has a coin budget** equal to its three-star target, across all your attempts (e.g. Salad Days 190, The Big Feast 550). A run pays what's left of the budget; three stars empties it. Once the budget is used up the level is **completed**, and replays pay **20%** of the coins you earn. Intro cards show "Coins left to earn here" (`budgetOf`, `settle`).
 - **First-try bonus:** three stars on your very first attempt pays an extra half of the three-star target, on top of the budget. Every start counts as an attempt, restarts and quits too.
 - **Daily quest:** the day's kitchen and twist, plus a goal: reach the day's three-star score **and** one extra challenge picked by the date (no missed orders, no fires, 5 speedy tips, never use the bin, or serve a set number of orders). Completing it pays **400 coins**, once a day. It's the only renewable income besides 20% replays.
-- **Supply vs cost:** all 38 levels' budgets add up to about 14,000 coins plus first-try bonuses; the shop costs about 30,000 (prices were doubled), so a thorough player affords roughly 60% of it.
+- **Supply vs cost:** all 38 levels' budgets add up to about 14,000 coins plus first-try bonuses; the shop costs about 38,000, so a thorough player affords roughly half of it.
 - **Every purchase is permanent** (no refunds). Owned gear can be swapped between slots and chefs freely.
 
 **Chef gear:** four slots (hat, apron, gloves, shoes), four items each; every bonus is under 10% and some have a small downside. Each chef wears one item per slot (Wardrobe, or **Wear gear** in the shop); bonuses from different slots add up. Online, your chef wears your gear.
@@ -157,13 +157,13 @@ Coins you earn go into a wallet, spent in the **Shop**. The economy is built so 
 
 | Station | Option A | Option B | Price each |
 | --- | --- | --- | --- |
-| Fryer | Turbo Fryer: cooks 15% faster | Safety Fryer: burns 25% slower | 1,200 |
-| Griddle | Cast-Iron: cooks 15% faster | Non-Stick: burns 25% slower | 1,200 |
-| Pots and pans | Pressure Pots: cook 15% faster | Heavy Pots: burn 25% slower | 1,400 |
-| Oven | Convection: cooks 15% faster | Stone Oven: burns 25% slower | 1,400 |
+| Fryer | Turbo Fryer: cooks 15% faster | Safety Fryer: burns 25% slower | 1,800 |
+| Griddle | Cast-Iron: cooks 15% faster | Non-Stick: burns 25% slower | 1,800 |
+| Pots and pans | Pressure Pots: cook 15% faster | Heavy Pots: burn 25% slower | 2,100 |
+| Oven | Convection: cooks 15% faster | Stone Oven: burns 25% slower | 2,100 |
 | Van | Turbo Engine: top speed +10% (1,600) | Grippy Tyres: better grip and drifts (1,200) | |
 
-Single upgrades: Smoker Pro (20% faster, 1,200), Industrial Blender (30% faster, 600), Espresso Machine (30% faster, 500), Extra Plate Rack (+1 plate, 1,000), Comfy Booths (customers wait 10% longer, 2,400), Bigger Cargo Box (4 bags, 2,000).
+Single upgrades: Smoker Pro (20% faster, 1,800), Industrial Blender (30% faster, 900), Espresso Machine (30% faster, 750), Extra Plate Rack (+1 plate, 1,500), Comfy Booths (customers wait 10% longer, 3,600), Bigger Cargo Box (4 bags, 2,000). The **Delivery van** tab only appears in the shop once the first Delivery Run has been found.
 
 Gear and upgrades are off in online versus and the daily quest. In co-op the host's kitchen upgrades apply and each player's gear applies to their chef.
 

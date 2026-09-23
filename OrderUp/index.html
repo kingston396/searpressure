@@ -195,6 +195,7 @@
   .shop-item button:disabled { background: var(--paper-2); box-shadow: none; color: var(--muted); cursor: default; }
   .shop-item.owned { border-color: #3f9b45; }
   .shop-item .fork { color: #a8301d; }
+  .rate-row.shop-tabs { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
   .shop-item button.confirm { background: var(--tomato); color: #fff; box-shadow: 0 3px 0 var(--tomato-dk); }
   .shop-slot { font: 500 12px "DM Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
   .ward-gear { display: flex; flex-direction: column; gap: 6px; }
@@ -4965,19 +4966,19 @@ const GEAR = [
 ];
 // `fork`: two versions of the same upgrade; owning one locks the other for good.
 const UPGRADES = [
-  { id: 'fryer', fork: 'fryer', group: 'kitchen', name: 'Turbo Fryer', text: 'Fryers cook 15% faster', price: 1200, icon: ['fries', { 1: '#f5d33e', 2: '#f59a2e' }] },
-  { id: 'safefryer', fork: 'fryer', group: 'kitchen', name: 'Safety Fryer', text: 'Fryer food takes 25% longer to burn', price: 1200, icon: ['fries', { 1: '#fff1a8', 2: '#d9953f' }] },
-  { id: 'griddle', fork: 'griddle', group: 'kitchen', name: 'Cast-Iron Griddle', text: 'Griddles cook 15% faster', price: 1200, icon: ['eggFried', { 1: '#ffffff', 2: '#f5b82e' }] },
-  { id: 'nonstick', fork: 'griddle', group: 'kitchen', name: 'Non-Stick Griddle', text: 'Griddle food takes 25% longer to burn', price: 1200, icon: ['eggFried', { 1: '#fff5de', 2: '#f59a2e' }] },
-  { id: 'pots', fork: 'pots', group: 'kitchen', name: 'Pressure Pots', text: 'Pots and pans cook 15% faster', price: 1400, icon: ['pot', { 1: '#e5552f' }] },
-  { id: 'heavypots', fork: 'pots', group: 'kitchen', name: 'Heavy Pots', text: 'Pots and pans take 25% longer to burn', price: 1400, icon: ['pot', { 1: '#6a3a1a' }] },
-  { id: 'oven', fork: 'oven', group: 'kitchen', name: 'Convection Oven', text: 'Ovens cook 15% faster', price: 1400, icon: ['pizza', { 1: '#d9953f', 2: '#c8402a', 3: '#f5d33e', 4: '#f5d33e' }] },
-  { id: 'stoneoven', fork: 'oven', group: 'kitchen', name: 'Stone Oven', text: 'Oven food takes 25% longer to burn', price: 1400, icon: ['pizza', { 1: '#c98b52', 2: '#a8301d', 3: '#fff1a8', 4: '#fff1a8' }] },
-  { id: 'smoker', group: 'kitchen', name: 'Smoker Pro', text: 'Smokers cook 20% faster', price: 1200, icon: ['ribs', { 1: '#6a2e1c', 2: '#3a160c', 3: '#e8c8a0' }] },
-  { id: 'blender', group: 'kitchen', name: 'Industrial Blender', text: 'Blending 30% faster', price: 600, icon: ['shake', { 1: '#f4a3b8' }] },
-  { id: 'espresso', group: 'kitchen', name: 'Espresso Machine', text: 'Coffee brews 30% faster', price: 500, icon: ['mug'] },
-  { id: 'plates', group: 'kitchen', name: 'Extra Plate Rack', text: '+1 clean plate in every kitchen', price: 1000, icon: ['plate'] },
-  { id: 'booths', group: 'kitchen', name: 'Comfy Booths', text: 'Customers wait 10% longer', price: 2400, icon: ['person', { 1: '#9a6ab3' }] },
+  { id: 'fryer', fork: 'fryer', group: 'kitchen', name: 'Turbo Fryer', text: 'Fryers cook 15% faster', price: 1800, icon: ['fries', { 1: '#f5d33e', 2: '#f59a2e' }] },
+  { id: 'safefryer', fork: 'fryer', group: 'kitchen', name: 'Safety Fryer', text: 'Fryer food takes 25% longer to burn', price: 1800, icon: ['fries', { 1: '#fff1a8', 2: '#d9953f' }] },
+  { id: 'griddle', fork: 'griddle', group: 'kitchen', name: 'Cast-Iron Griddle', text: 'Griddles cook 15% faster', price: 1800, icon: ['eggFried', { 1: '#ffffff', 2: '#f5b82e' }] },
+  { id: 'nonstick', fork: 'griddle', group: 'kitchen', name: 'Non-Stick Griddle', text: 'Griddle food takes 25% longer to burn', price: 1800, icon: ['eggFried', { 1: '#fff5de', 2: '#f59a2e' }] },
+  { id: 'pots', fork: 'pots', group: 'kitchen', name: 'Pressure Pots', text: 'Pots and pans cook 15% faster', price: 2100, icon: ['pot', { 1: '#e5552f' }] },
+  { id: 'heavypots', fork: 'pots', group: 'kitchen', name: 'Heavy Pots', text: 'Pots and pans take 25% longer to burn', price: 2100, icon: ['pot', { 1: '#6a3a1a' }] },
+  { id: 'oven', fork: 'oven', group: 'kitchen', name: 'Convection Oven', text: 'Ovens cook 15% faster', price: 2100, icon: ['pizza', { 1: '#d9953f', 2: '#c8402a', 3: '#f5d33e', 4: '#f5d33e' }] },
+  { id: 'stoneoven', fork: 'oven', group: 'kitchen', name: 'Stone Oven', text: 'Oven food takes 25% longer to burn', price: 2100, icon: ['pizza', { 1: '#c98b52', 2: '#a8301d', 3: '#fff1a8', 4: '#fff1a8' }] },
+  { id: 'smoker', group: 'kitchen', name: 'Smoker Pro', text: 'Smokers cook 20% faster', price: 1800, icon: ['ribs', { 1: '#6a2e1c', 2: '#3a160c', 3: '#e8c8a0' }] },
+  { id: 'blender', group: 'kitchen', name: 'Industrial Blender', text: 'Blending 30% faster', price: 900, icon: ['shake', { 1: '#f4a3b8' }] },
+  { id: 'espresso', group: 'kitchen', name: 'Espresso Machine', text: 'Coffee brews 30% faster', price: 750, icon: ['mug'] },
+  { id: 'plates', group: 'kitchen', name: 'Extra Plate Rack', text: '+1 clean plate in every kitchen', price: 1500, icon: ['plate'] },
+  { id: 'booths', group: 'kitchen', name: 'Comfy Booths', text: 'Customers wait 10% longer', price: 3600, icon: ['person', { 1: '#9a6ab3' }] },
   { id: 'engine', fork: 'van', group: 'van', name: 'Turbo Engine', text: 'Top speed +10% on Delivery Runs', price: 1600, icon: ['car', { 1: '#e8472f', 2: '#fff5de' }] },
   { id: 'tyres', fork: 'van', group: 'van', name: 'Grippy Tyres', text: 'Better grip; drifts are easier to control', price: 1200, icon: ['car', { 1: '#3a3d48', 2: '#8a8f9c' }] },
   { id: 'cargo', group: 'van', name: 'Bigger Cargo Box', text: 'Carry 4 bags instead of 3', price: 2000, icon: ['bag'] },
@@ -5163,7 +5164,11 @@ function iconCanvas(name, sw, size = 40) {
 const gearIcon = (g, size) => iconCanvas('gear' + g.slot, { 1: g.col, 2: mix(g.col, '#000000', 0.35) }, size);
 function syncShopButton() { $('shop-sub').textContent = fmtCoins(save.wallet || 0) + ' coins to spend'; }
 function openShop(tab) { if (tab) shopTab = tab; buildShop(); show('scr-shop'); }
+// The van tab stays hidden until the first Delivery Run has been found.
+function vanShopOpen() { return DRIVE_RUNS.some((r, k) => driveOpen(k)); }
 function buildShop() {
+  $('shop-t-van').hidden = !vanShopOpen();
+  if (shopTab === 'van' && !vanShopOpen()) shopTab = 'gear';
   $('shop-wallet').textContent = fmtCoins(save.wallet || 0) + ' coins';
   for (const t of ['gear', 'kitchen', 'van']) $('shop-t-' + t).setAttribute('aria-pressed', String(shopTab === t));
   $('shop-note').textContent = shopTab === 'gear' ? 'Gear is personal: each chef wears one item per slot (pick in Wear gear), and bonuses from different slots add up.'
