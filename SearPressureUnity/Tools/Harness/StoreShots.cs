@@ -60,27 +60,35 @@ static partial class Tests
                 Wake(k.g); Program.Shot(k.g, "03-fire.png");
                 k.g.KeyUp("KeyE");
             }
-            // 4. The Judge's Table: one strike already.
+            // 4. Pizza at Corner Slice: sauce on, cheese going on, one in the oven.
+            // (No Judge or Delivery Run shots: those are secrets.)
             {
-                var k = new K(Lvl("The Judge's Table"), true, w, h, dpr);
-                Program.Run(k.g, 5);
-                k.ChopInto("lettuce", null);
-                k.Grab(FreeCounter); k.Grab(Plate); k.Grab(t => t.item != null && t.item.kind == "lettuce");
-                k.Grab(Serve, 0.6);
-                Wake(k.g); Program.Shot(k.g, "04-judge.png");
+                var k = new K(Lvl("Corner Slice"), true, w, h, dpr);
+                Program.Run(k.g, 7);
+                k.Grab(k.Crate("dough")); k.Grab(t => t.type == "board" && t.item == null);
+                k.Chop(t => t.type == "board" && t.item != null);
+                var b = k.G.tiles.First(t => t.type == "board" && t.item != null);
+                k.Grab(k.Crate("sauce")); k.Grab(t => t == b);
+                k.Grab(k.Crate("cheese")); k.Grab(t => t == b);
+                k.Grab(t => t == b); k.Grab(t => t.type == "oven" && t.item == null);
+                Program.Run(k.g, 1.5);
+                k.Grab(k.Crate("dough")); k.Grab(t => t.type == "board" && t.item == null);
+                k.Chop(t => t.type == "board" && t.item != null && t.item.kind == "dough", 1.0);
+                Wake(k.g); Program.Shot(k.g, "04-pizza.png");
             }
-            // 5. A Delivery Run.
+            // 5. Kitchen upgrades in the shop.
             {
-                var g = Program.NewGame(DrivePlatform(true), w, h, dpr); Program.Run(g, 0.2);
-                g.startDrive(0); Program.Run(g, 3.4);
-                g.input.keys["KeyW"] = true; Program.Run(g, 2.5);
-                g.input.keys["KeyD"] = true; g.KeyDown("Space", false); Program.Run(g, 0.6);
-                g.input.keys["KeyD"] = false; g.KeyUp("Space"); Program.Run(g, 1.2);
-                Program.Shot(g, "05-delivery-run.png");
+                var g = Program.NewGame(new HarnessPlatform(), w, h, dpr); g.onlineEnabled = false; Program.Run(g, 0.1);
+                g.save.tutorialDone = true; g.save.wallet = 1240;
+                int[] st = { 3, 3, 2, 3, 2, 1 };
+                for (int i = 0; i < st.Length; i++) g.save.stars[i] = st[i];
+                g.save.owned["pots"] = true;
+                g.openShop("kitchen"); Program.Run(g, 0.3);
+                Program.Shot(g, "05-shop.png");
             }
-            // 6. Wardrobe.
+            // 6. Wardrobe (a normal save, so no secret outfits show).
             {
-                var g = Program.NewGame(new HarnessPlatform { unlock = true }, w, h, dpr); g.onlineEnabled = false; Program.Run(g, 0.1);
+                var g = Program.NewGame(new HarnessPlatform(), w, h, dpr); g.onlineEnabled = false; Program.Run(g, 0.1);
                 g.save.wallet = 860; g.save.owned["headband"] = true;
                 int[] st = { 3, 3, 2, 3, 2, 1 };
                 for (int i = 0; i < st.Length; i++) g.save.stars[i] = st[i];
