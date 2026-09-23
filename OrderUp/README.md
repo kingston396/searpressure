@@ -76,7 +76,7 @@ The campaign is a food truck road trip (see `ROADMAP.md`). Kitchens are grouped 
 
 Unlocked by earning a star on The Big Feast. Chef Brutus Blaze, an original shouty celebrity-chef character, inspects every plate. You get a **strike** for a wrong dish, **cold** food (a cooked part more than 15 seconds off the heat; a frost icon shows it), **overcooked** food (taken off during the burn warning), anything **burning**, or a customer who **walks out**. Three strikes ends the service on the spot with no stars. Tickets are 30% shorter than normal. It's tuned to be brutal, so tell me after you've played it if it's too easy or too hard.
 
-**AI helper (solo only):** when you play the Judge's Table on your own, not in co-op, the intro card offers three random helpers drawn from the stations in that kitchen. Pick one, and they join your two chefs, marked by a purple neckerchief and a badge. Each does exactly one job:
+**AI helper (solo only):** when you play the Judge's Table on your own, not in co-op, the intro card offers three random helpers drawn from the stations in that kitchen. You can hire **one helper per star you earned on The Big Feast, up to three** (so a 3-star Feast lets you take all three). Picking past your limit lets go of your earliest pick. Hired helpers join your two chefs, marked by a purple neckerchief and a badge. Each does exactly one job:
 
 | Helper | Job |
 | --- | --- |

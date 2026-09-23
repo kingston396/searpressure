@@ -75,7 +75,7 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 - Guided tutorial level (`TUT_STEPS`): 14 steps covering controls, tickets and kitchen symbols.
 - Bonus boss: The Judge's Table (strikes, cold/overcooked checks, Chef Brutus Blaze).
 - Tester unlock: `#unlockall` on the link.
-- AI helper chefs (solo, Judge's Table only): pick 1 of 3 random offers; one job per station (`HELPERS`).
+- AI helper chefs (solo, Judge's Table only): hire from 3 random offers, one per star on The Big Feast, up to 3 (`helperHires`); one job per station (`HELPERS`).
 
 ## Later
 - ~~Stop 2: Drive-In Burgers~~ Done: 3 kitchens with the deep fryer, blender, griddle patties and cheese.

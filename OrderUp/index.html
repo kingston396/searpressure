@@ -233,7 +233,7 @@
     <div id="intro-menu" class="menu-list"></div>
     <p id="intro-tip" class="tip"></p>
     <div id="helper-box" class="helper-box" hidden>
-      <div class="mono">Pick a helper for this shift</div>
+      <div class="mono" id="helper-title">Hire a helper for this shift</div>
       <div id="helper-list" class="helper-list"></div>
       <p class="small" id="helper-note">Tap one to bring them along. Each helper does one job.</p>
     </div>
@@ -4062,6 +4062,10 @@ const HELPERS = {
 const HELPER_COLOR = ['#8a5ad4', '#5a3a9a'];
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
+// How many helpers the Judge's Table lets you hire: one per star on the kitchen before it
+// (The Big Feast), up to three. Testers using #unlockall always get at least one.
+function helperHires(i) { return Math.max(1, Math.min(3, bestStars(i - 1))); }
+
 // Helpers worth offering in a kitchen: only stations it actually has.
 function helperChoices(lv) {
   const types = new Set(lv.map.join('').split('').map(ch => ({ C: 'board', Y: 'fryer', G: 'griddle', S: 'stove', F: 'stove', s: 'smoker', o: 'oven', K: 'sink', Q: 'coffee' })[ch]).filter(Boolean));
@@ -4249,40 +4253,39 @@ function openIntro(i) {
   $('intro-name').textContent = lv.name;
   $('intro-tip').textContent = lv.tip;
   $('intro-stars').textContent = 'Stars at ' + lv.stars.join(' / ') + ' coins';
-  // Solo players at the Judge's Table pick one AI helper from three random offers.
-  chosenHelper = null;
+  // Solo players at the Judge's Table hire helpers from three random offers:
+  // one per star on the kitchen before it (The Big Feast), up to three.
+  chosenHelpers = [];
   const offers = !NET.role && lv.judge ? helperChoices(lv) : [];
+  const hires = lv.judge ? helperHires(i) : 0;
   $('helper-box').hidden = !offers.length;
+  $('helper-title').textContent = `Hire up to ${hires} helper${hires > 1 ? 's' : ''} for this shift`;
   const hl = $('helper-list'); hl.innerHTML = '';
+  const baseNote = `You earned ${hires} with ${hires} star${hires > 1 ? 's' : ''} on ${LEVELS[i - 1].name}${hires < 3 ? '. More stars there means more help' : ''}. Each helper does one job.`;
+  const syncHelpers = () => {
+    for (const el of hl.children) el.setAttribute('aria-pressed', String(chosenHelpers.includes(el.id.slice(7))));
+    $('helper-note').textContent = chosenHelpers.length ? `Hired: ${chosenHelpers.map(k => HELPERS[k].name).join(', ')} (${chosenHelpers.length} of ${hires}). Tap to let one go.` : baseNote;
+  };
   offers.forEach(k => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'helper'; b.id = 'helper-' + k; b.setAttribute('aria-pressed', 'false');
     b.append(helperCanvas(k), Object.assign(document.createElement('span'), { className: 'hname', textContent: HELPERS[k].name }), Object.assign(document.createElement('span'), { className: 'hblurb', textContent: HELPERS[k].blurb }));
     b.onclick = () => {
-      chosenHelper = chosenHelper === k ? null : k;
-      for (const el of hl.children) el.setAttribute('aria-pressed', String(el.id === 'helper-' + chosenHelper));
-      $('helper-note').textContent = chosenHelper ? HELPERS[k].name + ' is coming along. Tap again to go without.' : 'Tap one to bring them along. Each helper does one job.';
-      sfx('pick');
+      if (chosenHelpers.includes(k)) chosenHelpers = chosenHelpers.filter(x => x !== k);
+      else { chosenHelpers.push(k); if (chosenHelpers.length > hires) chosenHelpers.shift(); }
+      syncHelpers(); sfx('pick');
     };
     hl.appendChild(b);
   });
-  $('helper-note').textContent = offers.length < 3 ? 'This kitchen only has work for ' + (offers.length === 1 ? 'one kind of helper' : 'these helpers') + '. Tap to bring one along.' : 'Tap one to bring them along. Each helper does one job.';
-  const m = $('intro-menu'); m.innerHTML = '';
-  lv.recipes.forEach(r => {
-    const d = document.createElement('div'); d.className = 'dish';
-    d.appendChild(dishCanvas(r, 64));
-    const n = document.createElement('span'); n.className = 'dname'; n.textContent = RECIPES[r].name;
-    const p = document.createElement('span'); p.className = 'dprice'; p.textContent = RECIPES[r].extras ? RECIPES[r].reward + '+ · your way' : RECIPES[r].reward + ' + tip';
-    d.append(n, p); m.appendChild(d);
-  });
+  syncHelpers();
   show('scr-intro');
 }
 
-let chosenHelper = null;
+let chosenHelpers = [];
 function play(i) {
   if (NET.role === 'guest') return;
   paused = false; show(null); startLevel(i);
-  if (!NET.role && chosenHelper && LEVELS[i].judge) spawnHelper(chosenHelper);
+  if (!NET.role && LEVELS[i].judge) for (const k of chosenHelpers.slice(0, helperHires(i))) spawnHelper(k);
   if (NET.role === 'host') netSend({ t: 'start', lv: i, tr: G.transposed });
 }
 function syncPauseButtons() {
@@ -4377,7 +4380,7 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 // Test hook for automated play-throughs.
-window.__orderUp = { get G() { return G; }, startLevel: play, input, RECIPES, LEVELS, NET, TUT_STEPS, setHelper: k => { chosenHelper = k; } };
+window.__orderUp = { get G() { return G; }, startLevel: play, input, RECIPES, LEVELS, NET, TUT_STEPS, setHelpers: ks => { chosenHelpers = ks; } };
 </script>
 </body>
 </html>
