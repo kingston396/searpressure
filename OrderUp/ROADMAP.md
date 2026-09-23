@@ -39,7 +39,7 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 
 ### Fire (Overcooked-style)
 - Cookware that burns catches fire instead of only going black.
-- Fire spreads to neighbouring counters every few seconds. Items on a burning counter are destroyed, and you can't use a burning counter.
+- Fire spreads to neighbouring counters every few seconds. You can't use a burning counter, but items on it aren't destroyed. Destroying plates could leave a kitchen with no plates at all.
 - A fire extinguisher sits on a counter in each kitchen. Pick it up, face the fire and hold **Chop** to spray. The Grab/Chop buttons stay the same, so no new button is needed.
 - From Drive-In onwards, an unattended fryer is the main source of fires.
 
@@ -66,8 +66,8 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 - **Story:** short scenes between stops on the road trip (the food truck and its crew).
 
 ## Next build (web)
-1. **Stop 1: Route 66 Breakfast.** Griddle, coffee machine, dishwashing, 3 kitchens.
-2. **Fire.** Spreading fire and the extinguisher.
+1. ~~**Stop 1: Route 66 Breakfast.** Griddle, coffee machine, dishwashing, 3 kitchens.~~ Done.
+2. ~~**Fire.** Spreading fire and the extinguisher.~~ Done. It's on in every kitchen that cooks (kitchens 2–7).
 3. **Pixel art restyle.** Redraw the tiles, chefs and food as pixel sprites. Check whether the Kenney packs already in `Assets/_Project/Art` fit (they're CC0) before drawing new ones.
 4. **Online co-op prototype.** Room codes and host-authoritative sync. This needs hosting outside the artifact.
 

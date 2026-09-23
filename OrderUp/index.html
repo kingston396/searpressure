@@ -87,6 +87,9 @@
   .btn-row .btn { flex: 1 1 120px; }
 
   .levels { display: flex; flex-direction: column; }
+  .stop-head { display: flex; flex-direction: column; gap: 2px; padding-top: 14px; }
+  .stop-head:first-child { padding-top: 0; }
+  .stop-head h3 { font-size: 24px; color: var(--tomato); }
   .lvl {
     display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 4px 10px;
     text-align: left; background: none; border: 0; border-bottom: 2px dashed var(--line);
@@ -148,11 +151,11 @@
     <ul class="howto">
       <li><span class="key j">Stick</span><span>Drag anywhere on the left half of the screen to walk. You act on the counter you're facing.</span></li>
       <li><span class="key a">Grab</span><span>Pick up and put down. Take from crates, drop on counters, add food to plates and pots, serve at the bell.</span></li>
-      <li><span class="key b">Chop</span><span>Chop raw food on a board. Your chef keeps chopping until they're done or you walk away.</span></li>
+      <li><span class="key b">Chop</span><span>Chop raw food on a board, or wash dirty plates at the sink. Your chef keeps going until they're done or you walk away. While holding the extinguisher, hold this button to spray.</span></li>
       <li><span class="key s">Swap</span><span>Switch chefs. Start one chopping, then swap and cook with the other.</span></li>
     </ul>
-    <p class="tip">Every order has a timer, and faster service earns bigger tips. If a ticket runs out, you lose coins. Pots and pans burn if you leave them too long. Put anything in the bin to empty it.</p>
-    <p class="small">Keyboard: WASD or arrow keys to move, Space to grab, E to chop, Q to swap, Esc to pause.</p>
+    <p class="tip">Every order has a timer, and faster service earns bigger tips. If a ticket runs out, you lose coins. Food left on the heat burns and starts a fire that spreads along the counters, so grab the extinguisher. Put anything in the bin to empty it.</p>
+    <p class="small">Keyboard: WASD or arrow keys to move, Space to grab, E to chop, wash or spray (hold), Q to swap, Esc to pause.</p>
     <button id="btn-howto-close" class="btn" type="button">Got it</button>
   </div>
 </section>
@@ -215,15 +218,26 @@
    Data
    ========================================================================= */
 
+// The campaign is a food truck road trip. Each stop groups a few kitchens.
+const STOPS = [
+  { name: 'Hometown Diner', blurb: 'Where the truck starts out.' },
+  { name: 'Route 66 Breakfast', blurb: 'Griddles, coffee and a sink full of dishes.', needStars: 3 },
+];
+
 // Map legend:
 //  .  floor           1 2  chef spawns (floor)
 //  #  counter         X    serving pass (bell)
 //  P  plate stack     R    bin
 //  C  chopping board  S    stove with pot     F  stove with pan
+//  G  griddle         Q    coffee machine     Z  counter with fire extinguisher
+//  H  dirty plate hatch                       K  sink
 //  T L O M B  crates: tomato, lettuce, onion, meat, bun
+//  E N D      crates: egg, bacon, pancake batter
+//
+// New kitchens go at the end of the list: best scores are saved by index.
 const LEVELS = [
   {
-    name: 'Salad Days', time: 150, stars: [50, 110, 170], maxOrders: 4, interval: [9, 14], plates: 4,
+    stop: 0, name: 'Salad Days', time: 150, stars: [50, 110, 170], maxOrders: 4, interval: [9, 14], plates: 4,
     recipes: ['salad', 'garden'],
     tip: 'Take lettuce from its crate, drop it on a board and chop. Put it on a plate and serve at the bell.',
     map: [
@@ -237,12 +251,12 @@ const LEVELS = [
     ],
   },
   {
-    name: 'Soup Kitchen', time: 180, stars: [70, 150, 230], maxOrders: 4, interval: [11, 17], plates: 4,
+    stop: 0, name: 'Soup Kitchen', time: 180, stars: [70, 150, 230], maxOrders: 4, interval: [11, 17], plates: 4, fire: true,
     recipes: ['tsoup', 'osoup', 'garden'],
-    tip: 'Put three chopped tomatoes or three chopped onions in a pot. When it dings, pour it onto a plate. If you leave it too long, it burns.',
+    tip: 'Put three chopped tomatoes or three chopped onions in a pot. When it dings, pour it onto a plate. If you leave it too long it catches fire: pick up the extinguisher and hold Spray.',
     map: [
       '#S#S#X#P#',
-      '#.......#',
+      'Z.......#',
       'T..#.#..C',
       '#..#.#..#',
       'O.1#.#2.C',
@@ -251,13 +265,13 @@ const LEVELS = [
     ],
   },
   {
-    name: 'The Divide', time: 180, stars: [60, 140, 210], maxOrders: 4, interval: [12, 17], plates: 4,
+    stop: 0, name: 'The Divide', time: 180, stars: [60, 140, 210], maxOrders: 4, interval: [12, 17], plates: 4, fire: true,
     recipes: ['burger', 'deluxe', 'garden'],
     tip: 'The kitchen is split in two. Chop on one side, pass food over the middle counter and cook on the other. Tap Swap to switch chefs.',
     map: [
       '#M##R#X#P##',
       'L....#....F',
-      'C.1..#..2.#',
+      'C.1..#..2.Z',
       '#....#....F',
       'C....#....B',
       'T....#....R',
@@ -265,7 +279,7 @@ const LEVELS = [
     ],
   },
   {
-    name: 'Dinner Rush', time: 210, stars: [90, 190, 280], maxOrders: 5, interval: [9, 14], plates: 5,
+    stop: 0, name: 'Dinner Rush', time: 210, stars: [90, 190, 280], maxOrders: 5, interval: [9, 14], plates: 5, fire: true,
     recipes: ['garden', 'tsoup', 'osoup', 'burger', 'deluxe'],
     tip: 'Everything is on the menu. Get a pot going first, then chop while it cooks.',
     map: [
@@ -273,9 +287,51 @@ const LEVELS = [
       'T.........F',
       '#..1...2..#',
       'L..##R##..C',
-      '#.........#',
+      'Z.........#',
       'O.........C',
       '#M#C#B##R##',
+    ],
+  },
+  {
+    stop: 1, name: 'Sunrise Griddle', time: 180, stars: [60, 130, 200], maxOrders: 4, interval: [10, 15], plates: 3, fire: true, dishes: true,
+    recipes: ['eggsbacon', 'pancakes'],
+    tip: 'Put eggs, bacon and batter straight on a griddle, and take them off before they burn. Dirty plates come back through the hatch: carry them to the sink and hold Wash.',
+    map: [
+      '#X#H#K#P#',
+      'E.......G',
+      '#..1.2..#',
+      'N..###..G',
+      '#.......#',
+      'D.......Z',
+      '###R#G###',
+    ],
+  },
+  {
+    stop: 1, name: 'Bottomless Coffee', time: 180, stars: [70, 150, 230], maxOrders: 5, interval: [8, 13], plates: 3, fire: true, dishes: true,
+    recipes: ['eggsbacon', 'pancakes', 'coffee'],
+    tip: 'Tap Grab on a coffee machine to brew a mug. Coffee is served in the mug, so it needs no plate.',
+    map: [
+      '#X##H#K#P##',
+      'E.........Q',
+      '#.1.###.2.#',
+      'N...#Z#...G',
+      '#.........G',
+      'D.........#',
+      '#G#R###Q###',
+    ],
+  },
+  {
+    stop: 1, name: 'Truck Stop Rush', time: 210, stars: [90, 190, 290], maxOrders: 5, interval: [8, 12], plates: 4, fire: true, dishes: true,
+    recipes: ['eggsbacon', 'pancakes', 'coffee', 'bigbreakfast'],
+    tip: 'The Big Breakfast needs a pancake, an egg and bacon on one plate. Keep all three griddles busy.',
+    map: [
+      '#X#P#K#H#Q#',
+      'E....#....G',
+      '#.1..#..2.G',
+      'N.........#',
+      '#....#....G',
+      'D....#....Z',
+      '###R###Q###',
     ],
   },
 ];
@@ -288,9 +344,21 @@ const RECIPES = {
   osoup:  { name: 'Onion Soup',    items: ['soup:onion'],                               reward: 28, time: 80 },
   burger: { name: 'Burger',        items: ['bun:raw', 'meat:cooked'],                   reward: 26, time: 75 },
   deluxe: { name: 'Deluxe Burger', items: ['bun:raw', 'meat:cooked', 'lettuce:chopped'], reward: 34, time: 90 },
+  pancakes:     { name: 'Pancakes',      items: ['batter:cooked'],                               reward: 20, time: 55 },
+  eggsbacon:    { name: 'Eggs & Bacon',  items: ['egg:cooked', 'bacon:cooked'],                  reward: 26, time: 65 },
+  bigbreakfast: { name: 'Big Breakfast', items: ['batter:cooked', 'egg:cooked', 'bacon:cooked'], reward: 38, time: 90 },
+  coffee:       { name: 'Coffee',        items: ['coffee:brewed'],                               reward: 10, time: 40, mug: true },
 };
 
-const CRATES = { T: 'tomato', L: 'lettuce', O: 'onion', M: 'meat', B: 'bun' };
+const CRATES = { T: 'tomato', L: 'lettuce', O: 'onion', M: 'meat', B: 'bun', E: 'egg', N: 'bacon', D: 'batter' };
+// Seconds for each griddle food to cook. Everything burns GRIDDLE_BURN seconds after that.
+const GRIDDLE = { egg: 5, bacon: 6, batter: 6 };
+const GRIDDLE_BURN = 8;
+const BREW_TIME = 4;
+const WASH_TIME = 1.5;
+const FIRE_SPREAD = 4.5;    // seconds between a fire jumping to a neighbouring counter
+const SPRAY_RANGE = 2.7;
+const FIREPROOF = ['floor', 'serve', 'sink', 'hatch'];
 const CHOPPABLE = ['tomato', 'lettuce', 'onion', 'meat'];
 const SOUPABLE = ['tomato', 'onion'];
 const CHOP_TIME = 2.0;
@@ -313,7 +381,15 @@ try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s) sav
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
 function starsFor(lvIdx, score) { return LEVELS[lvIdx].stars.filter(s => score >= s).length; }
 function bestStars(i) { return save.best[i] ? starsFor(i, save.best[i]) : 0; }
-function unlocked(i) { return i === 0 || bestStars(i - 1) >= 1; }
+function stopStars(s) { return LEVELS.reduce((n, lv, i) => n + (lv.stop === s ? bestStars(i) : 0), 0); }
+function firstOfStop(i) { return LEVELS.findIndex(l => l.stop === LEVELS[i].stop) === i; }
+// The first kitchen of a stop opens with enough stars from the previous stop;
+// the rest open one star at a time.
+function unlocked(i) {
+  const lv = LEVELS[i];
+  if (!firstOfStop(i)) return bestStars(i - 1) >= 1;
+  return lv.stop === 0 || stopStars(lv.stop - 1) >= STOPS[lv.stop].needStars;
+}
 
 /* =========================================================================
    Audio: small synth, no files
@@ -365,6 +441,13 @@ const SFX = {
   swap:  () => tone(520, 0.12, 'sine', 0.1, 0, 380),
   order: () => { tone(988, 0.1, 'sine', 0.08); tone(1319, 0.14, 'sine', 0.07, 0.09); },
   tick:  () => tone(1000, 0.05, 'square', 0.04),
+  fire:  () => { noise(0.7, 0.6, 250); tone(140, 0.5, 'sawtooth', 0.05, 0, -60); },
+  crackle: () => noise(0.06, 0.25, 900),
+  spray: () => noise(0.12, 0.18, 4000),
+  out:   () => { noise(0.4, 0.3, 3000); tone(700, 0.2, 'sine', 0.06, 0.1, 300); },
+  splash: () => noise(0.1, 0.25, 1200),
+  clean: () => tone(1480, 0.12, 'sine', 0.07, 0, 400),
+  brew:  () => tone(300, 0.25, 'triangle', 0.06, 0, 120),
   go:    () => { tone(784, 0.14, 'triangle', 0.12); tone(1175, 0.3, 'triangle', 0.12, 0.14); },
   end:   () => [784, 659, 523, 392].forEach((f, i) => tone(f, 0.25, 'triangle', 0.1, i * 0.12)),
 };
@@ -528,7 +611,89 @@ function drawIng(kind, state, x, y, s) {
     circle(x, y, r * 0.66, state === 'tomato' ? '#e5552f' : '#d69a3a');
     ellipse(x - r * 0.2, y - r * 0.24, r * 0.22, r * 0.1, 'rgba(255,255,255,.4)', -0.6);
     star(x + r * 0.18, y + r * 0.14, r * 0.16, 0.45, 4, state === 'tomato' ? '#3f9b45' : '#f3e1a8');
+  } else if (kind === 'egg') {
+    if (state === 'raw') {
+      X.save(); X.translate(x, y); X.rotate(-0.4);
+      ellipse(0, 0, r * 0.62, r * 0.78, '#cdbb95');
+      ellipse(0, 0, r * 0.56, r * 0.72, '#f6ecd6');
+      ellipse(-r * 0.18, -r * 0.3, r * 0.14, r * 0.2, 'rgba(255,255,255,.7)');
+      circle(r * 0.2, r * 0.2, r * 0.05, '#cdbb95'); circle(-r * 0.1, r * 0.36, r * 0.04, '#cdbb95');
+      X.restore();
+    } else {
+      const burnt = state === 'burnt';
+      for (const [dx, dy, rad] of [[0, 0, 0.62], [-0.32, 0.22, 0.42], [0.34, -0.2, 0.4], [0.2, 0.36, 0.34], [-0.3, -0.3, 0.32]])
+        circle(x + dx * r, y + dy * r, r * rad, burnt ? '#3a2e22' : '#fffdf6');
+      circle(x + r * 0.05, y, r * 0.3, burnt ? '#1e1812' : '#f7b52c', burnt ? null : '#e39a14', r * 0.04);
+      if (!burnt) circle(x - r * 0.04, y - r * 0.08, r * 0.09, 'rgba(255,255,255,.6)');
+    }
+  } else if (kind === 'bacon') {
+    const [meat, fat] = state === 'raw' ? ['#e98a8a', '#f8d9d3'] : state === 'burnt' ? ['#2a1f1b', '#3d302a'] : ['#a3492f', '#e8b27a'];
+    for (const off of [-0.28, 0.28]) {
+      X.lineCap = 'round';
+      X.strokeStyle = meat; X.lineWidth = r * 0.36;
+      X.beginPath(); X.moveTo(x - r * 0.72, y + off * r);
+      X.bezierCurveTo(x - r * 0.3, y + off * r - r * 0.22, x + r * 0.2, y + off * r + r * 0.22, x + r * 0.72, y + off * r); X.stroke();
+      X.strokeStyle = fat; X.lineWidth = r * 0.08;
+      X.beginPath(); X.moveTo(x - r * 0.65, y + off * r);
+      X.bezierCurveTo(x - r * 0.3, y + off * r - r * 0.22, x + r * 0.2, y + off * r + r * 0.22, x + r * 0.65, y + off * r); X.stroke();
+      X.lineCap = 'butt';
+    }
+  } else if (kind === 'batter') {
+    if (state === 'raw') {
+      circle(x, y, r * 0.84, '#e9e4da', '#b9b0a1', r * 0.07);
+      circle(x, y, r * 0.62, '#f3dc8f');
+      ellipse(x - r * 0.18, y - r * 0.2, r * 0.2, r * 0.1, 'rgba(255,255,255,.5)', -0.5);
+      X.strokeStyle = '#8c95a6'; X.lineWidth = r * 0.07; X.beginPath();
+      X.ellipse(x + r * 0.15, y + r * 0.05, r * 0.14, r * 0.34, 0.6, 0, Math.PI * 2); X.stroke();
+    } else {
+      const burnt = state === 'burnt';
+      circle(x, y + r * 0.06, r * 0.8, burnt ? '#1c1511' : '#9c5f22');
+      circle(x, y, r * 0.8, burnt ? '#2e241d' : '#d9953f', burnt ? '#1c1511' : '#9c5f22', r * 0.06);
+      circle(x, y, r * 0.55, burnt ? '#3a2e25' : '#e8b060');
+      if (!burnt) {
+        X.fillStyle = '#8a4a16'; X.beginPath(); X.ellipse(x + r * 0.1, y + r * 0.05, r * 0.42, r * 0.3, 0.4, 0, Math.PI * 2); X.fill();
+        X.fillStyle = '#fff0a0'; rr(x - r * 0.12, y - r * 0.16, r * 0.26, r * 0.22, r * 0.04); X.fill();
+      }
+    }
+  } else if (kind === 'coffee') {
+    circle(x + r * 0.62, y + r * 0.05, r * 0.24, null, '#c9c1b2', r * 0.12);
+    circle(x, y, r * 0.66, '#fbfaf6', '#c9c1b2', r * 0.07);
+    circle(x, y, r * 0.5, '#5a3620');
+    circle(x, y, r * 0.5, null, '#a0673f', r * 0.08);
+    ellipse(x - r * 0.14, y - r * 0.16, r * 0.14, r * 0.07, 'rgba(255,255,255,.35)', -0.5);
   }
+}
+
+function drawExt(x, y, s) {
+  const r = s / 2;
+  X.fillStyle = '#1b1d22'; rr(x + r * 0.3, y - r * 0.12, r * 0.6, r * 0.22, r * 0.08); X.fill();
+  circle(x, y, r * 0.58, '#d93a2b', '#8f2016', r * 0.08);
+  ellipse(x - r * 0.18, y - r * 0.2, r * 0.18, r * 0.1, 'rgba(255,255,255,.4)', -0.5);
+  circle(x, y, r * 0.2, '#c7ced8', '#5b6272', r * 0.05);
+}
+
+function drawDirty(n, x, y, s) {
+  const k = Math.min(n, 4);
+  for (let i = 0; i < k; i++) {
+    const py = y - i * s * 0.07;
+    circle(x, py, s * 0.44, '#d6ccb6', '#a99d84', s * 0.03);
+    circle(x, py, s * 0.3, '#e3dac6');
+    circle(x - s * 0.1, py + s * 0.05, s * 0.07, 'rgba(120,80,40,.45)');
+    circle(x + s * 0.12, py - s * 0.08, s * 0.05, 'rgba(120,80,40,.4)');
+  }
+  if (n > 1) {
+    const bx = x + s * 0.34, by = y - s * 0.34;
+    circle(bx, by, s * 0.17, '#2b2230', '#fff5de', s * 0.03);
+    X.fillStyle = '#fff5de'; X.font = `800 ${s * 0.22}px Nunito, sans-serif`; X.textAlign = 'center'; X.textBaseline = 'middle';
+    X.fillText(String(n), bx, by + s * 0.01);
+  }
+}
+
+// Draws one dish the way an order ticket shows it.
+function drawDish(recipeKey, x, y, s) {
+  const r = RECIPES[recipeKey];
+  if (r.mug) drawIng('coffee', 'brewed', x, y, s * 0.8);
+  else drawPlate(r.items, x, y, s);
 }
 function drawKey(k, x, y, s) { const [kind, state] = k.split(':'); drawIng(kind, state, x, y, s); }
 
@@ -599,6 +764,8 @@ function drawItem(it, x, y, s, t = 0) {
   else if (it.type === 'plate') drawPlate(it.items, x, y, s);
   else if (it.type === 'pot') drawPot(it, x, y, s, t);
   else if (it.type === 'pan') drawPan(it, x, y, s);
+  else if (it.type === 'ext') drawExt(x, y, s * 0.9);
+  else if (it.type === 'dirty') drawDirty(it.n, x, y, s * 0.9);
 }
 
 // Paint a dish into a small DOM canvas (menu cards, level list).
@@ -609,7 +776,7 @@ function dishCanvas(recipeKey, px) {
   c.setAttribute('role', 'img'); c.setAttribute('aria-label', RECIPES[recipeKey].name);
   const g = c.getContext('2d'); g.scale(d, d);
   const prev = X; X = g;
-  drawPlate(RECIPES[recipeKey].items, px / 2, px / 2, px * 0.92);
+  drawDish(recipeKey, px / 2, px / 2, px * 0.92);
   X = prev;
   return c;
 }
@@ -621,12 +788,13 @@ function dishCanvas(recipeKey, px) {
 let G = null;
 let T = 0;
 
-function newIng(kind) { return { type: 'ing', kind, state: 'raw', chop: 0 }; }
+function newIng(kind) { return { type: 'ing', kind, state: kind === 'coffee' ? 'brewed' : 'raw', chop: 0, cook: 0, burn: 0, warnT: 0 }; }
 function newPlate() { return { type: 'plate', items: [] }; }
 function newPot() { return { type: 'pot', items: [], cook: 0, burn: 0, burnt: false, warnT: 0 }; }
 function newPan() { return { type: 'pan', items: [], cook: 0, burn: 0, burnt: false, warnT: 0 }; }
 function ingKey(i) { return i.kind + ':' + i.state; }
 function isCookware(i) { return i && (i.type === 'pot' || i.type === 'pan'); }
+function onGriddle(t) { return t.type === 'griddle' && t.item && t.item.type === 'ing' && GRIDDLE[t.item.kind] !== undefined; }
 
 function startLevel(idx) {
   const lv = LEVELS[idx];
@@ -637,7 +805,7 @@ function startLevel(idx) {
   const tiles = [], spawns = {};
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
     const ch = map[y][x];
-    const t = { x, y, type: 'floor', item: null };
+    const t = { x, y, type: 'floor', item: null, fire: 0, spreadT: 0, sprayed: false };
     if (ch === '#') t.type = 'counter';
     else if (ch === 'X') t.type = 'serve';
     else if (ch === 'P') { t.type = 'plates'; t.count = lv.plates; }
@@ -645,20 +813,26 @@ function startLevel(idx) {
     else if (ch === 'C') t.type = 'board';
     else if (ch === 'S') { t.type = 'stove'; t.item = newPot(); }
     else if (ch === 'F') { t.type = 'stove'; t.item = newPan(); }
+    else if (ch === 'G') t.type = 'griddle';
+    else if (ch === 'Q') { t.type = 'coffee'; t.brew = 0; t.brewing = false; }
+    else if (ch === 'K') { t.type = 'sink'; t.dirty = 0; t.wash = 0; }
+    else if (ch === 'H') { t.type = 'hatch'; t.dirty = 0; }
+    else if (ch === 'Z') { t.type = 'counter'; t.item = { type: 'ext' }; }
     else if (CRATES[ch]) { t.type = 'crate'; t.kind = CRATES[ch]; }
     else if (ch === '1' || ch === '2') spawns[ch] = { x: x + 0.5, y: y + 0.5 };
     tiles.push(t);
   }
   const chefs = ['1', '2'].map((k, i) => ({
     x: spawns[k].x, y: spawns[k].y, fx: 0, fy: 1, held: null, color: CHEF_COLORS[i],
-    chopping: false, chopSfx: 0, walk: 0, target: null, toast: null, toastT: 0,
+    task: null, taskSfx: 0, spraying: false, walk: 0, target: null, toast: null, toastT: 0,
   }));
   G = {
     lvIdx: idx, lv, rows, cols, tiles, chefs, active: 0,
     orders: [], orderSeq: 0, lastRecipe: null, nextOrder: 0.6,
     score: 0, tips: 0, served: 0, failed: 0,
     time: lv.time, phase: 'countdown', countdown: 3.2, lastCount: 4, endT: 0,
-    returns: [], floats: [], puffs: [], swapFx: 0, lastSec: 99,
+    returns: [], floats: [], puffs: [], swapFx: 0, lastSec: 99, sprayT: 0, crackleT: 0,
+    plateTile: tiles.find(t => t.type === 'plates'), hatch: tiles.find(t => t.type === 'hatch'),
   };
   input.grab = input.chop = input.swap = false;
 }
@@ -682,7 +856,7 @@ function moveChef(c, mx, my, dt) {
   if (mag > 0.15) {
     c.fx = mx / mag; c.fy = my / mag;
     c.walk += dt * Math.min(1, mag);
-    if (c.chopping) c.chopping = false;
+    c.task = null;
   }
   if (mag < 0.15) return;
   const sp = SPEED * Math.min(1, mag) * dt;
@@ -724,7 +898,8 @@ function findTarget(c) {
 
 /* ---------- combining rules ---------- */
 
-function menuItems() { return G.lv.recipes.map(k => RECIPES[k].items); }
+// Mug drinks never go on plates.
+function menuItems() { return G.lv.recipes.filter(k => !RECIPES[k].mug).map(k => RECIPES[k].items); }
 // A plate may hold a set of items only if it's on the way to something on the menu.
 function canPlate(plate, key) {
   const next = plate.items.concat(key);
@@ -765,38 +940,53 @@ function grabPlan(c) {
   const t = c.target;
   if (!t) return null;
   const h = c.held, it = t.item;
+  if (t.fire > 0) return { label: 'Fire!', dim: true, run() { say(c, 'Put the fire out first'); sfx('nope'); } };
   if (!h) {
     if (t.type === 'plates') return t.count > 0 ? { label: 'Plate', run() { t.count--; c.held = newPlate(); sfx('pick'); } } : null;
-    if (it) return { label: 'Grab', run() { c.held = it; t.item = null; sfx('pick'); } };
+    if (t.type === 'hatch') return t.dirty > 0 ? { label: 'Grab', run() { c.held = { type: 'dirty', n: t.dirty }; t.dirty = 0; sfx('pick'); } } : null;
+    if (t.type === 'sink') return null;
+    if (t.type === 'coffee' && !it) return t.brewing ? null : { label: 'Brew', run() { t.brewing = true; t.brew = 0; sfx('brew'); } };
+    if (it) return { label: 'Grab', run() { c.held = it; t.item = null; sfx('pick'); if (it.type === 'ext') say(c, 'Hold Spray to use'); } };
     if (t.type === 'crate') return { label: 'Grab', run() { c.held = newIng(t.kind); sfx('pick'); } };
     return null;
   }
   if (t.type === 'trash') {
     if (h.type === 'ing') return { label: 'Bin', run() { c.held = null; sfx('trash'); } };
+    if (h.type === 'dirty') return { label: 'Bin', dim: true, run() { say(c, 'Wash them in the sink'); sfx('nope'); } };
+    if (h.type === 'ext') return null;
     if (h.items.length) return { label: 'Bin', run() { if (isCookware(h)) emptyCookware(h); else h.items = []; sfx('trash'); } };
     return null;
   }
   if (t.type === 'serve') {
-    if (h.type === 'plate' && h.items.length) return { label: 'Serve', run() { serve(c); } };
+    if ((h.type === 'plate' && h.items.length) || (h.type === 'ing' && h.kind === 'coffee')) return { label: 'Serve', run() { serve(c); } };
     return { label: 'Serve', dim: true, run() { say(c, h.type === 'plate' ? 'Plate is empty' : 'Put it on a plate'); sfx('nope'); } };
   }
   if (t.type === 'plates') {
     return h.type === 'plate' && !h.items.length ? { label: 'Drop', run() { t.count++; c.held = null; sfx('drop'); } } : null;
   }
+  if (t.type === 'sink' || t.type === 'hatch') {
+    return h.type === 'dirty' ? { label: 'Drop', run() { t.dirty += h.n; c.held = null; sfx('splash'); } } : null;
+  }
+  if (t.type === 'coffee') {
+    return !it && !t.brewing && h.type === 'ing' && h.kind === 'coffee' ? { label: 'Drop', run() { t.item = h; c.held = null; sfx('drop'); } } : null;
+  }
   if (!it) {
     if (t.type === 'stove' && !isCookware(h)) return null;
+    if (t.type === 'griddle' && !(h.type === 'ing' && GRIDDLE[h.kind] !== undefined)) return null;
     return { label: 'Drop', run() { t.item = h; c.held = null; sfx('drop'); } };
   }
   return combinePlan(c, t);
 }
 
-function chopPlan(c) {
+// What the second button does right now: chop, wash or spray.
+function actionPlan(c) {
+  if (c.held && c.held.type === 'ext') return { kind: 'spray', label: 'Spray' };
   const t = c.target;
-  if (!t || t.type !== 'board' || !t.item) return null;
+  if (!t || t.fire > 0) return null;
+  if (t.type === 'sink' && t.dirty > 0) return { kind: 'wash', label: 'Wash', tile: t, dim: !!c.held };
   const it = t.item;
-  if (it.type !== 'ing' || it.state !== 'raw' || !CHOPPABLE.includes(it.kind)) return null;
-  if (c.held) return { dim: true, board: t };
-  return { board: t };
+  if (t.type !== 'board' || !it || it.type !== 'ing' || it.state !== 'raw' || !CHOPPABLE.includes(it.kind)) return null;
+  return { kind: 'chop', label: 'Chop', tile: t, dim: !!c.held };
 }
 
 /* ---------- actions ---------- */
@@ -806,15 +996,16 @@ function say(c, text) { c.toast = text; c.toastT = 1.6; }
 function doGrab() {
   const c = G.chefs[G.active];
   const p = grabPlan(c);
-  if (p) { p.run(); c.chopping = false; }
+  if (p) { p.run(); c.task = null; }
   else { sfx('nope'); if (c.held && c.target) say(c, "Can't put that there"); }
 }
 function doChop() {
   const c = G.chefs[G.active];
-  const p = chopPlan(c);
+  const p = actionPlan(c);
+  if (p && p.kind === 'spray') return;       // spraying is handled while the button is held
   if (!p) { sfx('nope'); return; }
   if (p.dim) { say(c, 'Hands full'); sfx('nope'); return; }
-  c.chopping = true; c.chopBoard = p.board;
+  c.task = { kind: p.kind, tile: p.tile };
 }
 function doSwap() {
   if (G.chefs.length < 2) return;
@@ -826,8 +1017,9 @@ function doSwap() {
 function sameItems(a, b) { return a.length === b.length && a.slice().sort().join() === b.slice().sort().join(); }
 
 function serve(c) {
-  const plate = c.held;
-  const idx = G.orders.findIndex(o => sameItems(RECIPES[o.recipe].items, plate.items));
+  const h = c.held;
+  const items = h.type === 'plate' ? h.items : [ingKey(h)];
+  const idx = G.orders.findIndex(o => sameItems(RECIPES[o.recipe].items, items));
   if (idx < 0) { say(c, 'Nobody ordered that'); sfx('nope'); return; }
   const o = G.orders[idx];
   const tip = Math.round(TIP_MAX * o.timeLeft / o.total);
@@ -835,7 +1027,7 @@ function serve(c) {
   G.score += earned; G.tips += tip; G.served++;
   G.orders.splice(idx, 1);
   c.held = null;
-  G.returns.push(PLATE_RETURN);
+  if (h.type === 'plate') G.returns.push(PLATE_RETURN);
   const k = kitchenGeom(), st = c.target;
   addFloat(k.ox + (st.x + 0.5) * k.ts, k.oy + (st.y + 0.2) * k.ts, '+' + earned, '#f5b82e', tip >= 7 ? 'Speedy!' : null);
   G.coinPulse = 1;
@@ -857,7 +1049,7 @@ function spawnOrder() {
 
 function endLevel() {
   G.phase = 'over'; G.endT = 0;
-  for (const c of G.chefs) c.chopping = false;
+  for (const c of G.chefs) { c.task = null; c.spraying = false; }
   sfx('end');
 }
 
@@ -865,7 +1057,7 @@ function endLevel() {
    Input
    ========================================================================= */
 
-const input = { grab: false, chop: false, swap: false, keys: {}, joy: { id: null, bx: 0, by: 0, x: 0, y: 0 }, flash: { A: 0, B: 0, S: 0 } };
+const input = { grab: false, chop: false, swap: false, chopHeld: false, chopId: null, keys: {}, joy: { id: null, bx: 0, by: 0, x: 0, y: 0 }, flash: { A: 0, B: 0, S: 0 } };
 const JOY_R = 52;
 
 function dist(a, x, y) { return Math.hypot(a.x - x, a.y - y); }
@@ -878,7 +1070,7 @@ cvs.addEventListener('pointerdown', e => {
   if (dist(L.pause, x, y) < 30) { pauseGame(); return; }
   const r = L.ctrlR;
   if (dist(L.btnA, x, y) < r * 1.2) { input.grab = true; input.flash.A = 1; return; }
-  if (dist(L.btnB, x, y) < r * 1.1) { input.chop = true; input.flash.B = 1; return; }
+  if (dist(L.btnB, x, y) < r * 1.1) { input.chop = true; input.chopHeld = true; input.chopId = e.pointerId; input.flash.B = 1; return; }
   if (dist(L.btnS, x, y) < r * 0.9) { input.swap = true; input.flash.S = 1; return; }
   if (input.joy.id === null && x < W * 0.55 && y > L.orders.y + L.orders.h) {
     Object.assign(input.joy, { id: e.pointerId, bx: x, by: y, x, y });
@@ -887,7 +1079,10 @@ cvs.addEventListener('pointerdown', e => {
 window.addEventListener('pointermove', e => {
   if (e.pointerId === input.joy.id) { input.joy.x = e.clientX; input.joy.y = e.clientY; }
 });
-function releasePointer(e) { if (e.pointerId === input.joy.id) input.joy.id = null; }
+function releasePointer(e) {
+  if (e.pointerId === input.joy.id) input.joy.id = null;
+  if (e.pointerId === input.chopId) { input.chopHeld = false; input.chopId = null; }
+}
 window.addEventListener('pointerup', releasePointer);
 window.addEventListener('pointercancel', releasePointer);
 cvs.addEventListener('contextmenu', e => e.preventDefault());
@@ -900,11 +1095,14 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Escape' || e.code === 'KeyP') { if (paused) resumeGame(); else if (G.phase !== 'over') pauseGame(); return; }
   if (paused || G.phase === 'over') return;
   if (e.code === 'Space' || e.code === 'KeyJ' || e.code === 'Enter') { input.grab = true; input.flash.A = 1; e.preventDefault(); }
-  else if (e.code === 'KeyE' || e.code === 'KeyK') { input.chop = true; input.flash.B = 1; }
+  else if (e.code === 'KeyE' || e.code === 'KeyK') { input.chop = true; input.chopHeld = true; input.flash.B = 1; }
   else if (e.code === 'KeyQ' || e.code === 'Tab' || e.code === 'ShiftLeft') { input.swap = true; input.flash.S = 1; e.preventDefault(); }
 });
-window.addEventListener('keyup', e => { if (MOVE_KEYS[e.code]) input.keys[e.code] = false; });
-window.addEventListener('blur', () => { input.keys = {}; input.joy.id = null; });
+window.addEventListener('keyup', e => {
+  if (MOVE_KEYS[e.code]) input.keys[e.code] = false;
+  if (e.code === 'KeyE' || e.code === 'KeyK') input.chopHeld = false;
+});
+window.addEventListener('blur', () => { input.keys = {}; input.joy.id = null; input.chopHeld = false; input.chopId = null; });
 
 function readMove() {
   const j = input.joy;
@@ -962,20 +1160,44 @@ function update(dt) {
   if (input.grab) { input.grab = false; doGrab(); }
   if (input.chop) { input.chop = false; doChop(); }
 
-  // Chopping continues on its own until done or the chef walks off.
+  // Chopping and washing continue on their own until done or the chef walks off.
   for (const ch of G.chefs) {
     ch.toastT = Math.max(0, ch.toastT - dt);
-    if (!ch.chopping) continue;
-    const b = ch.chopBoard, it = b && b.item;
-    if (!it || ch.target !== b || it.type !== 'ing' || it.state !== 'raw' || ch.held) { ch.chopping = false; continue; }
-    it.chop += dt / CHOP_TIME;
-    ch.chopSfx -= dt;
-    if (ch.chopSfx <= 0) { sfx('chop'); ch.chopSfx = 0.22; addPuff(b.x + 0.5, b.y + 0.45, '#ffffff', 0.4, 'chip'); }
-    if (it.chop >= 1) { it.state = 'chopped'; it.chop = 0; ch.chopping = false; sfx('chopped'); }
+    if (!ch.task) continue;
+    const b = ch.task.tile;
+    if (ch.target !== b || ch.held || b.fire > 0) { ch.task = null; continue; }
+    ch.taskSfx -= dt;
+    if (ch.task.kind === 'chop') {
+      const it = b.item;
+      if (!it || it.type !== 'ing' || it.state !== 'raw') { ch.task = null; continue; }
+      it.chop += dt / CHOP_TIME;
+      if (ch.taskSfx <= 0) { sfx('chop'); ch.taskSfx = 0.22; addPuff(b.x + 0.5, b.y + 0.45, '#ffffff', 0.4, 'chip'); }
+      if (it.chop >= 1) { it.state = 'chopped'; it.chop = 0; ch.task = null; sfx('chopped'); }
+    } else {
+      if (b.dirty <= 0) { ch.task = null; continue; }
+      b.wash += dt / WASH_TIME;
+      if (ch.taskSfx <= 0) { sfx('splash'); ch.taskSfx = 0.3; addPuff(b.x + 0.5, b.y + 0.45, 'rgba(220,240,255,.9)', 0.7, 'steam'); }
+      if (b.wash >= 1) {
+        b.wash = 0; b.dirty--;
+        if (G.plateTile) G.plateTile.count++;
+        sfx('clean');
+        if (b.dirty <= 0) ch.task = null;
+      }
+    }
   }
 
-  // Cooking happens on stoves only.
+  updateFire(c, dt);
+
+  // Cooking happens on stoves and griddles, and stops while they're on fire.
   for (const t of G.tiles) {
+    if (t.fire > 0) continue;
+    if (onGriddle(t)) { cookGriddle(t, dt); continue; }
+    if (t.type === 'coffee' && t.brewing) {
+      t.brew += dt / BREW_TIME;
+      if (Math.random() < dt * 3) addPuff(t.x + 0.5, t.y + 0.3, 'rgba(255,255,255,.5)', 0.8, 'steam');
+      if (t.brew >= 1) { t.brewing = false; t.brew = 0; t.item = newIng('coffee'); sfx('ding'); }
+      continue;
+    }
     if (t.type !== 'stove' || !isCookware(t.item)) continue;
     const cw = t.item, full = cw.type === 'pot' ? cw.items.length === 3 : cw.items.length === 1;
     if (!full || cw.burnt) continue;
@@ -986,13 +1208,16 @@ function update(dt) {
       if (cw.cook >= 1) { cw.cook = 1; sfx('ding'); }
     } else {
       cw.burn += dt / burn;
-      if (cw.burn > 0.45) { cw.warnT -= dt; if (cw.warnT <= 0) { sfx('warn'); cw.warnT = cw.burn > 0.75 ? 0.25 : 0.5; } }
+      warnBeep(cw, dt);
       if (Math.random() < dt * 4 * cw.burn) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(90,90,90,.6)', 1.2, 'steam');
-      if (cw.burn >= 1) { cw.burnt = true; sfx('burn'); for (let i = 0; i < 8; i++) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(40,40,40,.7)', 1.6, 'steam'); }
+      if (cw.burn >= 1) { cw.burnt = true; burnUp(t); }
     }
   }
-  // Burnt cookware keeps smoking wherever it is.
-  if (Math.random() < dt * 3) for (const t of G.tiles) if (isCookware(t.item) && t.item.burnt) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(50,50,50,.55)', 1.4, 'steam');
+  // Burnt food keeps smoking wherever it is.
+  if (Math.random() < dt * 3) for (const t of G.tiles) {
+    const it = t.item;
+    if ((isCookware(it) && it.burnt) || (it && it.type === 'ing' && it.state === 'burnt')) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(50,50,50,.55)', 1.4, 'steam');
+  }
 
   // Orders
   G.nextOrder -= dt;
@@ -1014,12 +1239,88 @@ function update(dt) {
     }
   }
 
-  // Plates come back from the dining room.
-  const pt = G.tiles.find(t => t.type === 'plates');
+  // Plates come back from the dining room: dirty through the hatch in kitchens with a sink.
   for (let i = G.returns.length - 1; i >= 0; i--) {
     G.returns[i] -= dt;
-    if (G.returns[i] <= 0) { G.returns.splice(i, 1); if (pt) pt.count++; }
+    if (G.returns[i] > 0) continue;
+    G.returns.splice(i, 1);
+    if (G.lv.dishes && G.hatch) G.hatch.dirty++;
+    else if (G.plateTile) G.plateTile.count++;
   }
+}
+
+function warnBeep(o, dt) {
+  if (o.burn <= 0.45) return;
+  o.warnT -= dt;
+  if (o.warnT <= 0) { sfx('warn'); o.warnT = o.burn > 0.75 ? 0.25 : 0.5; }
+}
+
+function cookGriddle(t, dt) {
+  const it = t.item;
+  if (it.state === 'raw') {
+    it.cook += dt / GRIDDLE[it.kind];
+    if (Math.random() < dt * 4) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(255,255,255,.5)', 0.7, 'steam');
+    if (it.cook >= 1) { it.cook = 1; it.state = 'cooked'; sfx('ding'); }
+  } else if (it.state === 'cooked') {
+    it.burn += dt / GRIDDLE_BURN;
+    warnBeep(it, dt);
+    if (Math.random() < dt * 4 * it.burn) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(90,90,90,.6)', 1.2, 'steam');
+    if (it.burn >= 1) { it.state = 'burnt'; burnUp(t); }
+  }
+}
+
+// Food burning: smoke, and in kitchens with fire, the counter goes up in flames.
+function burnUp(t) {
+  sfx('burn');
+  for (let i = 0; i < 8; i++) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(40,40,40,.7)', 1.6, 'steam');
+  ignite(t);
+}
+
+function flammable(t) { return t && !FIREPROOF.includes(t.type); }
+function ignite(t) {
+  if (!G.lv.fire || t.fire > 0 || !flammable(t)) return;
+  t.fire = 1;
+  t.spreadT = FIRE_SPREAD * (0.8 + Math.random() * 0.5);
+  for (const c of G.chefs) if (c.task && c.task.tile === t) c.task = null;
+  sfx('fire'); buzz(60);
+}
+
+function updateFire(active, dt) {
+  // Spraying: the active chef, holding an extinguisher, with the button held down.
+  active.spraying = !!(active.held && active.held.type === 'ext' && input.chopHeld);
+  for (const ch of G.chefs) if (ch !== active) ch.spraying = false;
+  if (active.spraying) {
+    const nx = active.x + active.fx * 0.5, ny = active.y + active.fy * 0.5;
+    for (let i = 0; i < 3; i++) {
+      const spread = (Math.random() - 0.5) * 1.6;
+      G.puffs.push({ x: nx, y: ny, vx: active.fx * 4.5 - active.fy * spread, vy: active.fy * 4.5 + active.fx * spread, color: 'rgba(235,245,255,.85)', life: 0.45, max: 0.45, kind: 'spray' });
+    }
+    G.sprayT -= dt;
+    if (G.sprayT <= 0) { sfx('spray'); G.sprayT = 0.12; }
+    for (const t of G.tiles) {
+      if (t.fire <= 0) continue;
+      const dx = t.x + 0.5 - active.x, dy = t.y + 0.5 - active.y, d = Math.hypot(dx, dy);
+      if (d > SPRAY_RANGE || (dx * active.fx + dy * active.fy) / d < 0.55) continue;
+      t.sprayed = true;
+      t.fire -= dt * 1.6;
+      if (t.fire <= 0) { t.fire = 0; sfx('out'); for (let i = 0; i < 5; i++) addPuff(t.x + 0.5, t.y + 0.4, 'rgba(200,200,200,.7)', 1, 'steam'); }
+    }
+  }
+  let burning = false;
+  for (const t of G.tiles) {
+    if (t.fire <= 0) continue;
+    burning = true;
+    if (!t.sprayed) t.fire = Math.min(1, t.fire + dt * 0.25);
+    t.sprayed = false;
+    t.spreadT -= dt;
+    if (t.spreadT <= 0) {
+      const next = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => tileAt(t.x + dx, t.y + dy)).filter(q => flammable(q) && q.fire <= 0);
+      if (next.length) ignite(next[Math.floor(Math.random() * next.length)]);
+      t.spreadT = FIRE_SPREAD * (0.8 + Math.random() * 0.5);
+    }
+    if (Math.random() < dt * 5) addPuff(t.x + 0.5, t.y + 0.3, 'rgba(60,60,60,.5)', 1.3, 'steam');
+  }
+  if (burning) { G.crackleT -= dt; if (G.crackleT <= 0) { sfx('crackle'); G.crackleT = 0.15 + Math.random() * 0.35; } }
 }
 
 function addPuff(x, y, color, life, kind) {
@@ -1079,7 +1380,7 @@ function drawTile(t) {
     X.fillRect(x, y, 1.001, 1.001);
     return;
   }
-  const steel = t.type === 'stove' || t.type === 'serve' || t.type === 'trash';
+  const steel = ['stove', 'serve', 'trash', 'griddle', 'sink', 'hatch', 'coffee'].includes(t.type);
   // Body + front lip give each counter a little depth.
   X.fillStyle = steel ? '#5b6272' : '#8f5c33';
   X.fillRect(x, y, 1.001, 1.001);
@@ -1126,6 +1427,47 @@ function drawTile(t) {
     }
     if (n) circle(x + 0.5, y + 0.5 - (n - 1) * 0.05, 0.24, '#fffdf8');
     else { X.strokeStyle = 'rgba(0,0,0,.25)'; X.setLineDash([0.06, 0.05]); X.lineWidth = 0.03; circle(x + 0.5, y + 0.45, 0.3, null, 'rgba(0,0,0,.25)', 0.03); X.setLineDash([]); }
+  } else if (t.type === 'griddle') {
+    const hot = onGriddle(t) && t.item.state !== 'burnt';
+    X.fillStyle = '#2b2e35'; rr(x + 0.07, y + 0.07, 0.86, 0.74, 0.06); X.fill();
+    X.fillStyle = hot ? '#4a3a36' : '#3a3d45'; rr(x + 0.12, y + 0.12, 0.76, 0.64, 0.04); X.fill();
+    X.strokeStyle = hot ? `rgba(255,${120 + Math.sin(T * 8) * 30},60,.55)` : 'rgba(255,255,255,.06)'; X.lineWidth = 0.025; X.beginPath();
+    for (let i = 1; i < 4; i++) { X.moveTo(x + 0.14, y + 0.12 + i * 0.16); X.lineTo(x + 0.86, y + 0.12 + i * 0.16); }
+    X.stroke();
+  } else if (t.type === 'coffee') {
+    X.fillStyle = '#2d2a2e'; rr(x + 0.14, y + 0.06, 0.72, 0.36, 0.06); X.fill();
+    circle(x + 0.74, y + 0.18, 0.05, t.brewing ? '#6cc24a' : '#e8472f');
+    X.fillStyle = '#8c95a6'; rr(x + 0.42, y + 0.38, 0.16, 0.08, 0.02); X.fill();
+    X.fillStyle = '#5b6272'; rr(x + 0.2, y + 0.5, 0.6, 0.3, 0.05); X.fill();
+    if (t.brewing) { X.strokeStyle = '#5a3620'; X.lineWidth = 0.03; X.beginPath(); X.moveTo(x + 0.5, y + 0.46); X.lineTo(x + 0.5, y + 0.58); X.stroke(); }
+  } else if (t.type === 'sink') {
+    X.fillStyle = '#c9d0db'; rr(x + 0.08, y + 0.08, 0.84, 0.72, 0.1); X.fill();
+    X.fillStyle = '#6fa8c9'; rr(x + 0.15, y + 0.15, 0.7, 0.58, 0.08); X.fill();
+    X.fillStyle = '#8c95a6'; rr(x + 0.45, y + 0.02, 0.1, 0.18, 0.03); X.fill();
+    if (t.dirty > 0) drawDirty(t.dirty, x + 0.5, y + 0.46, 0.55);
+    for (let i = 0; i < 4; i++) circle(x + 0.25 + i * 0.16, y + 0.62 + Math.sin(T * 3 + i) * 0.03, 0.05 + (i % 2) * 0.02, 'rgba(255,255,255,.55)');
+  } else if (t.type === 'hatch') {
+    X.fillStyle = '#2b2e35'; rr(x + 0.1, y + 0.1, 0.8, 0.68, 0.06); X.fill();
+    X.fillStyle = '#5b6272'; for (let i = 0; i < 4; i++) { rr(x + 0.14, y + 0.14 + i * 0.16, 0.72, 0.1, 0.03); X.fill(); }
+    if (t.dirty > 0) drawDirty(t.dirty, x + 0.5, y + 0.46, 0.7);
+  }
+}
+
+// Flames licking up from a burning counter.
+function drawFire(t) {
+  const cx = t.x + 0.5, base = t.y + 0.8, k = 0.35 + t.fire * 0.65;
+  circle(cx, t.y + 0.45, 0.5 * k, 'rgba(255,120,40,.25)');
+  const flames = [[-0.24, 0.55, 1.3], [0.22, 0.6, 2.1], [0, 0.85, 0], [-0.08, 0.5, 3.3], [0.12, 0.45, 4.2]];
+  for (const [dx, h, ph] of flames) {
+    const fh = h * k * (0.85 + Math.sin(T * 14 + ph) * 0.15), fw = 0.2 * k;
+    const x = cx + dx * k + Math.sin(T * 9 + ph) * 0.03;
+    for (const [col, sc] of [['#e8472f', 1], ['#f5b82e', 0.66], ['#fff1a8', 0.33]]) {
+      X.fillStyle = col; X.beginPath();
+      X.moveTo(x - fw * sc, base);
+      X.quadraticCurveTo(x - fw * sc * 1.1, base - fh * sc * 0.6, x, base - fh * sc);
+      X.quadraticCurveTo(x + fw * sc * 1.1, base - fh * sc * 0.6, x + fw * sc, base);
+      X.closePath(); X.fill();
+    }
   }
 }
 
@@ -1135,19 +1477,23 @@ function drawBar(x, y, w, frac, color) {
 }
 
 function drawTileOverlay(t) {
+  const cx = t.x + 0.5, top = t.y - 0.02;
+  if (t.type === 'coffee' && t.brewing) drawBar(cx, top + 0.08, 0.72, t.brew, '#a0673f');
+  if (t.type === 'sink' && t.wash > 0) drawBar(cx, top + 0.08, 0.72, t.wash, '#6fa8c9');
   const it = t.item;
   if (!it) return;
-  const cx = t.x + 0.5, top = t.y - 0.02;
   if (it.type === 'ing' && it.chop > 0 && it.state === 'raw') drawBar(cx, top + 0.08, 0.72, it.chop, '#6cc24a');
-  if (isCookware(it) && t.type === 'stove' && !it.burnt) {
-    if (it.cook > 0 && it.cook < 1) drawBar(cx, top + 0.08, 0.72, it.cook, '#6cc24a');
-    else if (it.cook >= 1 && it.burn > 0.3) {
-      const on = Math.sin(T * (it.burn > 0.75 ? 22 : 12)) > 0;
+  // Griddle food shares the cookware progress/warning/done markers.
+  const heat = onGriddle(t) && it.state !== 'burnt' ? { cook: it.state === 'cooked' ? 1 : it.cook, burn: it.burn } : isCookware(it) && t.type === 'stove' && !it.burnt ? it : null;
+  if (heat) {
+    if (heat.cook > 0 && heat.cook < 1) drawBar(cx, top + 0.08, 0.72, heat.cook, '#6cc24a');
+    else if (heat.cook >= 1 && heat.burn > 0.3) {
+      const on = Math.sin(T * (heat.burn > 0.75 ? 22 : 12)) > 0;
       if (on) {
         X.fillStyle = '#e8472f'; X.beginPath(); X.moveTo(cx, top - 0.22); X.lineTo(cx + 0.2, top + 0.14); X.lineTo(cx - 0.2, top + 0.14); X.closePath(); X.fill();
         X.fillStyle = '#fff'; X.font = 'bold 0.26px Nunito, sans-serif'; X.textAlign = 'center'; X.textBaseline = 'middle'; X.fillText('!', cx, top + 0.02);
       }
-    } else if (it.cook >= 1) {
+    } else if (heat.cook >= 1) {
       circle(cx + 0.32, top + 0.12, 0.13, '#3f9b45', '#fff', 0.03);
       X.strokeStyle = '#fff'; X.lineWidth = 0.04; X.beginPath(); X.moveTo(cx + 0.26, top + 0.12); X.lineTo(cx + 0.31, top + 0.17); X.lineTo(cx + 0.39, top + 0.07); X.stroke();
     }
@@ -1174,7 +1520,7 @@ function drawChef(c, idx) {
   const bob = Math.sin(c.walk * 14) * 0.035;
   X.save(); X.translate(c.x, c.y); X.rotate(ang);
   // Hands
-  const chopBob = c.chopping ? Math.sin(T * 26) * 0.07 : 0;
+  const chopBob = c.task ? Math.sin(T * (c.task.kind === 'wash' ? 16 : 26)) * 0.07 : 0;
   const hx = c.held ? 0.3 : 0.2 + bob;
   circle(hx, -0.22, 0.075, '#f2c9a0', '#c99a70', 0.02);
   circle(c.held ? 0.3 : 0.2 - bob, 0.22 + chopBob, 0.075, '#f2c9a0', '#c99a70', 0.02);
@@ -1187,7 +1533,7 @@ function drawChef(c, idx) {
   circle(-0.12, -0.07, 0.06, '#ffffff'); circle(-0.12, 0.07, 0.06, '#ffffff'); circle(0.04, 0, 0.07, '#ffffff');
   X.restore();
   // Knife while chopping
-  if (c.chopping) {
+  if (c.task && c.task.kind === 'chop') {
     const kx = c.x + c.fx * 0.45, ky = c.y + c.fy * 0.45 - Math.abs(Math.sin(T * 13)) * 0.12;
     X.save(); X.translate(kx, ky); X.rotate(ang + Math.PI / 2);
     X.fillStyle = '#dfe4ea'; rr(-0.04, -0.2, 0.08, 0.22, 0.02); X.fill();
@@ -1213,6 +1559,7 @@ function drawKitchen() {
   const order = G.chefs.map((c, i) => i).sort((a, b) => G.chefs[a].y - G.chefs[b].y);
   for (const i of order) drawChef(G.chefs[i], i);
   for (const t of G.tiles) drawTileOverlay(t);
+  for (const t of G.tiles) if (t.fire > 0) drawFire(t);
   for (const p of G.puffs) {
     const k = p.life / p.max;
     X.globalAlpha = Math.max(0, k);
@@ -1239,6 +1586,7 @@ function recipeIngredients(key) {
   const out = [];
   for (const k of RECIPES[key].items) {
     const [kind, state] = k.split(':');
+    if (kind === 'coffee') continue;
     if (kind === 'soup') out.push(state, state, state);
     else out.push(kind);
   }
@@ -1282,7 +1630,7 @@ function drawHUD(dt) {
     X.fillStyle = col; rr(x + 5, y + 5, Math.max(7, (cw - 10) * frac), 7, 3.5); X.fill();
     // dish
     const ds = Math.min(ch * 0.52, cw * 0.55);
-    drawPlate(RECIPES[o.recipe].items, x + cw / 2, y + 14 + ds / 2, ds);
+    drawDish(o.recipe, x + cw / 2, y + 14 + ds / 2, ds);
     // ingredients
     const ings = recipeIngredients(o.recipe);
     const is = Math.min(16, (cw - 10) / ings.length);
@@ -1328,10 +1676,10 @@ function drawControls() {
 
   const c = G.chefs[G.active];
   const gp = G.phase === 'play' ? grabPlan(c) : null;
-  const cp = G.phase === 'play' ? chopPlan(c) : null;
+  const cp = G.phase === 'play' ? actionPlan(c) : null;
   const r = L.ctrlR;
   drawButton(L.btnA, r, '#f5b82e', '#b9821a', gp ? gp.label : (c.held ? 'Drop' : 'Grab'), null, !gp || gp.dim, input.flash.A);
-  drawButton(L.btnB, r * 0.85, '#e8472f', '#a8301d', 'Chop', null, !cp || cp.dim, input.flash.B);
+  drawButton(L.btnB, r * 0.85, '#e8472f', '#a8301d', cp ? cp.label : 'Chop', null, !cp || cp.dim, c.spraying ? 0.6 : input.flash.B);
   // Swap shows the colour of the chef you'd switch to.
   const other = G.chefs[(G.active + 1) % G.chefs.length];
   const sr = r * 0.62;
@@ -1370,17 +1718,26 @@ function starHTML(n) { return [0, 1, 2].map(i => i < n ? '★' : '<span class="o
 function buildLevelList() {
   const box = $('levels');
   box.innerHTML = '';
-  LEVELS.forEach((lv, i) => {
-    const b = document.createElement('button');
-    b.className = 'lvl'; b.type = 'button'; b.id = 'lvl-' + i;
-    const open = unlocked(i);
-    b.disabled = !open;
-    b.innerHTML = `<span class="no">No.${String(i + 1).padStart(2, '0')}</span><span class="name">${lv.name}</span><span class="stars">${open ? starHTML(bestStars(i)) : '<span class="off">Locked</span>'}</span><span></span><span class="dishes"></span>`;
-    const d = b.querySelector('.dishes');
-    lv.recipes.forEach(r => d.appendChild(dishCanvas(r, 26)));
-    if (save.best[i]) { const s = document.createElement('span'); s.className = 'best'; s.textContent = 'Best ' + save.best[i]; b.appendChild(s); }
-    b.addEventListener('click', () => { audioInit(); openIntro(i); });
-    box.appendChild(b);
+  STOPS.forEach((stop, si) => {
+    const head = document.createElement('div');
+    head.className = 'stop-head';
+    const open = LEVELS.some((l, i) => l.stop === si && unlocked(i));
+    const need = si > 0 && !open ? `Collect ${stop.needStars} stars in ${STOPS[si - 1].name} to get here.` : stop.blurb;
+    head.innerHTML = `<span class="mono">Stop ${si}</span><h3>${stop.name}</h3><p class="small">${need}</p>`;
+    box.appendChild(head);
+    LEVELS.forEach((lv, i) => {
+      if (lv.stop !== si) return;
+      const b = document.createElement('button');
+      b.className = 'lvl'; b.type = 'button'; b.id = 'lvl-' + i;
+      const ok = unlocked(i);
+      b.disabled = !ok;
+      b.innerHTML = `<span class="no">No.${String(i + 1).padStart(2, '0')}</span><span class="name">${lv.name}</span><span class="stars">${ok ? starHTML(bestStars(i)) : '<span class="off">Locked</span>'}</span><span></span><span class="dishes"></span>`;
+      const d = b.querySelector('.dishes');
+      lv.recipes.forEach(r => d.appendChild(dishCanvas(r, 26)));
+      if (save.best[i]) { const s = document.createElement('span'); s.className = 'best'; s.textContent = 'Best ' + save.best[i]; b.appendChild(s); }
+      b.addEventListener('click', () => { audioInit(); openIntro(i); });
+      box.appendChild(b);
+    });
   });
 }
 
@@ -1388,7 +1745,7 @@ let introIdx = 0;
 function openIntro(i) {
   introIdx = i;
   const lv = LEVELS[i];
-  $('intro-no').textContent = 'Kitchen ' + String(i + 1).padStart(2, '0');
+  $('intro-no').textContent = STOPS[lv.stop].name + ' · No.' + String(i + 1).padStart(2, '0');
   $('intro-time').textContent = fmtTime(lv.time) + ' service';
   $('intro-name').textContent = lv.name;
   $('intro-tip').textContent = lv.tip;
@@ -1421,8 +1778,11 @@ function showResults() {
   $('res-score').textContent = G.score;
   const nextOk = i + 1 < LEVELS.length && unlocked(i + 1);
   $('btn-next').hidden = !nextOk;
-  if (i + 1 >= LEVELS.length) $('res-next').textContent = stars ? 'You cleared every kitchen. Go for three stars.' : 'Earn ' + lv.stars[0] + ' coins for your first star.';
-  else $('res-next').textContent = nextOk ? '' : 'Earn ' + lv.stars[0] + ' coins to unlock ' + LEVELS[i + 1].name + '.';
+  const next = LEVELS[i + 1];
+  if (!next) $('res-next').textContent = stars ? 'You cleared every kitchen on the road so far. Go for three stars.' : 'Earn ' + lv.stars[0] + ' coins for your first star.';
+  else if (nextOk) $('res-next').textContent = '';
+  else if (next.stop !== lv.stop) $('res-next').textContent = `Collect ${STOPS[next.stop].needStars} stars in ${STOPS[lv.stop].name} to drive on to ${STOPS[next.stop].name}. You have ${stopStars(lv.stop)}.`;
+  else $('res-next').textContent = 'Earn ' + lv.stars[0] + ' coins to unlock ' + next.name + '.';
   show('scr-results');
 }
 
