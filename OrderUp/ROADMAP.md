@@ -77,6 +77,9 @@ Every stop gets 3–5 kitchens plus bonus kitchens unlocked by stars.
 - Tester unlock: `#unlockall` on the link.
 - AI helper chefs (solo, Judge's Table only): hire from 3 random offers, one per star on The Big Feast, up to 3 (`helperHires`); one job per station (`HELPERS`).
 
+## Difficulty (done)
+- Smooth rising curve across all 31 kitchens (tools/tune.js), and co-op scaling (+25% pace and star targets per extra player).
+
 ## Later
 - ~~Stop 2: Drive-In Burgers~~ Done: 3 kitchens with the deep fryer, blender, griddle patties and cheese.
 - ~~Stop 3: Texas BBQ Smokehouse~~ Done: 3 kitchens with the smoker, brisket slicing, recipe-driven pots (mac & cheese) and griddle cornbread.

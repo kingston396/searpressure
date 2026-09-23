@@ -95,6 +95,12 @@ Helpers find their way around with grid pathfinding and use the same Grab and Ch
 
 Each served order pays its menu price plus a tip of up to 10 coins, scaled by how much time was left. A missed order costs 10 coins. Each kitchen has three star thresholds. Within a stop, one star unlocks the next kitchen. The next stop opens once you've collected enough stars in the current one (3 for Route 66, 4 for Drive-In Burgers, 5 each for every stop from the Smokehouse on, including the Thanksgiving Finale). Best scores are saved in `localStorage` by kitchen index, so add new kitchens at the end of `LEVELS`.
 
+## Difficulty
+
+- **Rising curve:** each kitchen's ticket rate is set so that "pressure" (orders per minute × work per dish, counting long cooks) rises smoothly. It goes up about 1.2 per stop, and +5 from a stop's first kitchen to its last, so each stop opens gently while it teaches its twist and ends with a rush. Star targets are 35%, 55% and 75% of every possible coin at that pace, creeping up slightly at later stops. `node OrderUp/tools/tune.js` prints the table, and `--write` applies it after you change recipes or levels.
+- **Co-op scaling:** each extra human player makes service 25% busier, adds one more ticket to the rail, and raises star targets by the same 25% (`COOP_STEP`). The intro card shows the adjusted targets. The Judge's Table strike rules are the same for everyone.
+- **Saves** remember the stars you've earned, so a co-op run can't award solo stars and a future re-tune won't take stars away. Your "Best" score is from solo runs.
+
 ## Kitchen systems
 
 - **Griddle:** put eggs, bacon, batter, cornmeal, tortillas or chopped meat (patties) straight on it. They cook and then start to burn, with a flashing warning and beeps first.
