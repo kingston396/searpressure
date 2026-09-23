@@ -70,11 +70,19 @@ The campaign is a food truck road trip (see `ROADMAP.md`). Kitchens are grouped 
 | 29 | Thanksgiving Finale | Family Dinner | Turkey Dinner, Pumpkin Pie | Long turkey roast; carving; mash pot |
 | 30 | Thanksgiving Finale | Grandma's Kitchen | The Feast, Stuffing, Pumpkin Pie | Three-part feast plate |
 | 31 | Thanksgiving Finale | The Big Feast | Everything Thanksgiving | 5-minute boss service; road trip complete |
-| Bonus | The Judge's Table | The Judge's Table | Deluxe Burger, Tomato Soup, Fish & Chips, Strawberry Shake | Chef Brutus Blaze: three strikes and you're out |
+| Bonus | The Judge's Table | The Judge's Table | Deluxe Burger, Tomato Soup, Fish & Chips, Strawberry Shake | A panel of three judges: three strikes and you're out |
 
 ### The Judge's Table (bonus boss)
 
-Unlocked by earning a star on The Big Feast. Chef Brutus Blaze, an original shouty celebrity-chef character, inspects every plate. You get a **strike** for a wrong dish, **cold** food (a cooked part more than 15 seconds off the heat; a frost icon shows it), **overcooked** food (taken off during the burn warning), anything **burning**, or a customer who **walks out**. Three strikes ends the service on the spot with no stars. Tickets are 30% shorter than normal. It's tuned to be brutal, so tell me after you've played it if it's too easy or too hard.
+Unlocked by earning a star on The Big Feast. A panel of three parody celebrity-chef judges inspects every plate, each calling out their specialty with their own pixel portrait and name on the speech bubble:
+
+- **Yourdone Ramsey** (head judge): wrong dishes, walk-outs, the opening and the final verdict.
+- **Richie Blaze** (heat): overcooked and burnt food.
+- **Yesha Narrington** (temperature): cold food.
+- Any of them may praise a perfect plate.
+
+The names are playful takes on real TV chefs. Get legal advice before an app store release, since sound-alike celebrity names can raise right-of-publicity issues. The names live in `JUDGES` if you need to change them.
+ You get a **strike** for a wrong dish, **cold** food (a cooked part more than 15 seconds off the heat; a frost icon shows it), **overcooked** food (taken off during the burn warning), anything **burning**, or a customer who **walks out**. Three strikes ends the service on the spot with no stars. Tickets are 30% shorter than normal. It's tuned to be brutal, so tell me after you've played it if it's too easy or too hard.
 
 **AI helper (solo only):** when you play the Judge's Table on your own, not in co-op, the intro card offers three random helpers drawn from the stations in that kitchen. You can hire **one helper per star you earned on The Big Feast, up to three** (so a 3-star Feast lets you take all three). Picking past your limit lets go of your earliest pick. Hired helpers join your two chefs, marked by a purple neckerchief and a badge. Each does exactly one job:
 

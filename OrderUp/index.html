@@ -760,7 +760,7 @@ const LEVELS = [
   {
     stop: 10, judge: true, name: "The Judge's Table", time: 240, stars: [400, 520, 650], maxOrders: 5, interval: [7, 11], timeScale: 0.7, plates: 5, fire: true, dishes: true,
     recipes: ['deluxe', 'tsoup', 'fishchips', 'sshake'],
-    tip: 'Chef Brutus Blaze tastes everything. Three strikes and you are out: a wrong dish, cold food (more than 15 seconds off the heat), overcooked food, anything burning, or a customer who gives up waiting. Tickets are shorter here. Plate it hot, and plate it right.',
+    tip: 'Judges Yesha Narrington, Richie Blaze and Yourdone Ramsey taste everything. Three strikes and you are out: a wrong dish, cold food (more than 15 seconds off the heat), overcooked food, anything burning, or a customer who gives up waiting. Tickets are shorter here. Plate it hot, and plate it right.',
     map: [
       '#XZPK#H#fY#',
       'M....#....G',
@@ -2085,7 +2085,7 @@ const SPR = {
     '...kkkkkk...',
   ],
 
-  judge: [
+  judgeRamsey: [
     '...k.kk.kk.k....',
     '..kykyykyykyk...',
     '..kyyyyyyyyyk...',
@@ -2098,6 +2098,40 @@ const SPR = {
     '.ksskRRRRRksk...',
     '.ksskkkkkkssk...',
     '..kssssssssk....',
+    '.kwwkssssskwwk..',
+    'kwwwwkkkkkwwwwk.',
+    'kwwwwwwwwwwwwwk.',
+  ],
+  judgeBlaze: [
+    '..k..k..k..k....',
+    '.kTk.kTkkTk.k...',
+    '.kbTkbbTkbbkTk..',
+    '.kbbbbbbbbbbbk..',
+    '.kssssssssssk...',
+    '.kskkksssskkksk.',
+    '.ksskwksskwkssk.',
+    '.ksssssSsssssk..',
+    '.kssssssssssk...',
+    '.ksskkkkkkssk...',
+    '.ksssRRRRRssk...',
+    '..kssssssssk....',
+    '.kwwkssssskwwk..',
+    'kwwwwkkkkkwwwwk.',
+    'kwwwwwwwwwwwwwk.',
+  ],
+  judgeYesha: [
+    '.....kkkkk......',
+    '....kDDDDDk.....',
+    '.....kkkkk......',
+    '..kkDDDDDDDkk...',
+    '.kDDDDDDDDDDDk..',
+    '.kDskksssskksDk.',
+    '.kDsskwsskwssDk.',
+    '.kDsssssSsssDk..',
+    'ykDssskkkkssDky.',
+    '.kDsskRRRRksDk..',
+    '.kDsskkkkkssDk..',
+    '..kDssssssssDk..',
     '.kwwkssssskwwk..',
     'kwwwwkkkkkwwwwk.',
     'kwwwwwwwwwwwwwk.',
@@ -3691,7 +3725,7 @@ function snapshot() {
     or: G.orders.map(o => [o.id, o.recipe, o.total, +o.timeLeft.toFixed(2), orderItems(o), orderReward(o)]),
     g: [G.score, G.tips, G.served, G.failed, +G.time.toFixed(2), G.phase, +G.countdown.toFixed(2), +G.endT.toFixed(2)],
     ev: NET.events.splice(0),
-    jd: [G.strikes || 0, G.judge ? G.judge.text : null, G.judge ? +G.judge.t.toFixed(1) : 0, G.judge ? G.judge.mood : 0, !!G.kicked, +(G.clock || 0).toFixed(1)],
+    jd: [G.strikes || 0, G.judge ? G.judge.text : null, G.judge ? +G.judge.t.toFixed(1) : 0, G.judge ? G.judge.mood : 0, !!G.kicked, +(G.clock || 0).toFixed(1), G.judge ? G.judge.who : null],
   };
 }
 
@@ -3722,10 +3756,10 @@ function applySnapshot(m) {
     return { id, recipe, total, timeLeft, items, reward, x: old ? old.x : null };
   });
   if (m.jd) {
-    const [strikes, text, t, mood, kicked, clock] = m.jd;
+    const [strikes, text, t, mood, kicked, clock, who] = m.jd;
     if (strikes > (G.strikes || 0)) G.shake = 0.4;
     G.strikes = strikes; G.kicked = kicked; G.clock = clock;
-    G.judge = text ? { text, t, mood } : null;
+    G.judge = text ? { text, t, mood, who } : null;
   }
   const prevPhase = G.phase;
   [G.score, G.tips, G.served, G.failed, G.time, G.phase, G.countdown, G.endT] = m.g;
@@ -3962,30 +3996,42 @@ function syncTutorialButton() {
 }
 
 /* =========================================================================
-   The Judge's Table: Chef Brutus Blaze inspects every plate.
+   The Judge's Table: a panel of three judges inspects every plate.
    Three strikes (wrong, cold, overcooked, burnt, or a customer left waiting)
-   and you are out of his kitchen.
+   and you are out of the kitchen. Each judge calls out their own specialty.
    ========================================================================= */
 
 const COLD_TIME = 15;       // seconds a cooked dish stays hot once it's off the heat
 const OVERDONE = 0.35;      // burn progress past which food counts as overcooked
 const MAX_STRIKES = 3;
 
+// The panel. Each judge has a portrait sprite and calls out their own kind of mistake.
+const JUDGES = {
+  ramsey: { name: 'Yourdone Ramsey', sprite: 'judgeRamsey' },     // head judge: wrong dishes, walk-outs, the verdict
+  blaze:  { name: 'Richie Blaze', sprite: 'judgeBlaze' },         // heat: overcooked and burnt food
+  yesha:  { name: 'Yesha Narrington', sprite: 'judgeYesha' },     // temperature and polish: cold food
+};
+// [who says it, lines]. Praise comes from any judge, in their own voice.
 const JUDGE_LINES = {
-  start: ['Welcome to MY kitchen. Three mistakes and you are OUT.', 'Every plate crosses my pass. Every. Single. One.'],
-  wrong: ['That is NOT what they ordered! Read the ticket!', 'Did you even LOOK at the ticket?', 'Wrong dish! Are you cooking blindfolded?'],
-  cold: ['It is stone cold! Were you saving it for tomorrow?', 'Cold! My freezer is warmer than this plate!', 'This went cold while you were daydreaming!'],
-  overcooked: ['Overcooked! This is charcoal with a garnish!', 'Dry as a desert! Start again!', 'I could build a house with this!'],
-  burn: ['Something is burning, and it had better not be MY kitchen!', 'Smoke? SMOKE?! Get that off the heat!', 'You burnt it! Unbelievable!'],
-  late: ['The customer LEFT. Can you blame them?', 'Too slow! They grew a beard waiting!', 'Table four walked out. Wonderful.'],
-  good: ['Hmm. Acceptable.', 'Finally. Something edible.', 'Not bad. Do not let it go to your head.', 'Yes! That is how it is done!', 'Good. Now do it again. Faster.'],
-  out: ['That is it. Get OUT of my kitchen!', 'Three strikes! Take off that apron. You are DONE!'],
-  pass: ['...Fine. You can cook. Now get out before I change my mind.'],
+  start: ['ramsey', ['Welcome to MY kitchen. Three mistakes and you are OUT.', 'Every plate crosses this pass. Every. Single. One.']],
+  wrong: ['ramsey', ['That is NOT what they ordered! Read the ticket!', 'Did you even LOOK at the ticket?', 'Wrong dish! Are you cooking blindfolded?']],
+  late: ['ramsey', ['The customer LEFT. Can you blame them?', 'Too slow! They grew a beard waiting!', 'Table four walked out. Wonderful.']],
+  out: ['ramsey', ['Three strikes. You are DONE. Get out of my kitchen!', 'That is it. Apron off. You are DONE!']],
+  pass: ['ramsey', ['...Fine. You can cook. Now get out before I change my mind.']],
+  overcooked: ['blaze', ['Overcooked! This is charcoal with a garnish!', 'That heat was way too high, chef. Dry as a desert!', 'Science says no. That protein is ruined!']],
+  burn: ['blaze', ['I smell smoke! Get that off the heat!', 'You burnt it! Watch your pans!', 'That is not a sear, that is a crime scene!']],
+  cold: ['yesha', ['It is cold. Temperature is everything, chef!', 'This plate went cold on the pass. Serve it hot!', 'Cold food tells me you were not ready. Be ready.']],
+  good: [null, {
+    ramsey: ['Hmm. Acceptable.', 'Finally. Something edible.', 'Good. Now do it again. Faster.'],
+    blaze: ['Now THAT is a perfect cook!', 'Beautiful sear. I am impressed.'],
+    yesha: ['Lovely. Hot, fresh and on time.', 'That is a plate I would serve. Well done.'],
+  }],
 };
 
 function judgeSay(kind, mood) {
-  const lines = JUDGE_LINES[kind];
-  G.judge = { text: lines[Math.floor(Math.random() * lines.length)], t: 3.2, mood };
+  let [who, lines] = JUDGE_LINES[kind];
+  if (!who) { const ids = Object.keys(lines); who = ids[Math.floor(Math.random() * ids.length)]; lines = lines[who]; }
+  G.judge = { text: lines[Math.floor(Math.random() * lines.length)], t: 3.2, mood, who };
 }
 
 function strike(kind) {
@@ -4036,7 +4082,8 @@ function drawJudge() {
   const face = j.mood === 0 ? '#f2c9a0' : j.mood === 1 ? '#f0a080' : '#e8604a';
   X.fillStyle = PAL.k; X.fillRect(x - 3, y - 3, 58, 58);
   X.fillStyle = '#2a3150'; X.fillRect(x, y, 52, 52);
-  spr('judge', x + 26, y + 26 + (j.mood ? Math.round(Math.sin(T * 30)) : 0), 3, { s: face, S: mix(face, '#000000', 0.2) });
+  const judge = JUDGES[j.who] || JUDGES.ramsey;
+  spr(judge.sprite, x + 26, y + 26 + (j.mood ? Math.round(Math.sin(T * 30)) : 0), 3, { s: face, S: mix(face, '#000000', 0.2) });
   // bubble
   const bx = x + 62, maxW = Math.min(300, W - bx - 12);
   X.font = '700 15px "Pixelify Sans", "Courier New", monospace';
@@ -4044,12 +4091,14 @@ function drawJudge() {
   let line = '';
   for (const w of words) { const t = line ? line + ' ' + w : w; if (X.measureText(t).width > maxW - 20 && line) { lines.push(line); line = w; } else line = t; }
   lines.push(line);
-  const bh = lines.length * 19 + 14;
+  const bh = lines.length * 19 + 32;
   X.fillStyle = PAL.k; X.fillRect(bx - 3, y - 3, maxW + 6, bh + 6);
   X.fillStyle = j.mood ? '#fff0ec' : '#fff5de'; X.fillRect(bx, y, maxW, bh);
   X.fillStyle = PAL.k; X.beginPath(); X.moveTo(bx - 3, y + 16); X.lineTo(bx - 12, y + 24); X.lineTo(bx - 3, y + 30); X.fill();
   X.fillStyle = j.mood === 2 ? '#c0301d' : '#2b2230'; X.textAlign = 'left'; X.textBaseline = 'top';
-  lines.forEach((l, i) => X.fillText(l, bx + 10, y + 8 + i * 19));
+  X.save(); X.font = '500 11px "DM Mono", ui-monospace, monospace'; X.fillStyle = '#7d6c57';
+  X.fillText(judge.name.toUpperCase(), bx + 10, y + 7); X.restore();
+  lines.forEach((l, i) => X.fillText(l, bx + 10, y + 25 + i * 19));
   X.globalAlpha = 1;
 }
 
@@ -4341,7 +4390,7 @@ function showResults() {
   else $('res-next').textContent = 'Earn ' + need + ' coins to unlock ' + next.name + '.';
   if (lv.finale && stars && nextOk) $('res-next').textContent = "You made it to Thanksgiving. The road trip is complete! A bonus challenge has opened: The Judge's Table.";
   else if (next && STOPS[next.stop].bonus && !nextOk) $('res-next').textContent = "Earn a star here to earn a seat at The Judge's Table.";
-  if (lv.judge) $('res-next').textContent = G.kicked ? `Chef Blaze threw you out after ${MAX_STRIKES} strikes. "${G.judge ? G.judge.text : ''}"` : stars ? 'Chef Blaze grunts. From him, that is a standing ovation. You passed!' : `Not enough. Chef Blaze wants ${need} coins with no more than two strikes.`;
+  if (lv.judge) $('res-next').textContent = G.kicked ? `Yourdone Ramsey threw you out after ${MAX_STRIKES} strikes. "${G.judge ? G.judge.text : ''}"` : stars ? 'Yourdone Ramsey grunts, Richie Blaze nods and Yesha Narrington smiles. You passed the Judge\'s Table!' : `Not enough. The judges want ${need} coins with no more than two strikes.`;
   if (guest) $('res-next').textContent = 'Your friend is picking what to play next.';
   show('scr-results');
 }
