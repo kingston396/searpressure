@@ -53,7 +53,13 @@ namespace SearPressure.UnityHost
             var request = new ConsentRequestParameters { TagForUnderAgeOfConsent = false };
             ConsentInformation.Update(request, updateError =>
             {
-                if (updateError != null) { Debug.LogWarning("Sear Pressure ads: consent info failed: " + updateError.Message); if (ConsentInformation.CanRequestAds()) StartAds(); return; }
+                if (updateError != null)
+                {
+                    Debug.LogWarning("Sear Pressure ads: consent info failed: " + updateError.Message);
+                    if (ConsentInformation.CanRequestAds()) StartAds();
+                    else consentRetryAt = Time.unscaledTime + 60;   // offline at start-up, say: try again later
+                    return;
+                }
                 if (suppressed) return;   // bought "Remove ads" meanwhile: no ad consent form
                 ConsentForm.LoadAndShowConsentFormIfRequired(formError =>
                 {
@@ -76,9 +82,14 @@ namespace SearPressure.UnityHost
             });
         }
 
+        float consentRetryAt;
         void Update()
         {
-            if (!started) return;
+            if (!started)
+            {
+                if (consentRetryAt > 0 && Time.unscaledTime > consentRetryAt && !suppressed) { consentRetryAt = 0; Begin(); }
+                return;
+            }
             float t = Time.unscaledTime;
             if (retryBanner > 0 && t > retryBanner) { retryBanner = 0; LoadBanner(); }
             if (retryInterstitial > 0 && t > retryInterstitial) { retryInterstitial = 0; LoadInterstitial(); }
