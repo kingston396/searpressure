@@ -3,7 +3,11 @@
 Sear Pressure is **free with ads**. A one-time in-app purchase, **"Remove ads" ($4.99, product ID `remove_ads`)**, turns
 every ad off for good and makes the revive free (no ad to watch).
 - AdMob App ID: `ca-app-pub-2822796427144413~6568766943`, already set in `AdsConfig.cs` and the Google Mobile Ads settings asset.
-- Ad unit IDs: still Google's **test** units in `AdsConfig.cs` until you create the real ones (steps below).
+- Ad unit IDs, all set in `AdsConfig.cs`:
+  - banner `ca-app-pub-2822796427144413/2544520785`
+  - interstitial `…/3140426310`
+  - rewarded `…/4261847002`
+- **Development builds (and the editor) automatically use Google's test units.** Release builds use the real ones.
 - The purchase uses Google Play Billing directly (`Unity/PlayBilling.cs`, library version in `Editor/SearPressureDependencies.xml`).
   The editor uses a pretend store, and **Sear Pressure → Testing → Reset "Remove Ads" Purchase** undoes it.
 - `SEARPRESSURE_ADS` is defined automatically while the Google Mobile Ads package is installed. Removing the package

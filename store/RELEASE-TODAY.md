@@ -18,22 +18,20 @@ new app, which usually takes from a few hours to a few days.
 2. **Android Studio** (the current version, from developer.android.com/studio). It brings its own Java and SDK.
 3. The project: download `main` from GitHub (Code → Download ZIP) or `git clone` it, and unzip it to a folder **without spaces** (e.g. `C:\dev\searpressure`).
 
-## Part B: AdMob, the three ad units (15 min)
+## Part B: AdMob (10 min)
 
-Your AdMob **App ID** is already in the project (`ca-app-pub-2822796427144413~6568766943`).
-1. In **admob.google.com → Apps → Sear Pressure → Ad units → Add ad unit**, create three:
-   - **Banner**, named "Bottom banner"
-   - **Interstitial**, named "Between levels"
-   - **Rewarded**, named "Revive". Reward: amount 1, item "revive"
-2. Send the three IDs (`ca-app-pub-2822796427144413/…`) to Claude, or paste them yourself into
-   `SearPressureUnity/Assets/SearPressure/Unity/AdsConfig.cs` (`AndroidBanner`, `AndroidInterstitial`, `AndroidRewarded`).
-   **Until then the game shows Google's test ads**, which earn nothing.
-3. **Privacy & messaging → GDPR → Create message.** Link it to the app, add your privacy-policy URL (Part F step 3) and publish it.
+Already in the project: App ID `ca-app-pub-2822796427144413~6568766943` and the three ad units:
+- Banner `…/2544520785`
+- Interstitial `…/3140426310`
+- Rewarded `…/4261847002`
+
+**Development builds automatically use Google's test ads instead**, so testing on your own phone never serves (or lets you tap) your real ads. Release builds use the real ones.
+1. **Privacy & messaging → GDPR → Create message.** Link it to the app, add your privacy-policy URL (Part F step 3) and publish it.
    Without it, the consent form can't show, and ads won't serve in Europe.
-4. After the app is live on Google Play: **Apps → Sear Pressure → App settings → Link to app store**. Also put the `app-ads.txt` line
+2. After the app is live on Google Play: **Apps → Sear Pressure → App settings → Link to app store**. Also put the `app-ads.txt` line
    AdMob gives you on your website (see `store/ADMOB.md`).
 
-⚠️ Never tap your own real ads. For testing, keep the test IDs or add your phone under AdMob → Settings → Test devices.
+⚠️ Never tap your own ads in the store version. AdMob bans accounts for invalid clicks.
 
 ## Part C: open it and test on your phone (about 30 min)
 
@@ -48,7 +46,7 @@ Your AdMob **App ID** is already in the project (`ca-app-pub-2822796427144413~65
    - Settings → About phone → tap **Build number** 7 times.
    - Settings → Developer options → **USB debugging** on.
    - Plug the phone in and allow the computer.
-5. In Build Profiles, **untick "Build App Bundle"**, then click **Build And Run** and save it as `test.apk`. It installs and starts on the phone.
+5. In Build Profiles, **untick "Build App Bundle"** and **tick "Development Build"** (so you get test ads), then click **Build And Run** and save it as `test.apk`. It installs and starts on the phone.
 6. **Phone checklist:**
    - [ ] **Sound:** music plays on the title, and effects play when you chop, serve and when a fire starts.
    - [ ] **Banner:** a "Test Ad" banner sits along the bottom. The kitchen, joystick and buttons are all above it, in portrait and landscape.

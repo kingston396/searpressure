@@ -14,9 +14,15 @@ namespace SearPressure.UnityHost
         public const string IosAppId = "ca-app-pub-3940256099942544~1458002511";
 
         // Ad unit IDs (with a "/").
-        public const string AndroidBanner = "ca-app-pub-3940256099942544/9214589741";
-        public const string AndroidInterstitial = "ca-app-pub-3940256099942544/1033173712";
-        public const string AndroidRewarded = "ca-app-pub-3940256099942544/5224354917";
+        // Sear Pressure's real Android ad units (AdMob → Apps → Sear Pressure → Ad units).
+        public const string AndroidBanner = "ca-app-pub-2822796427144413/2544520785";
+        public const string AndroidInterstitial = "ca-app-pub-2822796427144413/3140426310";
+        public const string AndroidRewarded = "ca-app-pub-2822796427144413/4261847002";
+        // Google's test units: used automatically in Development builds (Build Profiles → Development Build),
+        // so testing on your own phone never serves or taps real ads.
+        const string TestAndroidBanner = "ca-app-pub-3940256099942544/9214589741";
+        const string TestAndroidInterstitial = "ca-app-pub-3940256099942544/1033173712";
+        const string TestAndroidRewarded = "ca-app-pub-3940256099942544/5224354917";
         public const string IosBanner = "ca-app-pub-3940256099942544/2435281174";
         public const string IosInterstitial = "ca-app-pub-3940256099942544/4411468910";
         public const string IosRewarded = "ca-app-pub-3940256099942544/1712485313";
@@ -30,9 +36,10 @@ namespace SearPressure.UnityHost
         public static string Interstitial => IosInterstitial;
         public static string Rewarded => IosRewarded;
 #else
-        public static string Banner => AndroidBanner;
-        public static string Interstitial => AndroidInterstitial;
-        public static string Rewarded => AndroidRewarded;
+        static bool Test => UnityEngine.Debug.isDebugBuild;
+        public static string Banner => Test ? TestAndroidBanner : AndroidBanner;
+        public static string Interstitial => Test ? TestAndroidInterstitial : AndroidInterstitial;
+        public static string Rewarded => Test ? TestAndroidRewarded : AndroidRewarded;
 #endif
     }
 }
