@@ -51,6 +51,7 @@ namespace SearPressure.UnityHost
             // A previous session may already have consent: start straight away, and refresh consent too.
             if (ConsentInformation.CanRequestAds()) StartAds();
             var request = new ConsentRequestParameters { TagForUnderAgeOfConsent = false };
+            Debug.Log("Sear Pressure ads: checking privacy consent");
             ConsentInformation.Update(request, updateError =>
             {
                 if (updateError != null)
@@ -64,8 +65,10 @@ namespace SearPressure.UnityHost
                     return;
                 }
                 if (suppressed) return;   // bought "Remove ads" meanwhile: no ad consent form
+                Debug.Log("Sear Pressure ads: consent status " + ConsentInformation.ConsentStatus);
                 ConsentForm.LoadAndShowConsentFormIfRequired(formError =>
                 {
+                    Debug.Log("Sear Pressure ads: consent done, ads allowed: " + ConsentInformation.CanRequestAds());
                     if (formError != null) Debug.LogWarning("Sear Pressure ads: consent form failed: " + formError.Message);
                     if (ConsentInformation.CanRequestAds()) StartAds();
                 });
@@ -77,8 +80,10 @@ namespace SearPressure.UnityHost
             if (started || suppressed) return;   // never start the ads SDK for a "Remove ads" owner
             started = true;
             if (AdsConfig.UsingTestIds) Debug.Log("Sear Pressure ads: using Google's TEST ad IDs (see AdsConfig.cs).");
+            Debug.Log("Sear Pressure ads: starting (consent allows ads: " + ConsentInformation.CanRequestAds() + ", test ads: " + UnityEngine.Debug.isDebugBuild + ")");
             MobileAds.Initialize(_ =>
             {
+                Debug.Log("Sear Pressure ads: SDK ready, loading banner, full-screen and rewarded ads");
                 LoadBanner();
                 LoadInterstitial();
                 LoadRewarded();
@@ -107,7 +112,7 @@ namespace SearPressure.UnityHost
             var size = AdSize.GetCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(MobileAds.Utils.GetDeviceSafeWidth());
             banner = new BannerView(AdsConfig.Banner, size, AdPosition.Bottom);
             var bv = banner;
-            bv.OnBannerAdLoaded += () => { if (bv != banner) return; BannerHeightPx = bv.GetHeightInPixels(); if (fullScreen || !bannerWanted) bv.Hide(); else bv.Show(); };
+            bv.OnBannerAdLoaded += () => { if (bv != banner) return; Debug.Log("Sear Pressure ads: banner loaded (" + (fullScreen || !bannerWanted ? "hidden for now" : "showing") + ")"); BannerHeightPx = bv.GetHeightInPixels(); if (fullScreen || !bannerWanted) bv.Hide(); else bv.Show(); };
             bv.OnBannerAdLoadFailed += err =>
             {
                 Debug.LogWarning("Sear Pressure ads: banner failed: " + err.GetMessage());
@@ -138,7 +143,8 @@ namespace SearPressure.UnityHost
             interstitial?.Destroy(); interstitial = null;
             InterstitialAd.Load(AdsConfig.Interstitial, new AdRequest(), (ad, err) =>
             {
-                if (err != null || ad == null) { retryInterstitial = Time.unscaledTime + 30; return; }
+                if (err != null || ad == null) { Debug.LogWarning("Sear Pressure ads: full-screen ad failed to load: " + err?.GetMessage()); retryInterstitial = Time.unscaledTime + 30; return; }
+                Debug.Log("Sear Pressure ads: full-screen ad loaded");
                 if (suppressed) { ad.Destroy(); return; }   // bought "Remove ads" while it was loading
                 interstitial = ad;
             });
@@ -165,7 +171,8 @@ namespace SearPressure.UnityHost
             rewarded?.Destroy(); rewarded = null;
             RewardedAd.Load(AdsConfig.Rewarded, new AdRequest(), (ad, err) =>
             {
-                if (err != null || ad == null) { retryRewarded = Time.unscaledTime + 30; return; }
+                if (err != null || ad == null) { Debug.LogWarning("Sear Pressure ads: rewarded video failed to load: " + err?.GetMessage()); retryRewarded = Time.unscaledTime + 30; return; }
+                Debug.Log("Sear Pressure ads: rewarded video loaded");
                 if (suppressed) { ad.Destroy(); return; }
                 rewarded = ad;
             });
