@@ -83,6 +83,7 @@ namespace SearPressure
             bool on = NET.role != null && (NET.role == "host" ? NET.guests.Count > 0 : true);
             if (!on && onlineEnabled && Button("btn-online", "Play with a friend", "alt")) { onlineButtonsEnabled = true; onlineStatus = "Both phones need an internet connection. Once you're connected, the game data goes between your phones through the relay server."; show("scr-online"); }
             if (Button("btn-shop", "Shop", "ghost", fmtCoins(save.wallet) + " coins to spend")) openShop(null);
+            RemoveAdsOffer();
             var dl = dailyLevel();
             if (Button("btn-daily", "Daily challenge", "ghost", DAILY.twist.name + " at " + dl.baseName + " · " + (questDone() ? "Quest done ✓" : "Quest: " + QUEST_REWARD + " coins"))) { dailyLevel(); openIntro(DAILY_IDX); }
             if (on) OnlineBanner();
@@ -398,7 +399,9 @@ namespace SearPressure
                 cy += 8;
             }
             cy += GAP - 8;
-            if (ads != null && ads.PrivacyOptionsRequired && Button("btn-privacy", "Privacy choices", "ghost", "Change how ads use your data")) ads.ShowPrivacyOptions();
+            StoreSettings();
+            var consent = platform.Ads;   // consent choices stay reachable even after buying
+            if (consent != null && consent.PrivacyOptionsRequired && Button("btn-privacy", "Privacy choices", "ghost", "Change how ads use your data")) consent.ShowPrivacyOptions();
             if (Button("btn-settings-close", "Done")) show(settingsBack);
             cy -= GAP;
         }

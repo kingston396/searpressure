@@ -23,9 +23,17 @@ namespace SearPressure.UnityHost
         TouchScreenKeyboard keyboard;
 #if SEARPRESSURE_ADS
         AdMobAds adMob;
-        float BannerPx => adMob != null ? adMob.BannerHeightPx : 0;
+        float BannerPx => adMob != null && !(store != null && store.Owned) ? adMob.BannerHeightPx : 0;
 #else
-        float BannerPx => 0;   // no ads in the paid version
+        float BannerPx => 0;   // built without the Google Mobile Ads package
+#endif
+        // "Remove ads": Google Play Billing on Android, a pretend store in the editor, none elsewhere.
+#if UNITY_ANDROID && !UNITY_EDITOR
+        PlayBilling store;
+#elif UNITY_EDITOR
+        EditorStore store;
+#else
+        IStore store = null;
 #endif
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -74,8 +82,25 @@ namespace SearPressure.UnityHost
 #if UNITY_ANDROID && !UNITY_EDITOR
             game.onQuit = () => Application.Quit();
 #endif
+#if UNITY_ANDROID && !UNITY_EDITOR
+            store = gameObject.AddComponent<PlayBilling>(); store.Begin();
+#elif UNITY_EDITOR
+            store = gameObject.AddComponent<EditorStore>(); store.Begin();
+#endif
 #if SEARPRESSURE_ADS
-            if (AdsConfig.Enabled) { adMob = gameObject.AddComponent<AdMobAds>(); adMob.Begin(); }
+            if (AdsConfig.Enabled)
+            {
+                adMob = gameObject.AddComponent<AdMobAds>();
+                // Bought "Remove ads" (remembered on the device): no ads, and no ad consent form either.
+                if (store == null || !store.Owned) adMob.Begin();
+            }
+#endif
+#if SEARPRESSURE_ADS && (UNITY_EDITOR || UNITY_ANDROID)
+            if (store != null) store.OwnedChanged += owned =>
+            {
+                if (adMob == null) return;
+                if (owned) adMob.Suppress(); else adMob.Begin();   // bought → ads off now; refunded → ads back
+            };
 #endif
             ApplyScreen(true);
         }
@@ -131,6 +156,7 @@ namespace SearPressure.UnityHost
 #else
         public IAds Ads => null;
 #endif
+        public IStore Store => store;
         public void OpenKeyboard(string text, int maxLength)
         {
             if (TouchScreenKeyboard.isSupported) keyboard = TouchScreenKeyboard.Open(text, TouchScreenKeyboardType.ASCIICapable, false, false, false, false, "ABCD", maxLength);

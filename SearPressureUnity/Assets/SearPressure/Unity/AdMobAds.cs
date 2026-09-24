@@ -1,6 +1,5 @@
-// AdMob is switched off: Sear Pressure is a paid app with no ads. To bring ads back, add the Google Mobile
-// Ads package (see store/ADMOB.md), restore Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset,
-// add SEARPRESSURE_ADS to Player Settings → Scripting Define Symbols, and set AdsConfig.Enabled = true.
+// Compiled only while the Google Mobile Ads package is installed (SEARPRESSURE_ADS comes from the asmdef's
+// version defines). See store/ADMOB.md.
 #if SEARPRESSURE_ADS
 using System;
 using GoogleMobileAds.Api;
@@ -22,8 +21,20 @@ namespace SearPressure.UnityHost
         // Banner height in screen pixels (0 until one has loaded). The host keeps the game above it.
         public float BannerHeightPx { get; private set; }
 
+        bool suppressed;
+
+        // "Remove ads" was bought: drop the banner and stop loading full-screen ads.
+        public void Suppress()
+        {
+            suppressed = true;
+            banner?.Destroy(); banner = null; BannerHeightPx = 0;
+            interstitial?.Destroy(); interstitial = null;
+            rewarded?.Destroy(); rewarded = null;
+        }
+
         public void Begin()
         {
+            if (suppressed) { suppressed = false; if (started) { LoadBanner(); LoadInterstitial(); LoadRewarded(); } }
             MobileAds.RaiseAdEventsOnUnityMainThread = true;
             // A previous session may already have consent: start straight away, and refresh consent too.
             if (ConsentInformation.CanRequestAds()) StartAds();
@@ -64,23 +75,25 @@ namespace SearPressure.UnityHost
         // ---- banner ----
         void LoadBanner()
         {
+            if (suppressed) return;
             banner?.Destroy();
             var size = AdSize.GetCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(MobileAds.Utils.GetDeviceSafeWidth());
             banner = new BannerView(AdsConfig.Banner, size, AdPosition.Bottom);
-            banner.OnBannerAdLoaded += () => { BannerHeightPx = banner.GetHeightInPixels(); if (fullScreen) banner.Hide(); };
-            banner.OnBannerAdLoadFailed += err =>
+            var bv = banner;
+            bv.OnBannerAdLoaded += () => { if (bv != banner) return; BannerHeightPx = bv.GetHeightInPixels(); if (fullScreen) bv.Hide(); };
+            bv.OnBannerAdLoadFailed += err =>
             {
                 Debug.LogWarning("Sear Pressure ads: banner failed: " + err.GetMessage());
                 BannerHeightPx = 0; retryBanner = Time.unscaledTime + 30;
             };
-            banner.LoadAd(new AdRequest());
+            bv.LoadAd(new AdRequest());
         }
 
         // Reload the banner at the new width after the phone rotates.
         int lastW, lastH;
         void LateUpdate()
         {
-            if (!started || banner == null) return;
+            if (!started || banner == null || suppressed) return;
             if (Screen.width != lastW || Screen.height != lastH)
             {
                 bool first = lastW == 0;
@@ -92,10 +105,12 @@ namespace SearPressure.UnityHost
         // ---- interstitial ----
         void LoadInterstitial()
         {
+            if (suppressed) return;
             interstitial?.Destroy(); interstitial = null;
             InterstitialAd.Load(AdsConfig.Interstitial, new AdRequest(), (ad, err) =>
             {
                 if (err != null || ad == null) { retryInterstitial = Time.unscaledTime + 30; return; }
+                if (suppressed) { ad.Destroy(); return; }   // bought "Remove ads" while it was loading
                 interstitial = ad;
             });
         }
@@ -117,10 +132,12 @@ namespace SearPressure.UnityHost
         // ---- rewarded ----
         void LoadRewarded()
         {
+            if (suppressed) return;
             rewarded?.Destroy(); rewarded = null;
             RewardedAd.Load(AdsConfig.Rewarded, new AdRequest(), (ad, err) =>
             {
                 if (err != null || ad == null) { retryRewarded = Time.unscaledTime + 30; return; }
+                if (suppressed) { ad.Destroy(); return; }
                 rewarded = ad;
             });
         }

@@ -25,6 +25,7 @@ sealed class NetPlatform : IPlatform
     public INetTransport CreateTransport() => new WsRelayTransport(relay);
     public void OpenKeyboard(string text, int maxLength) { }
     public IAds Ads => null;
+    public IStore Store => null;
 }
 
 static partial class Tests

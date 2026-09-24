@@ -18,6 +18,7 @@ namespace SearPressure
         INetTransport CreateTransport();             // online play; null when not available
         void OpenKeyboard(string text, int maxLength);
         IAds Ads { get; }                            // banner/interstitial/rewarded ads; null for none
+        IStore Store { get; }                        // the "Remove ads" purchase; null when there's no store
     }
 
     public sealed class Pt { public double x, y, r; public Pt(double x, double y, double r = 0) { this.x = x; this.y = y; this.r = r; } }

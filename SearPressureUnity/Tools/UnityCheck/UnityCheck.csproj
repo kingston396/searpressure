@@ -12,11 +12,16 @@
   <ItemGroup>
     <Compile Include="../../Assets/SearPressure/Core/**/*.cs" />
     <Compile Include="../../Assets/SearPressure/Unity/**/*.cs" />
+    <Compile Include="CheckShims.cs" />
   </ItemGroup>
   <!-- Google Mobile Ads DLLs: from Unity's package cache once the project has been opened, or point
        GmaDir at the plugin's GoogleMobileAds folder (e.g. a clone of googleads-mobile-unity). -->
   <PropertyGroup>
     <GmaDir Condition="'$(GmaDir)' == '' And Exists('$(MSBuildThisFileDirectory)../../Library/PackageCache')">$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)../../Library/PackageCache', 'com.google.ads.mobile*')[0])/GoogleMobileAds</GmaDir>
+  </PropertyGroup>
+  <!-- -p:ExtraDefines=UNITY_ANDROID compiles the Android-only code (Play Billing) too. -->
+  <PropertyGroup Condition="'$(ExtraDefines)' != ''">
+    <DefineConstants>$(DefineConstants);$(ExtraDefines)</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(GmaDir)' != ''">
     <DefineConstants>$(DefineConstants);SEARPRESSURE_ADS</DefineConstants>

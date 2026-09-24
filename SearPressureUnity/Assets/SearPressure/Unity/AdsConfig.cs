@@ -5,11 +5,12 @@ namespace SearPressure.UnityHost
     // Never tap your own live ads, or AdMob can suspend the account. See store/ADMOB.md.
     public static class AdsConfig
     {
-        // Off: the paid version has no ads. (Ads also need the SEARPRESSURE_ADS define and the AdMob package.)
-        public static bool Enabled = false;
+        // Free with ads; buying "Remove ads" (PlayBilling.cs) switches them off. SEARPRESSURE_ADS is defined
+        // automatically while the Google Mobile Ads package is installed (see SearPressure.Unity.asmdef).
+        public static bool Enabled = true;
 
         // App IDs (with a "~"). The editor copies these into Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset.
-        public const string AndroidAppId = "ca-app-pub-3940256099942544~3347511713";
+        public const string AndroidAppId = "ca-app-pub-2822796427144413~6568766943";   // Sear Pressure (Android) in AdMob
         public const string IosAppId = "ca-app-pub-3940256099942544~1458002511";
 
         // Ad unit IDs (with a "/").

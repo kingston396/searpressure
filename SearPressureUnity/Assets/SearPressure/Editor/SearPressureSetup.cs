@@ -117,6 +117,14 @@ namespace SearPressure.EditorTools
             Debug.Log("Sear Pressure: wallet is now " + save.wallet + " (restart Play mode to see it).");
         }
 
+        [MenuItem("Sear Pressure/Testing/Reset \"Remove Ads\" Purchase", priority = 23)]
+        public static void ResetRemoveAds()
+        {
+            // Only the editor's pretend store (and the on-device cache) — real purchases live in Google Play.
+            PlayerPrefs.DeleteKey(SearPressure.UnityHost.StoreConfig.OwnedKey); PlayerPrefs.Save();
+            Debug.Log("Sear Pressure: \"Remove ads\" reset for Play mode (restart Play mode).");
+        }
+
         [MenuItem("Sear Pressure/Testing/Reset Save", priority = 22)]
         public static void ResetSave()
         {

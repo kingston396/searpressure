@@ -59,23 +59,23 @@ so if you use them, don't mix in hand-made builds with higher numbers.
 
 1. Sign up at **play.google.com/console** ($25 once, identity verification can take a few days).
    Use **Ragnarok Talent Partners LLC** as the developer name (an organisation account in the LLC's name).
-2. **Create app:** name *Sear Pressure*, default language English (US), **Game**, **Paid**. Accept the declarations.
-   Then **Monetise → App pricing → Set price → $4.99 (USD)**; Play converts it for other countries. This needs a **payments profile** (Setup → Payments profile), which Google asks you to create first.
+2. **Create app:** name *Sear Pressure*, default language English (US), **Game**, **Free**. Accept the declarations.
+   The $4.99 "Remove ads" in-app product is created after the first upload: see `store/RELEASE-TODAY.md`, Part G.
 3. Work through **Dashboard → Set up your app**. Every answer is in `store/listing.md`:
 
 | Section | Answer |
 |---|---|
 | Privacy policy | the public address of `store/privacy-policy.html` (see "Hosting the privacy policy" in `listing.md`) |
 | App access | All functionality available without special access |
-| Ads | No, my app does not contain ads |
+| Ads | **Yes, my app contains ads** |
 | Content rating | Fill the IARC questionnaire: category *Game*, answers in `listing.md` → Everyone / PEGI 3 |
 | Target audience | 13 and over (see `listing.md` for why) |
 | News app | No |
-| Data safety | See `listing.md` (no data collected) |
+| Data safety | See `listing.md` (AdMob: approximate location, device IDs, app interactions, diagnostics) |
 | Government app | No |
 | Financial features | None |
 | Health | None |
-| Advertising ID | No (the game doesn't use it) |
+| Advertising ID | Yes: used for Advertising and Analytics (AdMob) |
 
 4. **Store listing** (Grow → Store presence → Main store listing):
    - App name, short description, full description: copy them from `listing.md`.

@@ -22,6 +22,7 @@ sealed class HarnessPlatform : IPlatform
     public bool Calm => calm;
     public INetTransport CreateTransport() => null;
     public IAds Ads { get; set; }
+    public IStore Store { get; set; }
     public void OpenKeyboard(string text, int maxLength) { }
 }
 
@@ -72,4 +73,29 @@ sealed class FakeAds : IAds
     public void ShowRewarded(Action<bool> done) { rewardeds++; bool e = earn; if (async) pending = () => done(e); else done(e); }
     public bool PrivacyOptionsRequired => privacy;
     public void ShowPrivacyOptions() { privacyShown++; }
+}
+
+// Stand-in for Google Play Billing: `next` decides what the next Buy returns.
+sealed class FakeStore : IStore
+{
+    public bool owned, ready = true, async;
+    public string price = "$4.99";
+    public StoreResult next = StoreResult.Purchased, restoreResult = StoreResult.NotOwned;
+    public int buys, restores;
+    public Action pending;
+    public bool Owned => owned;
+    public string Price => ready ? price : null;
+    public bool Ready => ready;
+    public void Buy(Action<StoreResult> done)
+    {
+        buys++;
+        void Finish() { if (next == StoreResult.Purchased || next == StoreResult.AlreadyOwned) owned = true; done(next); }
+        if (async) pending = Finish; else Finish();
+    }
+    public void Restore(Action<StoreResult> done)
+    {
+        restores++;
+        if (restoreResult == StoreResult.AlreadyOwned || restoreResult == StoreResult.Purchased) owned = true;
+        done(restoreResult);
+    }
 }

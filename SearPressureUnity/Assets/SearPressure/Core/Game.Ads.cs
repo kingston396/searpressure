@@ -20,7 +20,8 @@ namespace SearPressure
         public const int INTERSTITIAL_EVERY = 2;     // a full-screen ad after every 2nd finished service
         public const double REVIVE_SECONDS = 30, DRIVE_REVIVE_SECONDS = 20;
 
-        IAds ads => platform.Ads;
+        // No ads for players who bought "Remove ads".
+        IAds ads => adsRemoved ? null : platform.Ads;
         public int adLevels;                         // services finished since the last interstitial
         bool adBusy;                                 // a full-screen ad is up: menus ignore taps
         double adBusyAt; int adToken; Action adNext;
@@ -52,12 +53,14 @@ namespace SearPressure
         // Called every frame: if the ad SDK never reports back (its activity was killed, say), carry on anyway.
         void adsTick()
         {
+            storeTick();
             if (adBusy && T - adBusyAt > AD_TIMEOUT) { adToken++; finishBreakAd(); }
             if (reviveWaiting && T - reviveAt > AD_TIMEOUT) { reviveToken++; reviveWaiting = false; declineRevive(); }
         }
 
         // ---- revive: a failed service can watch one rewarded ad to keep going ----
-        bool canOfferRevive() => ads != null && NET.role == null && ads.RewardedReady;
+        // Paid players get the revive without an ad.
+        bool canOfferRevive() => NET.role == null && (adsRemoved || (ads != null && ads.RewardedReady));
 
         // Time ran out with no stars, or the Judge's third strike. True if the offer is now showing.
         bool offerRevive(string kind)
@@ -89,6 +92,7 @@ namespace SearPressure
         {
             if (reviveWaiting) return;
             if (!canOfferRevive()) { declineRevive(); return; }
+            if (adsRemoved) { applyRevive(); return; }
             reviveWaiting = true; reviveAt = T;
             adLevels = 0;   // a rewarded ad counts as this break's ad: no interstitial straight after it
             int token = ++reviveToken;
@@ -136,12 +140,14 @@ namespace SearPressure
             bool drive = reviveKind == "drive", strikes = reviveKind == "strikes";
             Mono(strikes ? "Three strikes" : "Time's up", drive ? "Delivery Run" : G != null ? G.lv.name : "");
             H2(strikes ? "Thrown out?" : "Keep going?");
+            string how = adsRemoved ? "Take" : "Watch a short ad for";
             Para(strikes
-                ? "Watch a short ad to wipe your last strike and get back to the pass."
+                ? (adsRemoved ? "Wipe your last strike and get back to the pass." : "Watch a short ad to wipe your last strike and get back to the pass.")
                 : drive
-                    ? $"No stars yet. Watch a short ad for {U.S(DRIVE_REVIVE_SECONDS)} more seconds on the clock."
-                    : $"No stars yet. Watch a short ad for {U.S(REVIVE_SECONDS)} more seconds of service.");
-            if (Button("btn-revive", strikes ? "Watch an ad: wipe a strike" : $"Watch an ad: +{U.S(drive ? DRIVE_REVIVE_SECONDS : REVIVE_SECONDS)} seconds", "btn", null, reviveWaiting)) acceptRevive();
+                    ? $"No stars yet. {how} {U.S(DRIVE_REVIVE_SECONDS)} more seconds on the clock."
+                    : $"No stars yet. {how} {U.S(REVIVE_SECONDS)} more seconds of service.");
+            string gain = strikes ? "wipe a strike" : $"+{U.S(drive ? DRIVE_REVIVE_SECONDS : REVIVE_SECONDS)} seconds";
+            if (Button("btn-revive", adsRemoved ? "Keep going: " + gain : "Watch an ad: " + gain, "btn", null, reviveWaiting)) acceptRevive();
             if (Button("btn-revive-no", "No thanks", "ghost", null, reviveWaiting)) declineRevive();
             Para("One revive per service.", "small");
             cy -= GAP;

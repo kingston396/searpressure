@@ -1,16 +1,13 @@
-# Ads in Sear Pressure (Google AdMob): currently OFF
+# Ads in Sear Pressure (Google AdMob) and "Remove ads"
 
-Sear Pressure ships as a **paid app ($4.99) with no ads**. The AdMob code is kept but switched off. To turn it on for a
-free version:
-1. Add back to `SearPressureUnity/Packages/manifest.json` the OpenUPM scoped registry (`https://package.openupm.com`, scopes
-   `com.google.ads.mobile` and `com.google.external-dependency-manager`) and the dependencies
-   `"com.google.ads.mobile": "11.5.0"` and `"com.google.external-dependency-manager": "1.2.187"`.
-2. Restore `Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset` from git history (commit 2034d29).
-3. Player Settings → Other Settings → Scripting Define Symbols: add `SEARPRESSURE_ADS`.
-4. Set `AdsConfig.Enabled = true`, put in your IDs, and switch the privacy policy and store forms back to the ad versions
-   (also in commit 2034d29).
-
-The rest of this page describes how the ads behave when they're on.
+Sear Pressure is **free with ads**. A one-time in-app purchase, **"Remove ads" ($4.99, product ID `remove_ads`)**, turns
+every ad off for good and makes the revive free (no ad to watch).
+- AdMob App ID: `ca-app-pub-2822796427144413~6568766943`, already set in `AdsConfig.cs` and the Google Mobile Ads settings asset.
+- Ad unit IDs: still Google's **test** units in `AdsConfig.cs` until you create the real ones (steps below).
+- The purchase uses Google Play Billing directly (`Unity/PlayBilling.cs`, library version in `Editor/SearPressureDependencies.xml`).
+  The editor uses a pretend store, and **Sear Pressure → Testing → Reset "Remove Ads" Purchase** undoes it.
+- `SEARPRESSURE_ADS` is defined automatically while the Google Mobile Ads package is installed. Removing the package
+  (and setting `AdsConfig.Enabled = false`) makes the build ad-free.
 
 ## What the game does
 

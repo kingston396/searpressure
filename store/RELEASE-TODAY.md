@@ -1,19 +1,14 @@
 # Release Sear Pressure today: Unity → Android Studio → Google Play
 
-Sear Pressure 1.0.0 (build 1) · package `com.kingston.searpressure` · **Paid $4.99, no ads, no in-app purchases**
+Sear Pressure 1.0.0 (build 1) · package `com.kingston.searpressure` · **Free with ads** · one-time in-app purchase
+**"Remove ads" $4.99** (product ID `remove_ads`), which also makes revives free.
 
 ## Your account: an organisation (LLC)
 
-Because the developer account belongs to your LLC (an **organisation account**), Google's "12 testers for 14 days"
-closed-test rule for new personal accounts **does not apply**. You can publish straight to **production** today.
-What's left is Google's own verification of the account (if not already done) and its review of a new app, which
-usually takes from a few hours to a few days.
-
----|---|
-| **New personal account** (made after Nov 2023) | Upload the build and get it into **internal and closed testing** today. Google then requires **12 testers opted in for 14 days** before you can apply for production. Identity verification can also take a few days first. |
-| **Organisation account**, or a personal account from before Nov 2023 | You can go to **production** today. Google's first review of a new app usually takes a few hours to a few days. |
-
-Either way, everything below can be done today.
+The developer account belongs to Ragnarok Talent Partners LLC (an **organisation account**), so Google's
+"12 testers for 14 days" closed-test rule for new personal accounts **does not apply**. You can publish straight to
+**production** today. What's left is Google's verification of the account (if not already done) and its review of a
+new app, which usually takes from a few hours to a few days.
 
 ---
 
@@ -23,35 +18,54 @@ Either way, everything below can be done today.
 2. **Android Studio** (the current version, from developer.android.com/studio). It brings its own Java and SDK.
 3. The project: download `main` from GitHub (Code → Download ZIP) or `git clone` it, and unzip it to a folder **without spaces** (e.g. `C:\dev\searpressure`).
 
-## Part B: open it and test on your phone (about 30 min)
+## Part B: AdMob, the three ad units (15 min)
+
+Your AdMob **App ID** is already in the project (`ca-app-pub-2822796427144413~6568766943`).
+1. In **admob.google.com → Apps → Sear Pressure → Ad units → Add ad unit**, create three:
+   - **Banner**, named "Bottom banner"
+   - **Interstitial**, named "Between levels"
+   - **Rewarded**, named "Revive". Reward: amount 1, item "revive"
+2. Send the three IDs (`ca-app-pub-2822796427144413/…`) to Claude, or paste them yourself into
+   `SearPressureUnity/Assets/SearPressure/Unity/AdsConfig.cs` (`AndroidBanner`, `AndroidInterstitial`, `AndroidRewarded`).
+   **Until then the game shows Google's test ads**, which earn nothing.
+3. **Privacy & messaging → GDPR → Create message.** Link it to the app, add your privacy-policy URL (Part F step 3) and publish it.
+   Without it, the consent form can't show, and ads won't serve in Europe.
+4. After the app is live on Google Play: **Apps → Sear Pressure → App settings → Link to app store**. Also put the `app-ads.txt` line
+   AdMob gives you on your website (see `store/ADMOB.md`).
+
+⚠️ Never tap your own real ads. For testing, keep the test IDs or add your phone under AdMob → Settings → Test devices.
+
+## Part C: open it and test on your phone (about 30 min)
 
 1. Unity Hub → **Add → Add project from disk** → pick `searpressure/SearPressureUnity` → open it with 6000.3.9f1.
-   The first import takes a few minutes. If the Console shows **"Assembly with name 'Unity.AI…' already exists"**:
-   Window → Package Manager → *In Project* → remove **AI Generators** (and **AI Assistant**).
-2. Menu **Sear Pressure → Apply Store Settings**. This sets the icon, splash, version, package name and release options.
+   - The first import downloads Google Mobile Ads and the External Dependency Manager, which takes a few minutes.
+   - If the Console shows **"Assembly with name 'Unity.AI…' already exists"**: Window → Package Manager → *In Project* → remove **AI Generators** (and **AI Assistant**).
+   - If the Dependency Manager asks to **enable Android auto-resolution** or **Gradle templates**, choose **Enable**.
+2. Menu **Sear Pressure → Apply Store Settings**. This sets the icon, splash, version, package name and release options, and copies the AdMob App ID into place.
 3. **File → Build Profiles → Android → Switch Platform** (takes a few minutes the first time).
+   Then **Assets → External Dependency Manager → Android Resolver → Force Resolve**. This pulls in Google Mobile Ads and Play Billing.
 4. On your phone:
    - Settings → About phone → tap **Build number** 7 times.
    - Settings → Developer options → **USB debugging** on.
    - Plug the phone in and allow the computer.
 5. In Build Profiles, **untick "Build App Bundle"**, then click **Build And Run** and save it as `test.apk`. It installs and starts on the phone.
 6. **Phone checklist:**
-   - [ ] **Sound:** music plays on the title, and effects play when you chop, serve and when a fire starts. Settings → Sound off/on works.
+   - [ ] **Sound:** music plays on the title, and effects play when you chop, serve and when a fire starts.
+   - [ ] **Banner:** a "Test Ad" banner sits along the bottom. The kitchen, joystick and buttons are all above it, in portrait and landscape.
+   - [ ] **Interstitial:** finish 2 kitchens. Leaving the 2nd results card shows a full-screen test ad; closing it carries on.
+   - [ ] **Revive:** let Salad Days run out with 0 coins → **Keep going?** → **Watch an ad** → watch it to the end → +30 seconds.
+   - [ ] **Remove ads button:** it shows on the title. In this sideloaded build it says Google Play isn't available. That's expected: purchases only work once the app is on Play (Part G).
    - [ ] **Touch:** the joystick moves the chef; Grab, Chop and Swap respond; tickets zoom when tapped.
    - [ ] **Back button:**
      - in a kitchen, it pauses;
      - on the results card, it goes to the kitchen list;
      - on the title, it closes the game.
      - On Android 16 phones, check this especially carefully.
-   - [ ] **Rotation:** portrait and landscape both lay out properly, with nothing under the notch or the gesture bar.
    - [ ] **Progress survives restarts:** play a kitchen, force-close the app, reopen it, and the stars are still there.
-   - [ ] **Tutorial:** it plays to the end.
-   - [ ] **Daily challenge:** it starts.
-   - [ ] **Shop:** buying something works.
-   - [ ] **Vibration:** short taps when serving, a longer buzz for a strike. Settings → Vibration off stops it.
+   - [ ] **Vibration:** short taps when serving, a longer buzz for a strike.
    If anything looks wrong, take a screenshot and send it to Claude before going on.
 
-## Part C: make the upload key (10 min, once, keep it forever)
+## Part D: make the upload key (10 min, once, keep it forever)
 
 Either in Unity (**Project Settings → Player → Android → Publishing Settings → Keystore Manager → Create New → Anywhere**)
 or later in Android Studio's signing wizard (**Create new…**):
@@ -59,7 +73,7 @@ or later in Android Studio's signing wizard (**Create new…**):
 - Alias `upload`, validity 50 years, your name as the owner.
 - **Back up the file and both passwords** (a password manager plus a USB stick or cloud drive). Every future update must be signed with it.
 
-## Part D: build the release in Android Studio (15–30 min)
+## Part E: build the release in Android Studio (15–30 min)
 
 1. In Unity: **Sear Pressure → Release → Export Android Studio Project**. Choose a folder outside the project, e.g. `C:\dev\SearPressure-AndroidStudio`. Wait for "Build completed".
 2. **Android Studio → Open** → that folder. Let **Gradle sync** finish (the first time downloads a lot, 5–10 min).
@@ -69,22 +83,18 @@ or later in Android Studio's signing wizard (**Create new…**):
 4. Pick your keystore (or **Create new…**), enter the passwords, alias `upload` → **Next**.
 5. Choose the **release** variant → **Create**.
 6. When it finishes, click **locate**. The file is `launcher/release/launcher-release.aab`. Rename it `SearPressure-1.0.0-1.aab`.
-7. Optional check: with the phone plugged in, **Run ▶ (launcher)** installs the release build. Play for a minute.
 
 (The GitHub **Android build** workflow can also produce the signed `.aab` or this Android Studio project, once its secrets are set. See `.github/workflows/README.md`.)
 
-## Part E: Google Play Console (about 1–2 hours of forms)
+## Part F: Google Play Console (about 1–2 hours of forms)
 
-1. **play.google.com/console** → pay the $25 fee and verify your identity.
-   The account is in the **LLC's name**: organisation verification uses the LLC's **D-U-N-S number**. If you
-   don't have one, it's free from Dun & Bradstreet, but it can take a few days. Your developer name on the store
-   is the LLC's (or the name you choose in Settings → Developer account → Account details).
-   Also: **Setup → Payments profile**. A paid app needs a **business** payments profile in the LLC's name, with the
-   LLC's bank account and tax details (EIN).
+1. **play.google.com/console**, in the LLC's name.
+   - Organisation verification uses the LLC's **D-U-N-S number**. If you don't have one, it's free from Dun & Bradstreet, but it can take a few days.
+   - **Setup → Payments profile:** selling "Remove ads" needs a **business** payments profile in the LLC's name, with its bank account and tax details (EIN).
 2. **Create app:**
-   - Sear Pressure, English (US), **Game**, **Paid**.
+   - Sear Pressure, English (US), **Game**, **Free**.
    - Accept the declarations.
-3. **Put the privacy policy online** (Play needs a public link). Pick one:
+3. **Put the privacy policy online** (Play and AdMob both need a public link). Pick one:
    - **Google Sites:** new site → paste the text of `store/privacy-policy.html` → Publish. This takes 10 minutes.
    - **GitHub Pages:** repo Settings → Pages → Branch `main`, folder `/root`. The link is `https://kingston396.github.io/searpressure/store/privacy-policy.html`. Private repos need a paid GitHub plan for Pages.
 4. **App content** (left menu → Policy → App content). Answers:
@@ -92,42 +102,55 @@ or later in Android Studio's signing wizard (**Create new…**):
    | Form | Answer |
    |---|---|
    | Privacy policy | your link from step 3 |
-   | Ads | **No, my app does not contain ads** |
+   | Ads | **Yes, my app contains ads** |
    | App access | All functionality available without special access |
-   | Content rating | IARC questionnaire, category *Game*: no violence (cartoon kitchen fires), no user interaction, no sharing of location → **Everyone / PEGI 3** |
+   | Content rating | IARC questionnaire, category *Game*: no violence (cartoon kitchen fires), no user interaction, no sharing of location; "digital purchases": **Yes** → **Everyone / PEGI 3** |
    | Target audience | **13 and over** |
-   | Data safety | **No data collected or shared** (see `listing.md` for the note on Unity diagnostics) |
-   | Advertising ID | **No** |
+   | Data safety | AdMob's data (approximate location, device IDs, app interactions, diagnostics): see `listing.md` |
+   | Advertising ID | **Yes**, for Advertising and Analytics |
    | Government / Financial / Health / News | No / None / None / No |
 
-5. **Monetise → App pricing:**
-   - Set the price to **$4.99 USD**. Play fills in local prices for other countries; review them and save.
-6. **Store listing** (Grow → Store presence → Main store listing). Everything is in `store/`:
+5. **Store listing** (Grow → Store presence → Main store listing). Everything is in `store/`:
    - **Name, short description, full description:** from `listing.md`.
    - **App icon:** `google-play/icon-512.png`.
    - **Feature graphic:** `google-play/feature-graphic-1024x500.png`.
    - **Phone screenshots:** the 7 in `screenshots/google-play-phone/`.
    - **Tablet screenshots** (optional): `screenshots/ipad-13/` works for the 10-inch slot.
    - **Category and contact:** Game → Casual; email b.kingston396@gmail.com.
-7. **Countries:** Production → Countries/regions → add the countries you want (or all).
+6. **Countries:** Production → Countries/regions → add the countries you want (or all).
 
-## Part F: upload and roll out (15 min)
+## Part G: upload, create "Remove ads", test it, go live
 
-1. **Optional quick check (recommended):** **Test and release → Testing → Internal testing → Create new release.**
-   - Upload `SearPressure-1.0.0-1.aab` and accept **Play App Signing**.
-   - Release name `1.0.0 (1)`, notes "First release". **Next → Save → Roll out.**
-   - Add your own Google account as a tester, open the opt-in link on your phone, and install it from the Play Store.
-     Internal test builds are usually available within minutes. This is the exact file customers will get.
-2. **Production:** **Test and release → Production → Create new release** → **Add from library** (the same bundle)
-   → release notes → **Next → Save → Send for review** (Publishing overview → **Send changes for review**).
-   You can start the rollout at 20% and raise it once you've seen it on real phones.
-3. Google reviews the new app (usually hours to a few days). When it's approved, it goes live in the countries you picked.
+1. **Internal testing first** (Google only lets you create the in-app product once a build using Play Billing is uploaded):
+   - **Test and release → Testing → Internal testing → Create new release.**
+   - Upload `SearPressure-1.0.0-1.aab`, accept **Play App Signing**, name it `1.0.0 (1)`.
+   - **Next → Save → Roll out.**
+   - Add your own Google account as a tester.
+2. **Create the product:** **Monetise with Play → Products → One-time products → Create one-time product**
+   - Product ID **`remove_ads`**. It must be exactly this, and it can't be changed later.
+   - Name "Remove ads", description "Removes all ads from Sear Pressure. Revives become free too."
+   - Purchase option: **Buy**, price **$4.99 USD** (Play fills in other countries).
+   - Save, then **Activate**.
+3. **Test the purchase without paying:** **Settings (the Play Console home page's gear) → License testing** → add your Gmail (and anyone else testing) → Save.
+   - On your phone, open the internal-testing opt-in link and install **from the Play Store**.
+   - On the title screen, **Remove ads · $4.99** should show your local price.
+   - Tap it and choose the **test card ("always approves")**.
+   - The ads disappear and the title says "Ads removed".
+   - Uninstall and reinstall, then **Settings → Restore purchase**: ads stay off.
+   - Try **"slow test card, approves after a few minutes"** too: the game shows "Payment pending", and the ads go once it clears.
+4. **Production:** **Test and release → Production → Create new release** → **Add from library** (the same bundle)
+   → release notes → **Next → Save → Send changes for review**.
+   - You can start the rollout at 20% and raise it once it's been seen on real phones.
+   - Google reviews the new app (usually hours to a few days), then it goes live in the countries you picked.
 
-## Part G: after launch
+## Part H: after launch
 
+- **AdMob:** link the app to its Play listing (Part B step 4), and check the numbers the next day.
 - **Every update:**
   1. In Unity, run **Sear Pressure → Release → Next Build Number** (and bump the version for players, e.g. 1.0.1).
   2. **Export Android Studio Project**, then **Generate Signed App Bundle** with the **same keystore**.
   3. Upload to a track.
-- **Google's target API level** rises every August. When Play Console warns you, change `TargetApi` in `SearPressureRelease.cs`.
+- **Google raises the required target API level and Play Billing Library version** over time. When Play Console warns you:
+  - change `TargetApi` in `SearPressureRelease.cs`;
+  - change the billing version in `Editor/SearPressureDependencies.xml`.
 - **Pre-launch report:** Play tests your build on real devices automatically. Look at it under Release → Pre-launch report, and send Claude any crashes.

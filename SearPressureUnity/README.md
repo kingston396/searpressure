@@ -109,13 +109,19 @@ On tablets the game scales up so the short side is at most about 560 logical pix
 
 Store listing text, screenshots, the feature graphic and the privacy policy are in `../store/`.
 
-## Ads (off)
+## Ads and "Remove ads"
 
-The game is a paid app ($4.99) with no ads. The AdMob integration is kept but compiled out:
-- `Core/Game.Ads.cs`: revive and interstitial rules, inactive when the platform has no ads.
-- `Unity/AdMobAds.cs`: the wrapper, only compiled with the `SEARPRESSURE_ADS` define.
+The game is free with Google AdMob ads, and a one-time **"Remove ads"** purchase ($4.99, `remove_ads`) switches them off:
+- **Game rules:**
+  - `Core/Game.Ads.cs`: interstitials after every 2nd service, the rewarded revive (free once ads are removed).
+  - `Core/Game.Store.cs`: the offer on the title screen, Restore purchase in Settings.
+- **Unity:**
+  - `Unity/AdMobAds.cs`: banner, full-screen ads and consent. Compiled when the Google Mobile Ads package is present (the asmdef defines `SEARPRESSURE_ADS`).
+  - `Unity/PlayBilling.cs`: Google Play Billing 9 through JNI, plus a pretend store in the editor.
+  - `Editor/SearPressureDependencies.xml` adds the billing library to the Gradle build.
+- **IDs:** in `Unity/AdsConfig.cs`.
 
-To turn ads back on, see `../store/ADMOB.md`.
+Setup, testing and store forms: `../store/ADMOB.md` and `../store/RELEASE-TODAY.md`.
 
 ## Differences from the web version
 

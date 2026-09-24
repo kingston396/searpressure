@@ -18,6 +18,10 @@
   <PropertyGroup>
     <GmaDir Condition="'$(GmaDir)' == '' And Exists('$(MSBuildThisFileDirectory)../../Library/PackageCache')">$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)../../Library/PackageCache', 'com.google.ads.mobile*')[0])/GoogleMobileAds</GmaDir>
   </PropertyGroup>
+  <!-- -p:ExtraDefines=UNITY_ANDROID compiles the Android-only code (Play Billing) too. -->
+  <PropertyGroup Condition="'$(ExtraDefines)' != ''">
+    <DefineConstants>$(DefineConstants);$(ExtraDefines)</DefineConstants>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(GmaDir)' != ''">
     <DefineConstants>$(DefineConstants);SEARPRESSURE_ADS</DefineConstants>
   </PropertyGroup>

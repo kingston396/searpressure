@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android libraries for the "Remove ads" purchase (Unity/PlayBilling.cs). The External Dependency Manager
+     (installed with Google Mobile Ads) adds them to the Gradle build. Google Play requires a recent Play
+     Billing Library: raise this when Play Console asks. -->
+<dependencies>
+  <androidPackages>
+    <androidPackage spec="com.android.billingclient:billing:9.1.0">
+      <repositories>
+        <repository>https://maven.google.com/</repository>
+      </repositories>
+    </androidPackage>
+  </androidPackages>
+</dependencies>
