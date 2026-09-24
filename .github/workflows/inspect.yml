@@ -30,5 +30,9 @@ jobs:
             echo -n "package:      "; java -jar bundletool.jar dump manifest --bundle "$f" --xpath /manifest/@package
             echo -n "versionCode:  "; java -jar bundletool.jar dump manifest --bundle "$f" --xpath /manifest/@android:versionCode
             echo -n "versionName:  "; java -jar bundletool.jar dump manifest --bundle "$f" --xpath /manifest/@android:versionName
-            keytool -printcert -jarfile "$f" | grep -E "Owner:|SHA256:" | head -2
+            keytool -printcert -jarfile "$f" | grep -E "Owner:|SHA1:|SHA256:" | head -3
+          done
+          as=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
+          for f in $(find builds -name '*.apk'); do
+            echo "== $f"; "$as" verify --print-certs "$f" | grep -E "DN|SHA-1|SHA-256" | head -3
           done
