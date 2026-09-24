@@ -33,6 +33,11 @@ namespace SearPressure.EditorTools
             SearPressureRelease.Apply(true);
 
             if (int.TryParse(Arg("androidVersionCode"), out int vc) && vc > 0) PlayerSettings.Android.bundleVersionCode = vc;
+            if (PlayerSettings.applicationIdentifier != SearPressureSetup.AppId)
+            {
+                Debug.LogError("Sear Pressure: the package name is " + PlayerSettings.applicationIdentifier + ", not " + SearPressureSetup.AppId + ". Stopping: Google Play never lets it change.");
+                return false;
+            }
             Debug.Log($"Sear Pressure: {PlayerSettings.applicationIdentifier} version {PlayerSettings.bundleVersion} ({PlayerSettings.Android.bundleVersionCode}), target API {(int)PlayerSettings.Android.targetSdkVersion}");
 
             // Signing: the workflow decodes the upload keystore into the project folder. Without one the
@@ -62,6 +67,9 @@ namespace SearPressure.EditorTools
                 return ExportAndroidStudio(dir);
             }
 
+            // AdMob and Play Billing: the resolver never runs by itself in batch mode.
+            if (!AndroidDeps.Prepare()) return false;
+
             string path = Arg("customBuildPath");
             if (string.IsNullOrEmpty(path)) path = Path.GetFullPath("../build/Android/SearPressure.aab");
             Directory.CreateDirectory(Path.GetDirectoryName(path));
@@ -78,6 +86,7 @@ namespace SearPressure.EditorTools
         {
             SearPressureSetup.Setup(false);
             SearPressureRelease.Apply(false);
+            if (!AndroidDeps.Prepare()) return false;
             bool was = EditorUserBuildSettings.exportAsGoogleAndroidProject;
             EditorUserBuildSettings.exportAsGoogleAndroidProject = true;
             try

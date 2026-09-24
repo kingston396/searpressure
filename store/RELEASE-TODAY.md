@@ -41,7 +41,7 @@ Already in the project: App ID `ca-app-pub-2822796427144413~6568766943` and the 
    - If the Dependency Manager asks to **enable Android auto-resolution** or **Gradle templates**, choose **Enable**.
 2. Menu **Sear Pressure → Apply Store Settings**. This sets the icon, splash, version, package name and release options, and copies the AdMob App ID into place.
 3. **File → Build Profiles → Android → Switch Platform** (takes a few minutes the first time).
-   Then **Assets → External Dependency Manager → Android Resolver → Force Resolve**. This pulls in Google Mobile Ads and Play Billing.
+   Then **Sear Pressure → Release → Resolve Android Libraries**. This pulls in Google Mobile Ads and Play Billing and checks that both are there.
 4. On your phone:
    - Settings → About phone → tap **Build number** 7 times.
    - Settings → Developer options → **USB debugging** on.

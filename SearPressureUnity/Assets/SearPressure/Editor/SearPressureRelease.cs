@@ -146,6 +146,10 @@ namespace SearPressure.EditorTools
             PlayerSettings.SetManagedStrippingLevel(BuildTargetGroup.Android, ManagedStrippingLevel.Low);
 #endif
             PlayerSettings.stripEngineCode = true;
+            // No R8 shrinking: the game reaches Play Billing through JNI only, which R8 can't see, so it
+            // would strip the classes the purchase needs.
+            PlayerSettings.Android.minifyRelease = false;
+            PlayerSettings.Android.minifyDebug = false;
             PlayerSettings.gcIncremental = true;
             SyncAdMob();
         }

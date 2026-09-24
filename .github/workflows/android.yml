@@ -151,6 +151,50 @@ jobs:
           for f in SearPressure.*; do [ -f "$f" ] && mv "$f" "SearPressure-1.0.0-${{ steps.version.outputs.code }}.${f##*.}"; done
           ls -lh
 
+      # A build can succeed without its Android libraries and then fail on the phone, so look inside.
+      - name: Check what's inside the build
+        if: github.event_name != 'workflow_dispatch' || !inputs.android_studio
+        working-directory: build/Android
+        run: |
+          python3 - <<'PY'
+          import glob, sys, zipfile
+          need_code = [
+              ("Google Mobile Ads SDK", "Lcom/google/android/gms/ads/MobileAds;"),
+              ("Google consent (UMP) SDK", "Lcom/google/android/ump/UserMessagingPlatform;"),
+              ("Unity ads bridge", "Lcom/google/unity/ads/"),
+              ("Play Billing Library", "Lcom/android/billingclient/api/BillingClient;"),
+          ]
+          need_manifest = [
+              ("package name com.kingston.searpressure", "com.kingston.searpressure"),
+              ("AdMob App ID", "ca-app-pub-2822796427144413~6568766943"),
+              ("billing permission", "com.android.vending.BILLING"),
+          ]
+          def has(blob, s):
+              return s.encode() in blob or s.encode("utf-16-le") in blob
+          bad = False
+          for f in sorted(glob.glob("*.aab") + glob.glob("*.apk")):
+              z = zipfile.ZipFile(f)
+              dex = b"".join(z.read(n) for n in z.namelist() if n.endswith(".dex"))
+              man = b"".join(z.read(n) for n in z.namelist() if n.endswith("AndroidManifest.xml"))
+              print(f"{f}: {len(dex) // 1024} KB of code")
+              for what, s in need_code:
+                  ok = has(dex, s); bad |= not ok
+                  print(f"  {'ok  ' if ok else 'MISSING'} {what}")
+              for what, s in need_manifest:
+                  ok = has(man, s); bad |= not ok
+                  print(f"  {'ok  ' if ok else 'MISSING'} {what}")
+          if bad:
+              print("::error::The build is missing Android libraries or settings (see above). It would fail on phones.")
+              sys.exit(1)
+          PY
+          kt="${JAVA_HOME:+$JAVA_HOME/bin/}keytool"
+          for f in *.aab; do
+            echo "Signed by:"; "$kt" -printcert -jarfile "$f" | grep -E "Owner:|SHA256:" | head -2 || true
+            if [ "$HAS_KEYSTORE" = "true" ] && "$kt" -printcert -jarfile "$f" | grep -q "CN=Android Debug"; then
+              echo "::error::$f is signed with the debug key although the upload key secrets are set."; exit 1
+            fi
+          done
+
       - name: Upload the builds
         if: github.event_name != 'workflow_dispatch' || !inputs.android_studio
         uses: actions/upload-artifact@v7

@@ -67,13 +67,15 @@ namespace SearPressure.EditorTools
             PlayerSettings.allowedAutorotateToLandscapeRight = true;
             PlayerSettings.runInBackground = false;
             PlayerSettings.SplashScreen.backgroundColor = new Color32(0x1c, 0x21, 0x33, 255);
-            // The store package name. It can never change once the app is on Google Play.
-            string id = PlayerSettings.GetApplicationIdentifier(BuildTargetGroup.Android);
-            if (string.IsNullOrEmpty(id) || id == "com.Company.ProductName" || id.StartsWith("com.DefaultCompany.") || id == "com.searpressure.game" || id == "com.kingstongames.searpressure")
-            {
-                PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, AppId);
-                PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.iOS, AppId);
-            }
+            // The store package name, always set: it can never change once the app is on Google Play, and
+            // Unity otherwise derives one from the company name (com.RagnarokTalentPartnersLLC.SearPressure).
+#if UNITY_2021_2_OR_NEWER
+            PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Android, AppId);
+            PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.iOS, AppId);
+#else
+            PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, AppId);
+            PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.iOS, AppId);
+#endif
             if (PlayerSettings.companyName == "Sear Pressure" || PlayerSettings.companyName == "Kingston Games") PlayerSettings.companyName = CompanyName;
             EnsureLegacyInput();
             AssetDatabase.SaveAssets();
