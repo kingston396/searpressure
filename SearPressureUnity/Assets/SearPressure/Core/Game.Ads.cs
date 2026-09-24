@@ -160,8 +160,9 @@ namespace SearPressure
             return Math.Max(0, DOUBLES_PER_DAY - used);
         }
 
-        bool canDouble(ResultsModel m) => NET.role == null && m.bonus > 0 && !m.bonusTaken && doublesLeft() > 0
-            && (adsRemoved || (ads != null && ads.RewardedReady));
+        bool doubleOffered(ResultsModel m) => NET.role == null && m.bonus > 0 && !m.bonusTaken && doublesLeft() > 0
+            && (adsRemoved || ads != null);
+        bool canDouble(ResultsModel m) => doubleOffered(m) && (adsRemoved || ads.RewardedReady);
 
         public void acceptDouble()
         {
@@ -193,11 +194,12 @@ namespace SearPressure
 
         void DoubleCoinsOffer(ResultsModel m)
         {
-            if (!canDouble(m)) return;
+            if (!doubleOffered(m)) return;
             int left = doublesLeft();
+            bool loading = !canDouble(m);   // the rewarded video is still loading: show the offer, enable it when ready
             string label = (adsRemoved ? "Double it: +" : "Watch an ad: +") + fmtCoins(m.bonus) + " coins";
-            string sub = left == 1 ? "Last one today" : left + " left today";
-            if (Button("btn-double", label, "alt", sub, bonusWaiting)) acceptDouble();
+            string sub = loading ? "Loading ad…" : left == 1 ? "Last one today" : left + " left today";
+            if (Button("btn-double", label, "alt", sub, bonusWaiting || loading)) acceptDouble();
         }
 
         void ReviveScreen()

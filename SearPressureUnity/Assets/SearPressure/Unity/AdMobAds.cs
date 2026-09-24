@@ -56,8 +56,11 @@ namespace SearPressure.UnityHost
                 if (updateError != null)
                 {
                     Debug.LogWarning("Sear Pressure ads: consent info failed: " + updateError.Message);
-                    if (ConsentInformation.CanRequestAds()) StartAds();
-                    else consentRetryAt = Time.unscaledTime + 60;   // offline at start-up, say: try again later
+                    // Consent info unavailable (no privacy message published in AdMob yet, offline, ...): start
+                    // ads anyway, with no consent string Google serves only what its rules allow. Retry the
+                    // consent check later so a form still shows once one is set up and the phone is online.
+                    StartAds();
+                    if (!ConsentInformation.CanRequestAds()) consentRetryAt = Time.unscaledTime + 60;
                     return;
                 }
                 if (suppressed) return;   // bought "Remove ads" meanwhile: no ad consent form
@@ -87,9 +90,9 @@ namespace SearPressure.UnityHost
         {
             if (!started)
             {
-                if (consentRetryAt > 0 && Time.unscaledTime > consentRetryAt && !suppressed) { consentRetryAt = 0; Begin(); }
                 return;
             }
+            if (consentRetryAt > 0 && Time.unscaledTime > consentRetryAt && !suppressed) { consentRetryAt = 0; Begin(); }
             float t = Time.unscaledTime;
             if (retryBanner > 0 && t > retryBanner) { retryBanner = 0; LoadBanner(); }
             if (retryInterstitial > 0 && t > retryInterstitial) { retryInterstitial = 0; LoadInterstitial(); }
