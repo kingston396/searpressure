@@ -94,7 +94,7 @@ or later in Android Studio's signing wizard (**Create new…**):
    - Accept the declarations.
 3. **Put the privacy policy online** (Play and AdMob both need a public link). Pick one:
    - **Google Sites:** new site → paste the text of `store/privacy-policy.html` → Publish. This takes 10 minutes.
-   - **GitHub Pages:** repo Settings → Pages → Branch `main`, folder `/root`. The link is `https://kingston396.github.io/searpressure/store/privacy-policy.html`. Private repos need a paid GitHub plan for Pages.
+   - **Done:** Privacy Policy https://sites.google.com/ragnaroktalentpartners.com/searpressure/home · Terms of Use https://sites.google.com/ragnaroktalentpartners.com/searpressure/terms-of-use (Google Sites).
 4. **App content** (left menu → Policy → App content). Answers:
 
    | Form | Answer |

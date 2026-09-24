@@ -145,7 +145,7 @@ cooking,chef,kitchen,food truck,restaurant,burger,time management,diner,pixel,of
 ## Hosting the privacy policy
 
 Both stores need the policy at a public web address. The easiest free options:
-1. **GitHub Pages:** in the repo's Settings → Pages, choose "Deploy from a branch", branch `main`, folder `/ (root)`. The page is then at `https://kingston396.github.io/searpressure/store/privacy-policy.html`. Private repos need a paid GitHub plan for Pages.
+Published on Google Sites: Privacy Policy https://sites.google.com/ragnaroktalentpartners.com/searpressure/home · Terms of Use https://sites.google.com/ragnaroktalentpartners.com/searpressure/terms-of-use.
 2. **Google Sites** (free with your Gmail): make a one-page site and paste the policy text.
 3. **Netlify Drop** (free): drag the `store` folder onto app.netlify.com/drop.
 
