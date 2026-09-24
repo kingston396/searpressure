@@ -48,6 +48,11 @@ namespace SearPressure.UnityHost
         {
             if (suppressed) { suppressed = false; if (started) { LoadBanner(); LoadInterstitial(); LoadRewarded(); } }
             MobileAds.RaiseAdEventsOnUnityMainThread = true;
+            // The plugin delivers callbacks (the consent answer too) through this runner, which it only creates
+            // when the ads SDK starts. On a fresh install the consent check runs first, so without this its
+            // answer was queued forever and ads never started.
+            GoogleMobileAds.Common.MobileAdsEventExecutor.Initialize();
+            consentDeadline = Time.unscaledTime + 10;
             // A previous session may already have consent: start straight away, and refresh consent too.
             if (ConsentInformation.CanRequestAds()) StartAds();
             var request = new ConsentRequestParameters { TagForUnderAgeOfConsent = false };
@@ -90,11 +95,22 @@ namespace SearPressure.UnityHost
             });
         }
 
-        float consentRetryAt;
+        float consentRetryAt, consentDeadline;
         void Update()
         {
             if (!started)
             {
+                // Safety net: if the consent check hasn't answered after 10 s, start ads anyway unless it's known
+                // that this player must be asked first (EEA/UK) and hasn't been.
+                if (consentDeadline > 0 && Time.unscaledTime > consentDeadline && !suppressed)
+                {
+                    consentDeadline = 0;
+                    if (ConsentInformation.CanRequestAds() || ConsentInformation.ConsentStatus != ConsentStatus.Required)
+                    {
+                        Debug.LogWarning("Sear Pressure ads: consent check didn't answer in time; starting ads");
+                        StartAds();
+                    }
+                }
                 return;
             }
             if (consentRetryAt > 0 && Time.unscaledTime > consentRetryAt && !suppressed) { consentRetryAt = 0; Begin(); }
