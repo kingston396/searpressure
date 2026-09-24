@@ -27,6 +27,8 @@ namespace SearPressure.UnityHost
         string offerToken, price;
         bool owned, connected, connecting;
         float retryAt; float retryDelay = 2;
+        float connectingSince, productRetryAt, productRetryDelay = 5;
+        Action<StoreResult> waitingBuy; float waitingBuyUntil;   // a tap that arrived before the store was ready
         Action<StoreResult> buyDone, restoreDone;
 
         public event Action<bool> OwnedChanged;
@@ -61,7 +63,16 @@ namespace SearPressure.UnityHost
         void Update()
         {
             while (main.TryDequeue(out var a)) { try { a(); } catch (Exception e) { Debug.LogException(e); } }
-            if (retryAt > 0 && Time.unscaledTime > retryAt) { retryAt = 0; Reconnect(); }
+            float t = Time.unscaledTime;
+            if (connecting && t - connectingSince > 20) { connecting = false; retryAt = t; }   // a setup callback that never came
+            if (retryAt > 0 && t > retryAt) { retryAt = 0; Reconnect(); }
+            if (productRetryAt > 0 && t > productRetryAt) { productRetryAt = 0; if (connected && product == null) QueryProduct(); }
+            // A tap that came in while connecting: go ahead once ready, or give up after a few seconds.
+            if (waitingBuy != null)
+            {
+                if (Ready) { var d = waitingBuy; waitingBuy = null; Buy(d); }
+                else if (t > waitingBuyUntil) { var d = waitingBuy; waitingBuy = null; d(StoreResult.Unavailable); }
+            }
         }
 
         void OnApplicationFocus(bool focus)
@@ -75,16 +86,25 @@ namespace SearPressure.UnityHost
 
         // ---- set-up ----
         // (Re)connect when the client is DISCONNECTED (state 0); never while it's already connecting.
+        // Handles every client state: DISCONNECTED (0) → connect; CONNECTING (1) → check again shortly;
+        // CONNECTED (2, e.g. the library reconnected by itself) → treat as set up.
         void Reconnect()
         {
             if (client == null || connected || connecting) return;
             try
             {
-                if (client.Call<int>("getConnectionState") != 0) return;
-                connecting = true;
+                int state = client.Call<int>("getConnectionState");
+                if (state == 2) { OnSetup(OK); return; }
+                if (state != 0) { retryAt = Time.unscaledTime + 2; return; }
+                connecting = true; connectingSince = Time.unscaledTime;
                 client.Call("startConnection", new StateListener(this));
             }
-            catch (Exception e) { connecting = false; Debug.LogWarning("Sear Pressure store: reconnect failed: " + e.Message); }
+            catch (Exception e)
+            {
+                connecting = false; Debug.LogWarning("Sear Pressure store: reconnect failed: " + e.Message);
+                retryAt = Time.unscaledTime + retryDelay; retryDelay = Mathf.Min(60, retryDelay * 2);
+                FinishRestore(StoreResult.Unavailable);
+            }
         }
 
         void OnSetup(int code)
@@ -131,19 +151,31 @@ namespace SearPressure.UnityHost
 
         void OnProduct(AndroidJavaObject details, string fmtPrice, string token)
         {
+            if (details == null)
+            {
+                // Keep a product we already have (a later query can fail); otherwise try again, 5 → 60 s apart.
+                if (product == null)
+                {
+                    Debug.LogWarning($"Sear Pressure store: product '{StoreConfig.RemoveAdsId}' not available yet (offline, or not created/activated in Play Console).");
+                    productRetryAt = Time.unscaledTime + productRetryDelay; productRetryDelay = Mathf.Min(60, productRetryDelay * 2);
+                }
+                return;
+            }
             product?.Dispose();
-            product = details; price = fmtPrice; offerToken = token;
-            if (product == null) Debug.LogWarning($"Sear Pressure store: product '{StoreConfig.RemoveAdsId}' not found. Create and activate it in Play Console.");
+            product = details; price = fmtPrice; offerToken = token; productRetryDelay = 5;
         }
 
         // ---- buying ----
         public void Buy(Action<StoreResult> done)
         {
             if (owned) { done?.Invoke(StoreResult.AlreadyOwned); return; }
-            if (client == null || !Ready)
+            if (client == null) { done?.Invoke(StoreResult.Unavailable); return; }
+            if (!Ready)
             {
-                done?.Invoke(StoreResult.Unavailable);
-                if (!connected) Reconnect();
+                // Give the store up to 6 seconds to connect / load the product, then carry on with this tap.
+                if (waitingBuy != null) { done?.Invoke(StoreResult.Unavailable); return; }
+                waitingBuy = done ?? (_ => { }); waitingBuyUntil = Time.unscaledTime + 6;
+                if (!connected) { retryAt = 0; Reconnect(); }
                 else if (product == null) QueryProduct();
                 return;
             }

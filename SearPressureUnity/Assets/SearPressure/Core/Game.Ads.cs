@@ -35,7 +35,7 @@ namespace SearPressure
         // (AdMob: no ads next to controls players tap all the time). The host reads this every frame.
         public bool BannerAllowed =>
             !adsRemoved && NET.role == null &&
-            (G == null || G.phase == "over") && (D == null || D.phase == "over");
+            (G == null || (G.phase == "over" && G.shown)) && (D == null || (D.phase == "over" && D.shown));   // not at "Time's up!", only once the results card is up
 
         // ---- interstitials: at the natural break after the results card ----
         void countLevelForAds() { if (NET.role == null) adLevels++; }

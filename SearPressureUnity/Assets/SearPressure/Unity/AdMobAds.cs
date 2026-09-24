@@ -96,6 +96,8 @@ namespace SearPressure.UnityHost
                 Debug.LogWarning("Sear Pressure ads: banner failed: " + err.GetMessage());
                 BannerHeightPx = 0; retryBanner = Time.unscaledTime + 30;
             };
+            // The plugin shows a new banner as soon as it loads; hide it first if it mustn't be seen now (during play).
+            if (!bannerWanted || fullScreen) bv.Hide();
             bv.LoadAd(new AdRequest());
         }
 

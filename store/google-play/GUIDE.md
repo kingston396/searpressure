@@ -48,7 +48,7 @@ Google signs the app for the store. You sign each upload with your own **upload 
 **Or build and sign it in Android Studio:** in Unity, **Sear Pressure → Release → Export Android Studio Project**.
 Pick a folder, then open that folder in **Android Studio** (File → Open) and let Gradle sync.
 **Build → Generate Signed App Bundle or APK → Android App Bundle**, then choose your upload keystore from step 2 and the **release** variant.
-The `.aab` lands in `launcher/release/`. Android Studio's **Run ▶** also installs it on a plugged-in phone.
+The `.aab` lands in `launcher/release/`. (Android Studio's **Run ▶** installs a *release* build with **real** ads. Only do that after adding your phone under AdMob → Settings → Test devices, and never tap the ads.)
 (GitHub can produce this project too: Actions → Android build → Run workflow → tick "Export an Android Studio project".)
 
 **Or let GitHub build it:** every push to `main` builds a signed `.aab` automatically once the secrets are set up
@@ -101,7 +101,7 @@ Google requires **at least 12 testers who stay opted in for 14 days in a row** b
 
 **Organisation (LLC) account, which is yours:** follow `store/RELEASE-TODAY.md` Part G.
 1. Upload build 1 to **Internal testing**.
-2. Create and activate `remove_ads`, then license-test the purchase.
+2. Create and activate `remove_ads`, then license-test the purchase. The Play-installed build shows real ads: add your phone under **AdMob → Settings → Test devices** first, and never tap them.
 3. **Production → Create new release → Add from library** (the same bundle) → **Send changes for review**.
 You can start at 20% and increase.
 
@@ -112,6 +112,6 @@ Production steps.
 
 1. Make the changes, then **Sear Pressure → Release → Next Build Number**.
 2. Bump the version (Player Settings → Version, e.g. 1.0.1) if players should see a new number.
-3. Enter the keystore passwords → Build → upload the `.aab` to a track → roll out.
+3. Enter the keystore passwords → **untick Development Build, tick Build App Bundle** → Build → upload the `.aab` to a track → roll out.
 4. Every August, Google raises the target API level. When Play Console warns you, raise `TargetApi` in
    `SearPressureRelease.cs`, run **Apply Store Settings**, and rebuild.

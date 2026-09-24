@@ -82,7 +82,11 @@ static partial class Tests
             Check(!g.BannerAllowed, "cooking: no banner");
             g.pauseGame(); Program.Run(g, 0.1);
             Check(!g.BannerAllowed, "paused mid-service: no banner (controls underneath)");
-            g.resumeGame(); g.G.score = 500; RunOut(g); Program.Run(g, 2.2);
+            g.resumeGame(); g.G.score = 500; RunOut(g);
+            Check(g.G.phase == "over" && !g.BannerAllowed, "\"Time's up!\" (controls still on screen): no banner yet");
+            Program.Run(g, 1.0);
+            Check(!g.BannerAllowed, "still no banner 1 s later, before the results card");
+            Program.Run(g, 1.2);
             Check(g.screen == "scr-results" && g.BannerAllowed, "results card: banner allowed");
             st.owned = true;
             Check(!g.BannerAllowed, "owner: never a banner");
