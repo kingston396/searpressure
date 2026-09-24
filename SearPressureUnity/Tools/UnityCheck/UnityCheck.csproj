@@ -13,6 +13,17 @@
     <Compile Include="../../Assets/SearPressure/Core/**/*.cs" />
     <Compile Include="../../Assets/SearPressure/Unity/**/*.cs" />
   </ItemGroup>
+  <!-- Google Mobile Ads DLLs: from Unity's package cache once the project has been opened, or point
+       GmaDir at the plugin's GoogleMobileAds folder (e.g. a clone of googleads-mobile-unity). -->
+  <PropertyGroup>
+    <GmaDir Condition="'$(GmaDir)' == '' And Exists('$(MSBuildThisFileDirectory)../../Library/PackageCache')">$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)../../Library/PackageCache', 'com.google.ads.mobile*')[0])/GoogleMobileAds</GmaDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="GoogleMobileAds"><HintPath>$(GmaDir)/GoogleMobileAds.dll</HintPath></Reference>
+    <Reference Include="GoogleMobileAds.Core"><HintPath>$(GmaDir)/GoogleMobileAds.Core.dll</HintPath></Reference>
+    <Reference Include="GoogleMobileAds.Common"><HintPath>$(GmaDir)/GoogleMobileAds.Common.dll</HintPath></Reference>
+    <Reference Include="GoogleMobileAds.Ump"><HintPath>$(GmaDir)/GoogleMobileAds.Ump.dll</HintPath></Reference>
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="UnityEngine.Modules" Version="2021.3.33" />
   </ItemGroup>

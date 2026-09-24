@@ -36,6 +36,7 @@ namespace SearPressure
             sfx("strike"); buzz(160);
             if (G.strikes >= MAX_STRIKES)
             {
+                if (offerRevive("strikes")) { judgeSay("out", 2); return; }
                 G.kicked = true;
                 judgeSay("out", 2);
                 endLevel();
@@ -124,7 +125,7 @@ namespace SearPressure
                     var path = new List<(int x, int y)>();
                     (int x, int y)? cur = (sx, sy);
                     while (cur != null) { path.Insert(0, cur.Value); cur = prev[Key(cur.Value.x, cur.Value.y)]; }
-                    if (best == null || path.Count - 1 < best.path.Count) best = new Route { tile = t, path = path.Skip(1).ToList(), face = new[] { -d[0], -d[1] } };
+                    if (best == null || path.Count < best.path.Count) best = new Route { tile = t, path = path.Skip(1).ToList(), face = new[] { -d[0], -d[1] } };
                 }
             }
             return best;

@@ -21,6 +21,7 @@ namespace SearPressure.UnityHost
         Camera cam;
         double dpr = 1;
         TouchScreenKeyboard keyboard;
+        AdMobAds adMob;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void AutoStart()
@@ -66,6 +67,7 @@ namespace SearPressure.UnityHost
 #if UNITY_ANDROID && !UNITY_EDITOR
             game.onQuit = () => Application.Quit();
 #endif
+            if (AdsConfig.Enabled) { adMob = gameObject.AddComponent<AdMobAds>(); adMob.Begin(); }
             ApplyScreen(true);
         }
 
@@ -90,17 +92,19 @@ namespace SearPressure.UnityHost
         public bool UnlockAll => PlayerPrefs.GetInt("SearPressure.UnlockAll", 0) == 1 || Environment.CommandLine.Contains("-unlockall");
         public bool Calm => false;
         public INetTransport CreateTransport() => NetConfig.Create();
+        public IAds Ads => adMob;
         public void OpenKeyboard(string text, int maxLength)
         {
             if (TouchScreenKeyboard.isSupported) keyboard = TouchScreenKeyboard.Open(text, TouchScreenKeyboardType.ASCIICapable, false, false, false, false, "ABCD", maxLength);
         }
 
         // ---- screen ----
-        int lastW, lastH; UnityEngine.Rect lastSafe;
+        int lastW, lastH; UnityEngine.Rect lastSafe; float lastBanner;
         void ApplyScreen(bool force)
         {
-            if (!force && Screen.width == lastW && Screen.height == lastH && Screen.safeArea == lastSafe) return;
-            lastW = Screen.width; lastH = Screen.height; lastSafe = Screen.safeArea;
+            float bannerPx = adMob != null ? adMob.BannerHeightPx : 0;
+            if (!force && Screen.width == lastW && Screen.height == lastH && Screen.safeArea == lastSafe && bannerPx == lastBanner) return;
+            lastW = Screen.width; lastH = Screen.height; lastSafe = Screen.safeArea; lastBanner = bannerPx;
             // Logical pixels like CSS pixels: phones come out around 360-430 wide.
             double d = Screen.dpi > 0 ? Screen.dpi / 160.0 : 1;
             // Tablets: scale up so the short side is at most ~560 logical px. Otherwise the game is a
@@ -111,6 +115,8 @@ namespace SearPressure.UnityHost
             dpr = d;
             var sa = Screen.safeArea;
             double st = (Screen.height - sa.yMax) / d, sb = sa.yMin / d, sl = sa.xMin / d, sr = (Screen.width - sa.xMax) / d;
+            // The AdMob banner sits along the bottom: keep the game (and its controls) above it.
+            sb += bannerPx / d;
             game.Resize(Screen.width / d, Screen.height / d, d, st, sr, sb, sl);
         }
 

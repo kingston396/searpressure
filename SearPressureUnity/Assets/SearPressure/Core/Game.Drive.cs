@@ -59,6 +59,7 @@ namespace SearPressure
     public sealed class DriveState
     {
         public string phase = "count";
+        public bool revived;
         public bool hand;
         public int k;
         public DriveRun run;
@@ -593,6 +594,7 @@ namespace SearPressure
 
         void updateDrive(double dt)
         {
+            if (D.phase == "revive") { engineSet(0); return; }
             var c = D.car; var city = D.city;
             D.shake = Math.Max(0, D.shake - dt);
             foreach (var p in D.pops) p.life -= dt;
@@ -628,7 +630,7 @@ namespace SearPressure
             double sec = Math.Ceiling(D.time);
             if (D.tut == null && sec <= 10 && sec < D.lastSec && sec > 0) sfx("tick");
             D.lastSec = sec;
-            if (D.time <= 0) { D.time = 0; D.phase = "over"; sfx("end"); return; }
+            if (D.time <= 0) { D.time = 0; if (offerDriveRevive()) return; D.phase = "over"; sfx("end"); return; }
 
             // Stick: up is gas, down is brake then reverse, sideways steers. Drift (or Space) loosens the grip.
             var mv = readMove();
@@ -1175,6 +1177,7 @@ namespace SearPressure
             bool best = !save.drive.Has(k) || D.coins > save.drive[k];
             if (best) { save.drive[k] = D.coins; persist(); }
             var pay = settle(D.attempt, D.coins, stars, run.stars[2]);
+            countLevelForAds();
             var m = new ResultsModel
             {
                 wallet = pay.text,

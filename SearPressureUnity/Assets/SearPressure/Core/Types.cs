@@ -162,6 +162,7 @@ namespace SearPressure
         public int strikes;
         public JudgeState judge;
         public bool kicked;
+        public bool revived;          // used this service's one rewarded-ad revive
         public int humans = 1;
         public bool versus, fair;
         public HashSet<string> crateKinds;

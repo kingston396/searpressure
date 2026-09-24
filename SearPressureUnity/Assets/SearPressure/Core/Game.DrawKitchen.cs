@@ -19,7 +19,7 @@ namespace SearPressure
             var m = truckLayout().m;
             double fw = G.cols + m["l"] + m["r"], fh = G.rows + m["t"] + m["b"];
             double raw = Math.Min(Math.Min(k.w / fw, k.h / fh), 96);
-            double ts = Math.Max(16, Math.Floor(raw * DPR / 16) * 16) / DPR;
+            double ts = Math.Max(16, Math.Floor(raw * DPR / 8) * 8) / DPR;
             double Snap(double v) => U.Round(v * DPR) / DPR;
             return (ts, Snap(k.x + (k.w - fw * ts) / 2 + m["l"] * ts + shake), Snap(k.y + (k.h - fh * ts) / 2 + m["t"] * ts));
         }
@@ -261,7 +261,7 @@ namespace SearPressure
         void drawTile(Tile t)
         {
             int x = t.x, y = t.y;
-            if (t.type == "floor") { sprTL((x + y) % 2 != 0 ? "floorA" : "floorB", x, y, P); return; }
+            if (t.type == "floor") { sprTL((x + y) % 2 != 0 ? "floorA" : "floorB", x, y, P); floorWear(x, y); return; }
             sprTL(STEEL.Contains(t.type) ? "steel" : "wood", x, y, P);
             bool flick = Math.Floor(T * 8) % 2 != 0;
             switch (t.type)
@@ -372,6 +372,25 @@ namespace SearPressure
 
         static string chefDir(Chef c) => Math.Abs(c.fx) > Math.Abs(c.fy) ? (c.fx > 0 ? "R" : "L") : (c.fy > 0 ? "D" : "U");
 
+        // A lived-in floor: a few grease spots and scuffs, fixed per kitchen so they don't flicker.
+        void floorWear(int x, int y)
+        {
+            uint h = (uint)(x * 73856093) ^ (uint)(y * 19349663) ^ (uint)((G.lvIdx + 7) * 83492791);
+            h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15;
+            int kind = (int)(h % 11);
+            double ox = x + ((h >> 4) % 9 + 3) * P, oy = y + ((h >> 8) % 9 + 3) * P;
+            if (kind == 0)
+            {
+                X.fillStyle = "rgba(70,58,40,.13)";
+                X.fillRect(ox, oy, 3 * P, 2 * P); X.fillRect(ox + P, oy - P, P, P); X.fillRect(ox + 2 * P, oy + 2 * P, 2 * P, P);
+            }
+            else if (kind == 1)
+            {
+                X.fillStyle = "rgba(40,44,60,.12)";
+                X.fillRect(ox, oy, 4 * P, P); X.fillRect(ox + 3 * P, oy + P, 2 * P, P);
+            }
+        }
+
         void drawChef(Chef c, int idx)
         {
             string dir = chefDir(c);
@@ -379,7 +398,11 @@ namespace SearPressure
             int busy = c.task != null ? (int)(Math.Floor(T * 10) % 2) : 0;
             string name = (dir == "D" ? "chefDown" : dir == "U" ? "chefUp" : "chefSide") + (frame != 0 ? "1" : "");
             double cy = c.y - 0.34 - busy * P;
-            X.fillStyle = "rgba(0,0,0,.25)"; X.fillRect(c.x - 5 * P, c.y + 0.1, 10 * P, 2 * P);
+            // A soft, rounded shadow: three rows, widest in the middle.
+            X.fillStyle = "rgba(0,0,0,.2)";
+            X.fillRect(c.x - 4 * P, c.y + 0.1 - P, 8 * P, P);
+            X.fillRect(c.x - 6 * P, c.y + 0.1, 12 * P, P);
+            X.fillRect(c.x - 4 * P, c.y + 0.1 + P, 8 * P, P);
             double[] heldAt = dir == "D" ? new[] { 0, 0.02 } : dir == "U" ? new[] { 0, -0.62 } : dir == "R" ? new[] { 0.4, -0.24 } : new[] { -0.4, -0.24 };
             if (c.held != null && dir == "U") drawItem(c.held, c.x + heldAt[0], c.y + heldAt[1], P);
             if (c.ai != null) spr(chefSprite(name, "toque"), c.x, cy, P, outfitSwaps(outfitOf("classic"), c.color, c.dark), dir == "L");
@@ -435,6 +458,9 @@ namespace SearPressure
                 }
             }
             if (G.tut != null) drawTutorialTile();
+            // Food and plates sitting on counters and boards cast a small shadow.
+            X.fillStyle = "rgba(0,0,0,.16)";
+            foreach (var t in G.tiles) if (t.item != null && (t.type == "counter" || t.type == "board")) X.fillRect(t.x + 0.5 - 5 * P, t.y + 0.4 + 5 * P, 10 * P, 2 * P);
             foreach (var t in G.tiles) if (t.item != null) drawItem(t.item, t.x + 0.5, t.y + (t.type == "coffee" ? 0.62 : t.type == "blender" ? 0.5 : 0.4), P);
             var order = Enumerable.Range(0, G.chefs.Count).OrderBy(i => G.chefs[i].y).ToList();
             foreach (var i in order) drawChef(G.chefs[i], i);
@@ -451,6 +477,13 @@ namespace SearPressure
             {
                 double k = p.life / p.max;
                 X.globalAlpha = Math.Max(0, k);
+                if (p.kind == "spark")
+                {
+                    // A little four-point twinkle.
+                    double px = U.Round(p.x / P) * P, py = U.Round(p.y / P) * P;
+                    X.fillStyle = p.color; X.fillRect(px - P / 2, py - P * 1.5, P, 3 * P); X.fillRect(px - P * 1.5, py - P / 2, 3 * P, P);
+                    continue;
+                }
                 double s = p.kind == "chip" ? P : U.Round(2 + (1 - k) * 3) * P;
                 X.fillStyle = p.color; X.fillRect(U.Round(p.x / P) * P - s / 2, U.Round(p.y / P) * P - s / 2, s, s);
             }

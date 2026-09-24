@@ -14,6 +14,10 @@ on:
         description: 'Also build an .apk to install straight on a phone'
         type: boolean
         default: true
+      android_studio:
+        description: 'Export an Android Studio project instead of building (open it in Android Studio to build and sign)'
+        type: boolean
+        default: false
       play_track:
         description: 'Upload the .aab to Google Play as a draft on this track (needs PLAY_SERVICE_ACCOUNT_JSON)'
         type: choice
@@ -49,7 +53,7 @@ jobs:
         run: |
           set -o pipefail
           status=0
-          for t in smoke kitchen kitchen2 screens economy driveall net relay; do
+          for t in smoke kitchen kitchen2 screens economy driveall ads net relay; do
             echo "::group::$t"
             dotnet run --no-build -- "$t" "$RUNNER_TEMP/shots" 2>&1 | tee "$RUNNER_TEMP/$t.log"
             echo "::endgroup::"
@@ -126,16 +130,29 @@ jobs:
           androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
           androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
           androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
-          customParameters: -spAlsoApk ${{ github.event_name == 'workflow_dispatch' && inputs.apk && 'true' || 'false' }}
+          customParameters: -spAlsoApk ${{ github.event_name == 'workflow_dispatch' && inputs.apk && 'true' || 'false' }} -spAndroidStudio ${{ github.event_name == 'workflow_dispatch' && inputs.android_studio && 'true' || 'false' }}
+
+      - name: Take ownership of the build output
+        run: sudo chown -R "$(id -u)" build || true
+
+      - name: Upload the Android Studio project
+        if: github.event_name == 'workflow_dispatch' && inputs.android_studio
+        uses: actions/upload-artifact@v7
+        with:
+          name: SearPressure-AndroidStudio-${{ steps.version.outputs.code }}
+          path: build/AndroidStudio
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Name the files
+        if: github.event_name != 'workflow_dispatch' || !inputs.android_studio
         run: |
-          sudo chown -R "$(id -u)" build || true
           cd build/Android
           for f in SearPressure.*; do [ -f "$f" ] && mv "$f" "SearPressure-1.0.0-${{ steps.version.outputs.code }}.${f##*.}"; done
           ls -lh
 
       - name: Upload the builds
+        if: github.event_name != 'workflow_dispatch' || !inputs.android_studio
         uses: actions/upload-artifact@v7
         with:
           name: SearPressure-android-${{ steps.version.outputs.code }}
@@ -146,7 +163,7 @@ jobs:
           retention-days: 30
 
       - name: Upload to Google Play (draft)
-        if: github.event_name == 'workflow_dispatch' && inputs.play_track != 'none' && env.HAS_KEYSTORE == 'true'
+        if: github.event_name == 'workflow_dispatch' && !inputs.android_studio && inputs.play_track != 'none' && env.HAS_KEYSTORE == 'true'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}

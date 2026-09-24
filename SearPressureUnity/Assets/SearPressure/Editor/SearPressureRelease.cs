@@ -136,6 +136,46 @@ namespace SearPressure.EditorTools
             PlayerSettings.Android.renderOutsideSafeArea = true;
             // Play Store uploads are App Bundles (.aab).
             EditorUserBuildSettings.buildAppBundle = true;
+            // Release optimisation: IL2CPP in Release config, engine code stripping, and light managed
+            // stripping (link.xml keeps the game's own assemblies whole).
+#if UNITY_2021_2_OR_NEWER
+            PlayerSettings.SetIl2CppCompilerConfiguration(NamedBuildTarget.Android, Il2CppCompilerConfiguration.Release);
+            PlayerSettings.SetManagedStrippingLevel(NamedBuildTarget.Android, ManagedStrippingLevel.Low);
+#else
+            PlayerSettings.SetIl2CppCompilerConfiguration(BuildTargetGroup.Android, Il2CppCompilerConfiguration.Release);
+            PlayerSettings.SetManagedStrippingLevel(BuildTargetGroup.Android, ManagedStrippingLevel.Low);
+#endif
+            PlayerSettings.stripEngineCode = true;
+            PlayerSettings.gcIncremental = true;
+            SyncAdMob();
+        }
+
+        // Copy the AdMob App IDs from AdsConfig into the Google Mobile Ads settings asset (the plugin reads
+        // them from there when it builds the Android manifest / iOS Info.plist).
+        const string AdMobSettingsPath = "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset";
+        static void SyncAdMob()
+        {
+            var asset = AssetDatabase.LoadMainAssetAtPath(AdMobSettingsPath);
+            if (asset == null) return;
+            var so = new SerializedObject(asset);
+            bool changed = false;
+            void Set(string field, string value)
+            {
+                var p = so.FindProperty(field);
+                if (p != null && p.stringValue != value) { p.stringValue = value; changed = true; }
+            }
+            Set("adMobAndroidAppId", SearPressure.UnityHost.AdsConfig.AndroidAppId);
+            Set("adMobIOSAppId", SearPressure.UnityHost.AdsConfig.IosAppId);
+            if (changed) { so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(asset); }
+        }
+
+        // Export a Gradle project to open, build and sign in Android Studio (Build → Generate Signed App Bundle).
+        [MenuItem("Sear Pressure/Release/Export Android Studio Project", priority = 41)]
+        public static void ExportAndroidStudioMenu()
+        {
+            string dir = EditorUtility.SaveFolderPanel("Export Android Studio project", System.IO.Path.GetFullPath("../build"), "SearPressure-AndroidStudio");
+            if (string.IsNullOrEmpty(dir)) return;
+            if (CiBuild.ExportAndroidStudio(dir)) EditorUtility.RevealInFinder(dir);
         }
 
         // Bump for each store upload: Play and App Store both refuse a build number they've seen.

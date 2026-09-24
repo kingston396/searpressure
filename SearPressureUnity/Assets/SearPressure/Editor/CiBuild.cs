@@ -53,6 +53,15 @@ namespace SearPressure.EditorTools
                 Debug.LogWarning("Sear Pressure: no upload keystore; signing with the debug key (not accepted by Google Play).");
             }
 
+            if (SearPressure.UnityHost.AdsConfig.UsingTestIds)
+                Debug.LogWarning("Sear Pressure: this build uses Google's TEST ad IDs (AdsConfig.cs). Fine for testing; put your real AdMob IDs in before a public release.");
+
+            if (Arg("spAndroidStudio") == "true")
+            {
+                string dir = Path.GetFullPath("../build/AndroidStudio/SearPressure");
+                return ExportAndroidStudio(dir);
+            }
+
             string path = Arg("customBuildPath");
             if (string.IsNullOrEmpty(path)) path = Path.GetFullPath("../build/Android/SearPressure.aab");
             Directory.CreateDirectory(Path.GetDirectoryName(path));
@@ -62,6 +71,31 @@ namespace SearPressure.EditorTools
             if (ok && Arg("spAlsoApk") == "true" && path.EndsWith(".aab", StringComparison.OrdinalIgnoreCase))
                 ok = Build(Path.ChangeExtension(path, ".apk"), false);
             return ok;
+        }
+
+        // A Gradle project for Android Studio: open the folder, then Build → Generate Signed App Bundle.
+        public static bool ExportAndroidStudio(string dir)
+        {
+            SearPressureSetup.Setup(false);
+            SearPressureRelease.Apply(false);
+            bool was = EditorUserBuildSettings.exportAsGoogleAndroidProject;
+            EditorUserBuildSettings.exportAsGoogleAndroidProject = true;
+            try
+            {
+                if (Directory.Exists(dir)) Directory.Delete(dir, true);
+                Directory.CreateDirectory(dir);
+                var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                {
+                    scenes = new[] { "Assets/SearPressure/Scenes/Main.unity" },
+                    locationPathName = dir,
+                    target = BuildTarget.Android,
+                    targetGroup = BuildTargetGroup.Android,
+                    options = BuildOptions.None,
+                });
+                Debug.Log($"Sear Pressure: Android Studio export {report.summary.result} → {dir}");
+                return report.summary.result == BuildResult.Succeeded;
+            }
+            finally { EditorUserBuildSettings.exportAsGoogleAndroidProject = was; }
         }
 
         static bool Build(string path, bool bundle)

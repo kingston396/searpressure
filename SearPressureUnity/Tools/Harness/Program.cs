@@ -21,6 +21,7 @@ sealed class HarnessPlatform : IPlatform
     public bool UnlockAll => unlock;
     public bool Calm => calm;
     public INetTransport CreateTransport() => null;
+    public IAds Ads { get; set; }
     public void OpenKeyboard(string text, int maxLength) { }
 }
 
@@ -55,4 +56,20 @@ static class Program
         string which = args.Length > 0 ? args[0] : "smoke";
         Tests.Run(which);
     }
+}
+
+// Stand-in for AdMob: ads are always "loaded", and showing one finishes on the spot.
+sealed class FakeAds : IAds
+{
+    public bool interstitialReady = true, rewardedReady = true, earn = true, privacy;
+    public int interstitials, rewardeds, privacyShown;
+    public bool InterstitialReady => interstitialReady;
+    public bool async;                       // hold the callback until the test calls Finish()
+    public Action pending;
+    public void Finish() { var p = pending; pending = null; p?.Invoke(); }
+    public void ShowInterstitial(Action done) { interstitials++; if (async) pending = done; else done(); }
+    public bool RewardedReady => rewardedReady;
+    public void ShowRewarded(Action<bool> done) { rewardeds++; bool e = earn; if (async) pending = () => done(e); else done(e); }
+    public bool PrivacyOptionsRequired => privacy;
+    public void ShowPrivacyOptions() { privacyShown++; }
 }

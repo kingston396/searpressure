@@ -61,6 +61,7 @@ namespace SearPressure
                 case "scr-wardrobe": WardrobeScreen(); break;
                 case "scr-story": StoryScreen(); break;
                 case "scr-online": OnlineScreen(); break;
+                case "scr-revive": ReviveScreen(); break;
             }
         }
 
@@ -303,12 +304,17 @@ namespace SearPressure
         void syncPauseButtons() { }
         public void pauseGame()
         {
-            if (D != null) { if (D.phase == "over") return; paused = true; input.joy.id = null; D.hand = false; show("scr-pause"); return; }
-            if (G == null || G.phase == "over") return;
+            if (D != null) { if (D.phase == "over" || D.phase == "revive") return; paused = true; input.joy.id = null; D.hand = false; show("scr-pause"); return; }
+            if (G == null || G.phase == "over" || G.phase == "revive") return;
             if (NET.role != null) { setPaused(true, true); return; }
             paused = true; input.joy.id = null; show("scr-pause");
         }
-        public void resumeGame() { if (NET.role != null) setPaused(false, true); else { paused = false; show(null); } }
+        public void resumeGame()
+        {
+            // Nothing to resume (a finished service or run): go to the kitchen list instead of a frozen screen.
+            if (NET.role == null && ((G != null && G.phase == "over") || (D != null && D.phase == "over")) || (G == null && D == null)) { toMenu(); return; }
+            if (NET.role != null) setPaused(false, true); else { paused = false; show(null); }
+        }
         public void toMenu()
         {
             if (NET.role == "host") { enterOnlineMenu(); return; }
@@ -356,7 +362,7 @@ namespace SearPressure
             cy += GAP - 10;
             Para("Every order has a timer, and faster service earns bigger tips. If a ticket runs out, you lose coins. Food left on the heat burns and starts a fire that spreads along the counters, so grab the extinguisher. Put anything in the bin to empty it.", "tip");
             Para("Keyboard: WASD or arrow keys to move, Space to grab, E to chop, wash or spray (hold), Q to swap, Esc to pause.", "small");
-            if (Button("btn-howto-close", "Got it")) show(G != null ? "scr-pause" : "scr-title");
+            if (Button("btn-howto-close", "Got it")) show(paused ? "scr-pause" : "scr-title");
             cy -= GAP;
         }
 
@@ -392,6 +398,7 @@ namespace SearPressure
                 cy += 8;
             }
             cy += GAP - 8;
+            if (ads != null && ads.PrivacyOptionsRequired && Button("btn-privacy", "Privacy choices", "ghost", "Change how ads use your data")) ads.ShowPrivacyOptions();
             if (Button("btn-settings-close", "Done")) show(settingsBack);
             cy -= GAP;
         }
@@ -646,6 +653,7 @@ namespace SearPressure
             var wasHidden = Enumerable.Range(0, Data.LEVELS.Count).Select(hiddenBonus).ToList();
             if (stars > 0 && !lv.daily && i >= 0) { if (stars > save.stars[i]) { save.stars[i] = stars; persist(); } }
             var pay = lv.daily ? settleQuest() : settle(G.attempt, G.score, stars, starTargets(i, G.humans)[2]);
+            if (!lv.tutorial) countLevelForAds();
             var m = new ResultsModel { wallet = pay.text };
             if (!lv.daily && !G.kicked && G.humans == 1 && i >= 0 && (!save.best.Has(i) || G.score > save.best[i])) { save.best[i] = G.score; persist(); }
             m.no = "Kitchen " + U.Pad2(i + 1);
@@ -682,7 +690,8 @@ namespace SearPressure
             if (found.Count > 0) m.next = $"Secret unlocked: Delivery Run “{Data.DRIVE_RUNS[found[0]].name}”! Drive the orders yourself. Find it at the bottom of the kitchen list. " + m.next;
             int li = i;
             m.onRetry = () => play(li);
-            m.onNext = () => { if (!maybeStory(li + 1)) openIntro(li + 1); };
+            // Leaving a finished service for the next kitchen: drop it, so no menu path can lead back into it.
+            m.onNext = () => { if (NET.role == null) { G = null; paused = false; } if (!maybeStory(li + 1)) openIntro(li + 1); };
             results = m;
             show("scr-results");
         }
@@ -714,9 +723,10 @@ namespace SearPressure
             if (!string.IsNullOrEmpty(m.wallet)) Para(m.wallet, "wallet");
             if (!string.IsNullOrEmpty(m.next)) Para(m.next, "small");
             var b = BtnRow(("btn-retry", "Retry", "alt", m.retryHidden), ("btn-next", "Next kitchen", "btn", m.nextHidden));
-            if (b == "btn-retry") m.onRetry?.Invoke();
-            if (b == "btn-next") m.onNext?.Invoke();
-            if (Button("btn-res-menu", m.menuLabel, "ghost")) toMenu();
+            // A full-screen ad every INTERSTITIAL_EVERY services, as the player leaves this card.
+            if (b == "btn-retry" && m.onRetry != null) afterBreakAd(m.onRetry);
+            if (b == "btn-next" && m.onNext != null) afterBreakAd(m.onNext);
+            if (Button("btn-res-menu", m.menuLabel, "ghost")) afterBreakAd(toMenu);
             cy -= GAP;
         }
 

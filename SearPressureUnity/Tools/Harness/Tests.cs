@@ -20,6 +20,10 @@ static partial class Tests
             case "kitchen2": Kitchen2(); break;
             case "screens": Screens(); break;
             case "economy": Economy(); break;
+            case "ads": Ads(); break;
+            case "fuzz": Fuzz(); break;
+            case "geo": GeoProbe(); break;
+            case "geoshots": GeoShots(); break;
             case "storeart": StoreArt(); break;
             case "storeshots": StoreShots(); break;
             default:

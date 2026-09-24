@@ -90,10 +90,11 @@ namespace SearPressure
             if (code == "Escape")
             {
                 if (screen == "scr-pause") resumeGame();
-                else if (screen == "scr-howto") show(G != null ? "scr-pause" : "scr-title");
+                else if (screen == "scr-howto") show(paused ? "scr-pause" : "scr-title");
                 else if (screen == "scr-settings") show(settingsBack);
                 else if (screen == "scr-intro" || screen == "scr-shop" || screen == "scr-wardrobe") show("scr-title");
-                else if (screen == "scr-results") toMenu();
+                else if (screen == "scr-results") afterBreakAd(toMenu);
+                else if (screen == "scr-revive") declineRevive();
                 else if (screen == "scr-title") onQuit?.Invoke();   // Android back on the title closes the game
                 return true;
             }

@@ -17,6 +17,7 @@ namespace SearPressure
         bool Calm { get; }                           // tests: no mirroring, crate shuffles or events (the web version's ?calm)
         INetTransport CreateTransport();             // online play; null when not available
         void OpenKeyboard(string text, int maxLength);
+        IAds Ads { get; }                            // banner/interstitial/rewarded ads; null for none
     }
 
     public sealed class Pt { public double x, y, r; public Pt(double x, double y, double r = 0) { this.x = x; this.y = y; this.r = r; } }
@@ -107,14 +108,14 @@ namespace SearPressure
             L.ctrlR = r;
             if (land)
             {
-                double side = Math.Min(210, W * 0.22);
+                double side = Math.Min(180, W * 0.19);
                 L.kitchen = new Rect(safeL + side, hudBottom, W - safeL - safeR - side * 2, H - hudBottom - safeB - 6);
                 L.joyRest = new Pt(safeL + side * 0.5, H - safeB - Math.Min(side * 0.55, 110));
                 L.btnA = new Pt(W - safeR - r - 22, H - safeB - r - 26);
             }
             else
             {
-                double ctrlH = Math.Max(150, Math.Min(210, H * 0.25));
+                double ctrlH = Math.Max(136, Math.Min(186, H * 0.21));
                 L.kitchen = new Rect(safeL + 8, hudBottom, W - safeL - safeR - 16, H - hudBottom - ctrlH - safeB);
                 L.joyRest = new Pt(safeL + Math.Min(100, W * 0.24), H - safeB - ctrlH / 2);
                 L.btnA = new Pt(W - safeR - r - 20, H - safeB - ctrlH / 2 + r * 0.3);
@@ -133,6 +134,7 @@ namespace SearPressure
             dt = Math.Min(0.05, dt);
             T += dt;
             update(dt);
+            adsTick();
             RenderFrame(dt);
             musicTick();
         }

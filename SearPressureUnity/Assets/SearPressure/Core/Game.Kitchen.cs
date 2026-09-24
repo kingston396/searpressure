@@ -508,6 +508,8 @@ namespace SearPressure
             addFloat("tile", st.x + 0.5, st.y + 0.2, "+" + U.S(earned), "#f5b82e", tip >= 7 * tipBoost() ? "Speedy!" : null);
             G.coinPulse = 1;
             sfx("serve"); buzz(25);
+            // A burst of sparkles at the window.
+            for (int i = 0; i < 7; i++) addPuff(st.x + 0.5, st.y + 0.35, i % 2 == 0 ? "#fff1a8" : "#ffffff", 0.55 + Random() * 0.25, "spark");
             if (G.lv.judge && (G.judge == null || G.judge.t <= 0 || G.judge.mood == 0) && Random() < 0.7) judgeSay("good", 0);
             if (G.orders.Count == 0) G.nextOrder = Math.Min(G.nextOrder, 1.2);
         }
@@ -615,6 +617,7 @@ namespace SearPressure
             if (D != null) { if (!paused) updateDrive(dt); else engineSet(0); return; }
             if (NET.role != null) netTick(dt);
             if (G == null || paused) return;
+            if (G.phase == "revive") return;   // waiting on the revive offer
             if (NET.role == "guest" && !G.versus) { updateGuest(dt); return; }
             G.swapFx = Math.Max(0, G.swapFx - dt * 2.5);
             G.swapPing = Math.Max(0, G.swapPing - dt);
@@ -656,7 +659,7 @@ namespace SearPressure
             int sec = G.lv.tutorial ? 99 : (int)Math.Ceiling(G.time);
             if (sec <= 10 && sec < G.lastSec && sec > 0) sfx("tick");
             G.lastSec = sec;
-            if (G.time <= 0 && !G.lv.tutorial) { G.time = 0; endLevel(); return; }
+            if (G.time <= 0 && !G.lv.tutorial) { G.time = 0; if (offerRevive("time")) return; endLevel(); return; }
 
             var ctrls = controllers(dt);
             foreach (var ch in G.chefs) ch.moving = false;
@@ -921,7 +924,8 @@ namespace SearPressure
 
         public void addPuff(double x, double y, string color, double life, string kind)
         {
-            var p = new Puff { x = x + (Random() - 0.5) * 0.3, y = y, vx = (Random() - 0.5) * (kind == "chip" ? 1.6 : 0.2), vy = kind == "chip" ? -1 - Random() : -0.5 - Random() * 0.3, color = color, life = life, max = life, kind = kind };
+            bool fly = kind == "chip" || kind == "spark";
+            var p = new Puff { x = x + (Random() - 0.5) * 0.3, y = y, vx = (Random() - 0.5) * (kind == "spark" ? 2.4 : kind == "chip" ? 1.6 : 0.2), vy = fly ? -1 - Random() : -0.5 - Random() * 0.3, color = color, life = life, max = life, kind = kind };
             G.puffs.Add(p);
             if (NET.role == "host" && !G.versus) NET.events.Add(new object[] { "p", Math.Round(p.x, 2), Math.Round(p.y, 2), Math.Round(p.vx, 2), Math.Round(p.vy, 2), color, life, kind });
         }
@@ -932,6 +936,7 @@ namespace SearPressure
                 var p = G.puffs[i];
                 p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt;
                 if (p.kind == "chip") p.vy += 5 * dt;
+                else if (p.kind == "spark") p.vy += 3 * dt;
                 if (p.life <= 0) G.puffs.RemoveAt(i);
             }
             for (int i = G.floats.Count - 1; i >= 0; i--)

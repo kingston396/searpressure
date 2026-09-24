@@ -43,9 +43,19 @@ Google signs the app for the store. You sign each upload with your own **upload 
 1. **Sear Pressure → Release → Next Build Number** before every upload except the very first (build 1).
 2. Build Profiles → Android → tick **Build App Bundle (Google Play)** → **Build**. Save as `SearPressure-1.0.0.aab`.
 
+**Or build and sign it in Android Studio:** in Unity, **Sear Pressure → Release → Export Android Studio Project**.
+Pick a folder, then open that folder in **Android Studio** (File → Open) and let Gradle sync.
+**Build → Generate Signed App Bundle or APK → Android App Bundle**, then choose your upload keystore from step 2 and the **release** variant.
+The `.aab` lands in `launcher/release/`. Android Studio's **Run ▶** also installs it on a plugged-in phone.
+(GitHub can produce this project too: Actions → Android build → Run workflow → tick "Export an Android Studio project".)
+
 **Or let GitHub build it:** every push to `main` builds a signed `.aab` automatically once the secrets are set up
 (see `.github/workflows/README.md`). Download it from the run's **Artifacts**. CI builds are numbered 101, 102, …,
 so if you use them, don't mix in hand-made builds with higher numbers.
+
+## Before the first release: ads
+
+Set up AdMob and replace the test ad IDs: `store/ADMOB.md`. It also has the on-phone ad test checklist.
 
 ## 4. Google Play Console
 
@@ -59,15 +69,15 @@ so if you use them, don't mix in hand-made builds with higher numbers.
 |---|---|
 | Privacy policy | the public address of `store/privacy-policy.html` (see "Hosting the privacy policy" in `listing.md`) |
 | App access | All functionality available without special access |
-| Ads | No, my app does not contain ads |
+| Ads | **Yes, my app contains ads** |
 | Content rating | Fill the IARC questionnaire: category *Game*, answers in `listing.md` → Everyone / PEGI 3 |
 | Target audience | 13 and over (see `listing.md` for why) |
 | News app | No |
-| Data safety | See `listing.md` (no data collected; check Unity's guidance on engine diagnostics) |
+| Data safety | See `listing.md` (AdMob: approximate location, device IDs, app interactions, diagnostics) |
 | Government app | No |
 | Financial features | None |
 | Health | None |
-| Advertising ID | No (the game doesn't use it) |
+| Advertising ID | Yes: used for Advertising and Analytics (AdMob) |
 
 4. **Store listing** (Grow → Store presence → Main store listing):
    - App name, short description, full description: copy them from `listing.md`.

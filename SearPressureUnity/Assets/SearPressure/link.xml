@@ -1,0 +1,5 @@
+<!-- Managed code stripping keeps these assemblies whole (the game builds some objects by name). -->
+<linker>
+  <assembly fullname="SearPressure.Core" preserve="all" />
+  <assembly fullname="SearPressure.Unity" preserve="all" />
+</linker>

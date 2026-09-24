@@ -67,6 +67,8 @@ dotnet run --no-build -- kitchen2 /tmp/shots   # fries + delivery, blender, smok
 dotnet run --no-build -- screens  /tmp/shots   # every menu screen, story, results, pause, landscape
 dotnet run --no-build -- economy  /tmp/shots   # coins, unlocks, buy/sell upgrades, daily, save round trip
 dotnet run --no-build -- driveall /tmp/shots   # Delivery Runs: driving, drops, lesson, results
+dotnet run --no-build -- ads      /tmp/shots   # revive, interstitial timing, consent button, stuck-state regressions
+dotnet run --no-build -- fuzz     /tmp/shots   # every kitchen/run/menu with random input (~2 min)
 (cd ../../Server && npm install)
 dotnet run --no-build -- net      /tmp/shots   # host + 2 guests over a local relay: co-op, versus, leaving
 dotnet run --no-build -- relay    /tmp/shots   # 4-player rooms, full room, bad code, dropped guest
@@ -106,6 +108,17 @@ Online play is hidden (`NetConfig.OnlineEnabled = false`) until a relay is deplo
 On tablets the game scales up so the short side is at most about 560 logical pixels.
 
 Store listing text, screenshots, the feature graphic and the privacy policy are in `../store/`.
+
+## Ads
+
+Google AdMob (package `com.google.ads.mobile` from OpenUPM, set up in `Packages/manifest.json`):
+- a bottom banner (the game sits above it)
+- an interstitial every 2nd finished service
+- a rewarded revive when a service fails
+- Google's consent form
+
+The game rules are in `Core/Game.Ads.cs`, and the AdMob wrapper is `Unity/AdMobAds.cs`. IDs live in `Unity/AdsConfig.cs`,
+and until you replace them they are Google's test IDs. Setup and the on-phone test list are in `../store/ADMOB.md`.
 
 ## Differences from the web version
 
