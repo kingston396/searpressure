@@ -84,7 +84,7 @@ so if you use them, don't mix in hand-made builds with higher numbers.
    - Phone screenshots: all 7 from `store/screenshots/google-play-phone/`
    - Category: Game → Casual. Tags: see `listing.md`. Contact email: b.kingston396@gmail.com
 
-## 5. The closed test (new personal accounts must do this)
+## 5. The closed test (new personal accounts only; not needed for your LLC account)
 
 Google requires **at least 12 testers who stay opted in for 14 days in a row** before you can publish to everyone.
 1. **Test and release → Testing → Closed testing → Create track** (or use "Alpha").

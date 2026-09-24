@@ -2,10 +2,14 @@
 
 Sear Pressure 1.0.0 (build 1) · package `com.kingstongames.searpressure` · **Paid $4.99, no ads, no in-app purchases**
 
-## What "today" can mean on Google Play
+## Your account: an organisation (LLC)
 
-| Your Play developer account | What you can do today |
-|---|---|
+Because the developer account belongs to your LLC (an **organisation account**), Google's "12 testers for 14 days"
+closed-test rule for new personal accounts **does not apply**. You can publish straight to **production** today.
+What's left is Google's own verification of the account (if not already done) and its review of a new app, which
+usually takes from a few hours to a few days.
+
+---|---|
 | **New personal account** (made after Nov 2023) | Upload the build and get it into **internal and closed testing** today. Google then requires **12 testers opted in for 14 days** before you can apply for production. Identity verification can also take a few days first. |
 | **Organisation account**, or a personal account from before Nov 2023 | You can go to **production** today. Google's first review of a new app usually takes a few hours to a few days. |
 
@@ -72,7 +76,11 @@ or later in Android Studio's signing wizard (**Create new…**):
 ## Part E: Google Play Console (about 1–2 hours of forms)
 
 1. **play.google.com/console** → pay the $25 fee and verify your identity.
-   Also: **Setup → Payments profile**. A paid app needs a merchant/payments profile with a bank account and tax details.
+   The account is in the **LLC's name**: organisation verification uses the LLC's **D-U-N-S number**. If you
+   don't have one, it's free from Dun & Bradstreet, but it can take a few days. Your developer name on the store
+   is the LLC's (or the name you choose in Settings → Developer account → Account details).
+   Also: **Setup → Payments profile**. A paid app needs a **business** payments profile in the LLC's name, with the
+   LLC's bank account and tax details (EIN).
 2. **Create app:**
    - Sear Pressure, English (US), **Game**, **Paid**.
    - Accept the declarations.
@@ -105,17 +113,15 @@ or later in Android Studio's signing wizard (**Create new…**):
 
 ## Part F: upload and roll out (15 min)
 
-1. **Test and release → Testing → Internal testing → Create new release.**
+1. **Optional quick check (recommended):** **Test and release → Testing → Internal testing → Create new release.**
    - Upload `SearPressure-1.0.0-1.aab` and accept **Play App Signing**.
-   - Release name `1.0.0 (1)`, notes "First release".
-   - **Next → Save → Roll out.**
-   - Add yourself (and anyone else) as a tester, open the opt-in link on your phone, and install it from the Play Store. Internal test builds are usually available within minutes.
-2. **New personal account:**
-   - **Testing → Closed testing → Create track.**
-   - Promote the same release (or upload it again), add **12 or more testers** (Gmail addresses or a Google Group) and roll out.
-   - Send them the opt-in link. After **14 days** with 12 or more testers opted in, use **Dashboard → Apply for production**.
-   - Note on paid apps: Google Play normally charges testers for a paid app. Check Play Console's help on testing paid apps (license testers) before inviting people, and tell them what to expect.
-3. **Organisation account or an older personal one:** **Production → Create new release** → add the same bundle → **Review → Start rollout**. You could start at 20% and raise it once you've seen it on real phones.
+   - Release name `1.0.0 (1)`, notes "First release". **Next → Save → Roll out.**
+   - Add your own Google account as a tester, open the opt-in link on your phone, and install it from the Play Store.
+     Internal test builds are usually available within minutes. This is the exact file customers will get.
+2. **Production:** **Test and release → Production → Create new release** → **Add from library** (the same bundle)
+   → release notes → **Next → Save → Send for review** (Publishing overview → **Send changes for review**).
+   You can start the rollout at 20% and raise it once you've seen it on real phones.
+3. Google reviews the new app (usually hours to a few days). When it's approved, it goes live in the countries you picked.
 
 ## Part G: after launch
 
