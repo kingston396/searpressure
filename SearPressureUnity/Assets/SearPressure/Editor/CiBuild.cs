@@ -88,7 +88,11 @@ namespace SearPressure.EditorTools
             SearPressureRelease.Apply(false);
             if (!AndroidDeps.Prepare()) return false;
             bool was = EditorUserBuildSettings.exportAsGoogleAndroidProject;
+            bool customKey = PlayerSettings.Android.useCustomKeystore;
             EditorUserBuildSettings.exportAsGoogleAndroidProject = true;
+            // Unity would write the upload key's passwords into the exported Gradle files, and the export
+            // can end up shared or in a (public) CI artifact. Sign in Android Studio's wizard instead.
+            PlayerSettings.Android.useCustomKeystore = false;
             try
             {
                 if (Directory.Exists(dir)) Directory.Delete(dir, true);
@@ -104,7 +108,7 @@ namespace SearPressure.EditorTools
                 Debug.Log($"Sear Pressure: Android Studio export {report.summary.result} → {dir}");
                 return report.summary.result == BuildResult.Succeeded;
             }
-            finally { EditorUserBuildSettings.exportAsGoogleAndroidProject = was; }
+            finally { EditorUserBuildSettings.exportAsGoogleAndroidProject = was; PlayerSettings.Android.useCustomKeystore = customKey; }
         }
 
         static bool Build(string path, bool bundle, bool development = false)
