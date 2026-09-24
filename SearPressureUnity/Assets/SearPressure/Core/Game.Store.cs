@@ -72,7 +72,7 @@ namespace SearPressure
             if (store == null) return;
             if (!adsRemoved)
             {
-                if (Button("btn-remove-ads", removeAdsLabel, "ghost", "One-time purchase. Revives become free too.", storeBusy)) buyRemoveAds();
+                if (Button("btn-remove-ads", removeAdsLabel, "ghost", "One-time purchase. Revives and coin doubling become free too.", storeBusy)) buyRemoveAds();
             }
             if (!string.IsNullOrEmpty(storeNote) && T - storeNoteT < 12) Para(storeNote, "small");
         }

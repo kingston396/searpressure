@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using SearPressure;
 
-// Ads: the revive offer, interstitials every 2nd service, privacy choices, and no ads at all.
+// Ads: the revive offer, interstitials, double-your-coins, privacy choices, and no ads at all.
 static partial class Tests
 {
     static (Game g, FakeAds ads) AdGame(bool withAds = true, bool unlock = true)
@@ -164,6 +164,63 @@ static partial class Tests
             Check(fa2.interstitials == 1 && g2.screen == "scr-results", "interstitial showing, menus waiting");
             Program.Run(g2, Game.AD_TIMEOUT_FOR_TESTS + 1, 0.05);
             Check(g2.G != null && g2.G.phase != "over", "no callback → carries on to the retry anyway");
+        }
+        Console.WriteLine("Interstitial: after every service once 3 minutes have passed since the last ad");
+        {
+            var (g, fa) = AdGame();
+            g.play(0); Program.Run(g, 3.7); g.lastAdAt = g.T - Game.AD_GAP - 1; g.G.score = 500; RunOut(g); Program.Run(g, 2.2);
+            Tap(g, "btn-retry");
+            Check(fa.interstitials == 1, "long service: an ad after the first one");
+            Program.Run(g, 3.7); g.G.score = 500; RunOut(g); Program.Run(g, 2.2);
+            Tap(g, "btn-retry");
+            Check(fa.interstitials == 1, "but not again within 3 minutes");
+        }
+        Console.WriteLine("Double your coins: rewarded ad on the results card, a few times a day");
+        {
+            var (g, fa) = AdGame();
+            g.play(0); Program.Run(g, 3.7); g.G.score = 500; RunOut(g); Program.Run(g, 2.2);
+            double paid = g.results.bonus, before = g.save.wallet;
+            Check(paid > 0 && HasHit(g, "btn-double"), $"offered after a paying service (+{paid})");
+            Tap(g, "btn-double");
+            Check(fa.rewardeds == 1 && Math.Abs(g.save.wallet - before - paid) < 0.01, $"watched: +{paid} more ({g.save.wallet - before})");
+            Program.Run(g, 0.2);
+            Check(!HasHit(g, "btn-double"), "only once per result");
+            Tap(g, "btn-retry");
+            Check(fa.interstitials == 0, "the rewarded ad counts as this break's ad");
+            // No reward → no coins.
+            Program.Run(g, 3.7); g.G.score = 500; RunOut(g); Program.Run(g, 2.2);
+            fa.earn = false; before = g.save.wallet; Tap(g, "btn-double");
+            Check(g.save.wallet == before && g.doublesLeft() == Game.DOUBLES_PER_DAY - 1, "skipped ad: no coins, no use counted");
+            fa.earn = true;
+            // Daily limit.
+            g.save.bonusCount = Game.DOUBLES_PER_DAY; Program.Run(g, 0.2);
+            g.results.bonusTaken = false;
+            Check(g.doublesLeft() == 0 && !HasHit(g, "btn-double"), "no offer once today's limit is used");
+            g.save.bonusDay = "2000-01-01";
+            Check(g.doublesLeft() == Game.DOUBLES_PER_DAY, "a new day resets the limit");
+            // Nothing to double: replay of a level with no coins, the daily, the tutorial.
+            g.results.bonus = 0; Program.Run(g, 0.2);
+            Check(!HasHit(g, "btn-double"), "no offer when nothing was paid");
+            // A late reward after giving up changes nothing.
+            var (g2, fa2) = AdGame(); fa2.async = true;
+            g2.play(0); Program.Run(g2, 3.7); g2.G.score = 500; RunOut(g2); Program.Run(g2, 2.2);
+            before = g2.save.wallet; Tap(g2, "btn-double");
+            Program.Run(g2, Game.AD_TIMEOUT_FOR_TESTS + 1, 0.05); fa2.Finish();
+            Check(g2.save.wallet == before, "late reward after the timeout: no coins");
+            // Saved across restarts.
+            var s = SaveData.FromJson(g.save.ToJson());
+            Check(s.bonusDay == g.save.bonusDay && s.bonusCount == g.save.bonusCount, "limit is saved");
+        }
+        Console.WriteLine("Double your coins: free for Remove-ads owners, same daily limit, no ad");
+        {
+            var fs = new FakeStore { owned = true };
+            var fa = new FakeAds();
+            var g = Program.NewGame(new HarnessPlatform { unlock = true, Ads = fa, Store = fs }); Program.Run(g, 0.2); g.onlineEnabled = false;
+            g.play(0); Program.Run(g, 3.7); g.G.score = 500; RunOut(g); Program.Run(g, 2.2);
+            double before = g.save.wallet, paid = g.results.bonus;
+            Tap(g, "btn-double");
+            Check(fa.rewardeds == 0 && Math.Abs(g.save.wallet - before - paid) < 0.01, "doubled without an ad");
+            Check(g.doublesLeft() == Game.DOUBLES_PER_DAY - 1, "counts toward the daily limit");
         }
         Console.WriteLine("Regression: no revive on the daily challenge");
         {

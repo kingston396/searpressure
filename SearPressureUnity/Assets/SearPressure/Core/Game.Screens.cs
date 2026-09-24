@@ -22,6 +22,8 @@ namespace SearPressure
         public int stars;
         public bool nextHidden, retryHidden;
         public Action onRetry, onNext;
+        public double bonus;          // coins a "double your coins" reward would add (what this result paid)
+        public bool bonusTaken;
     }
 
     public sealed partial class Game
@@ -657,7 +659,7 @@ namespace SearPressure
             if (stars > 0 && !lv.daily && i >= 0) { if (stars > save.stars[i]) { save.stars[i] = stars; persist(); } }
             var pay = lv.daily ? settleQuest() : settle(G.attempt, G.score, stars, starTargets(i, G.humans)[2]);
             if (!lv.tutorial) countLevelForAds();
-            var m = new ResultsModel { wallet = pay.text };
+            var m = new ResultsModel { wallet = pay.text, bonus = lv.daily || lv.tutorial ? 0 : pay.paid };
             if (!lv.daily && !G.kicked && G.humans == 1 && i >= 0 && (!save.best.Has(i) || G.score > save.best[i])) { save.best[i] = G.score; persist(); }
             m.no = "Kitchen " + U.Pad2(i + 1);
             m.name = lv.name; m.stars = stars;
@@ -724,9 +726,10 @@ namespace SearPressure
             }
             cy += GAP - 6;
             if (!string.IsNullOrEmpty(m.wallet)) Para(m.wallet, "wallet");
+            DoubleCoinsOffer(m);
             if (!string.IsNullOrEmpty(m.next)) Para(m.next, "small");
             var b = BtnRow(("btn-retry", "Retry", "alt", m.retryHidden), ("btn-next", "Next kitchen", "btn", m.nextHidden));
-            // A full-screen ad every INTERSTITIAL_EVERY services, as the player leaves this card.
+            // A full-screen ad at this break when one is due (see afterBreakAd), as the player leaves this card.
             if (b == "btn-retry" && m.onRetry != null) afterBreakAd(m.onRetry);
             if (b == "btn-next" && m.onNext != null) afterBreakAd(m.onNext);
             if (Button("btn-res-menu", m.menuLabel, "ghost")) afterBreakAd(toMenu);

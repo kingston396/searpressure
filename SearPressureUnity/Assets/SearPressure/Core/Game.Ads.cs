@@ -17,12 +17,19 @@ namespace SearPressure
 
     public sealed partial class Game
     {
-        public const int INTERSTITIAL_EVERY = 2;     // a full-screen ad after every 2nd finished service
+        // A full-screen ad after every finished service, but never within AD_GAP seconds of the last
+        // full-screen ad (short services then get one every INTERSTITIAL_EVERY instead).
+        public const int INTERSTITIAL_EVERY = 2;
+        public const double AD_GAP = 180;
         public const double REVIVE_SECONDS = 30, DRIVE_REVIVE_SECONDS = 20;
+        // "Double your coins" on the results card: a rewarded ad (free for "Remove ads" owners), a few times a day,
+        // so it helps without handing out the whole shop.
+        public const int DOUBLES_PER_DAY = 3;
 
         // No ads for players who bought "Remove ads".
         IAds ads => adsRemoved ? null : platform.Ads;
         public int adLevels;                         // services finished since the last interstitial
+        public double lastAdAt;                      // when the last full-screen ad (interstitial or rewarded) showed
         bool adBusy;                                 // a full-screen ad is up: menus ignore taps
         double adBusyAt; int adToken; Action adNext;
         const double AD_TIMEOUT = 75;               // never wait on an ad SDK callback longer than this
@@ -43,10 +50,11 @@ namespace SearPressure
         // Run `next` (Retry, Next kitchen, All kitchens), with a full-screen ad first when one is due.
         void afterBreakAd(Action next)
         {
-            if (adBusy) return;
-            if (ads != null && NET.role == null && adLevels >= INTERSTITIAL_EVERY && ads.InterstitialReady)
+            if (adBusy || bonusWaiting) return;
+            bool due = adLevels >= INTERSTITIAL_EVERY || (adLevels >= 1 && T - lastAdAt >= AD_GAP);
+            if (ads != null && NET.role == null && due && ads.InterstitialReady)
             {
-                adLevels = 0; adBusy = true; adBusyAt = T; adNext = next;
+                adLevels = 0; lastAdAt = T; adBusy = true; adBusyAt = T; adNext = next;
                 int token = ++adToken;
                 ads.ShowInterstitial(() => { if (token == adToken && adBusy) finishBreakAd(); });
                 return;
@@ -62,6 +70,7 @@ namespace SearPressure
             storeTick();
             if (adBusy && T - adBusyAt > AD_TIMEOUT) { adToken++; finishBreakAd(); }
             if (reviveWaiting && T - reviveAt > AD_TIMEOUT) { reviveToken++; reviveWaiting = false; declineRevive(); }
+            if (bonusWaiting && T - bonusAt > AD_TIMEOUT) { bonusToken++; bonusWaiting = false; }
         }
 
         // ---- revive: a failed service can watch one rewarded ad to keep going ----
@@ -100,7 +109,7 @@ namespace SearPressure
             if (!canOfferRevive()) { declineRevive(); return; }
             if (adsRemoved) { applyRevive(); return; }
             reviveWaiting = true; reviveAt = T;
-            adLevels = 0;   // a rewarded ad counts as this break's ad: no interstitial straight after it
+            adLevels = 0; lastAdAt = T;   // a rewarded ad counts as this break's ad: no interstitial straight after it
             int token = ++reviveToken;
             ads.ShowRewarded(earned =>
             {
@@ -139,6 +148,56 @@ namespace SearPressure
             if (reviveKind == "strikes") { G.kicked = true; judgeSay("out", 2); }
             G.phase = "play";   // endLevel() only ends a service that isn't over yet
             endLevel();
+        }
+
+        // ---- double your coins: an optional rewarded ad on the results card ----
+        bool bonusWaiting; double bonusAt; int bonusToken;
+
+        public int doublesLeft()
+        {
+            string today = todayKey();
+            int used = save.bonusDay == today ? (int)save.bonusCount : 0;
+            return Math.Max(0, DOUBLES_PER_DAY - used);
+        }
+
+        bool canDouble(ResultsModel m) => NET.role == null && m.bonus > 0 && !m.bonusTaken && doublesLeft() > 0
+            && (adsRemoved || (ads != null && ads.RewardedReady));
+
+        public void acceptDouble()
+        {
+            var m = results;
+            if (bonusWaiting || adBusy || !canDouble(m)) return;
+            if (adsRemoved) { grantDouble(m); return; }
+            bonusWaiting = true; bonusAt = T;
+            adLevels = 0; lastAdAt = T;   // counts as this break's ad
+            int token = ++bonusToken;
+            ads.ShowRewarded(earned =>
+            {
+                if (token != bonusToken || !bonusWaiting) return;   // gave up waiting on it
+                bonusWaiting = false;
+                if (earned && results == m) grantDouble(m);
+            });
+        }
+
+        void grantDouble(ResultsModel m)
+        {
+            if (m.bonusTaken) return;
+            m.bonusTaken = true;
+            string today = todayKey();
+            if (save.bonusDay != today) { save.bonusDay = today; save.bonusCount = 0; }
+            save.bonusCount++;
+            double got = addToWallet(m.bonus);
+            m.wallet = $"Coins doubled: +{fmtCoins(got)} more ({fmtCoins(save.wallet)} to spend).";
+            sfx("serve"); buzz(40);
+        }
+
+        void DoubleCoinsOffer(ResultsModel m)
+        {
+            if (!canDouble(m)) return;
+            int left = doublesLeft();
+            string label = (adsRemoved ? "Double it: +" : "Watch an ad: +") + fmtCoins(m.bonus) + " coins";
+            string sub = left == 1 ? "Last one today" : left + " left today";
+            if (Button("btn-double", label, "alt", sub, bonusWaiting)) acceptDouble();
         }
 
         void ReviveScreen()

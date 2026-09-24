@@ -42,6 +42,7 @@ namespace SearPressure
         public Dictionary<string, double> earned = new Dictionary<string, double>();
         public Dictionary<string, double> plays = new Dictionary<string, double>();
         public List<bool> driveSeen = new List<bool>();
+        public string bonusDay; public double bonusCount;   // "double your coins" rewards used on that (UTC) day
 
         public const string Key = "orderup.v1";
 
@@ -72,6 +73,7 @@ namespace SearPressure
             if (J.Get(d, "earned") is Dictionary<string, object> ea) foreach (var kv in ea) if (kv.Value is double v) s.earned[kv.Key] = v;
             if (J.Get(d, "plays") is Dictionary<string, object> pl) foreach (var kv in pl) if (kv.Value is double v) s.plays[kv.Key] = v;
             if (J.Get(d, "driveSeen") is List<object> ds) foreach (var x in ds) s.driveSeen.Add(x is bool v && v);
+            s.bonusDay = J.Str(d, "bonusDay"); s.bonusCount = J.Num(d, "bonusCount");
             return s;
         }
 
@@ -89,6 +91,7 @@ namespace SearPressure
                 ["plays"] = plays.ToDictionary(k => k.Key, k => (object)k.Value),
                 ["drive"] = drive.ToJson(), ["driveTut"] = driveTut, ["driveSeen"] = driveSeen.Select(x => (object)x).ToList(),
             };
+            if (bonusDay != null) { d["bonusDay"] = bonusDay; d["bonusCount"] = bonusCount; }
             if (dailyPick != null) d["dailyPick"] = new Dictionary<string, object> { ["key"] = dailyPick.key, ["base"] = dailyPick.@base };
             return Json.Write(d);
         }

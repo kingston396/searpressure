@@ -1180,7 +1180,7 @@ namespace SearPressure
             countLevelForAds();
             var m = new ResultsModel
             {
-                wallet = pay.text,
+                wallet = pay.text, bonus = pay.paid,
                 no = "Delivery Run " + (k + 1),
                 over = "Time's up",
                 name = run.name,
