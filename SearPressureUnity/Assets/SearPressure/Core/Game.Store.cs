@@ -18,8 +18,6 @@ namespace SearPressure
 
     public sealed partial class Game
     {
-        public const string REMOVE_ADS_FALLBACK_PRICE = "$4.99";
-
         IStore store => platform.Store;
         // Paid players: no ads at all (the host also drops the banner).
         public bool adsRemoved => store != null && store.Owned;
@@ -28,7 +26,8 @@ namespace SearPressure
         public string storeNote;             // one line under the button: thanks, pending, couldn't reach the store…
         double storeNoteT;
 
-        string removeAdsPrice => store?.Price ?? REMOVE_ADS_FALLBACK_PRICE;
+        // Only ever show Google Play's own (local-currency) price; before it's known, no price at all.
+        string removeAdsLabel => store?.Price is string p && p.Length > 0 ? "Remove ads · " + p : "Remove ads";
 
         public void buyRemoveAds()
         {
@@ -73,7 +72,7 @@ namespace SearPressure
             if (store == null) return;
             if (!adsRemoved)
             {
-                if (Button("btn-remove-ads", "Remove ads · " + removeAdsPrice, "ghost", "One-time purchase. Revives become free too.", storeBusy)) buyRemoveAds();
+                if (Button("btn-remove-ads", removeAdsLabel, "ghost", "One-time purchase. Revives become free too.", storeBusy)) buyRemoveAds();
             }
             if (!string.IsNullOrEmpty(storeNote) && T - storeNoteT < 12) Para(storeNote, "small");
         }
@@ -83,7 +82,7 @@ namespace SearPressure
         {
             if (store == null) return;
             if (adsRemoved) Para("Ads removed. Thanks for buying Sear Pressure!", "small");
-            else if (Button("btn-settings-buy", "Remove ads · " + removeAdsPrice, "ghost", "One-time purchase", storeBusy)) buyRemoveAds();
+            else if (Button("btn-settings-buy", removeAdsLabel, "ghost", "One-time purchase", storeBusy)) buyRemoveAds();
             if (Button("btn-restore", "Restore purchase", "ghost", "Bought it before? Get it back on this device", storeBusy)) restorePurchase();
             if (!string.IsNullOrEmpty(storeNote) && T - storeNoteT < 12) Para(storeNote, "small");
         }

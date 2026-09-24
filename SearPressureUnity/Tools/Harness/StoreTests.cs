@@ -72,6 +72,24 @@ static partial class Tests
             g2.show("scr-settings"); Program.Run(g2, 0.2); Tap(g2, "btn-restore");
             Check(!g2.adsRemoved && g2.storeNote.StartsWith("No purchase found"), "nothing to restore: " + g2.storeNote);
         }
+        Console.WriteLine("Banner: menus and results only, never during play; never for owners");
+        {
+            var (g, fa, st) = StoreGame();
+            Check(g.BannerAllowed, "title: banner allowed");
+            g.play(0); Program.Run(g, 0.5);
+            Check(!g.BannerAllowed, "countdown: no banner");
+            Program.Run(g, 3.5);
+            Check(!g.BannerAllowed, "cooking: no banner");
+            g.pauseGame(); Program.Run(g, 0.1);
+            Check(!g.BannerAllowed, "paused mid-service: no banner (controls underneath)");
+            g.resumeGame(); g.G.score = 500; RunOut(g); Program.Run(g, 2.2);
+            Check(g.screen == "scr-results" && g.BannerAllowed, "results card: banner allowed");
+            st.owned = true;
+            Check(!g.BannerAllowed, "owner: never a banner");
+            var (g2, _, st2) = StoreGame(); st2.ready = false; Program.Run(g2, 0.1);
+            var f = typeof(Game).GetField("uiHits", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Check(g2.storeNote == null && HasHit(g2, "btn-remove-ads"), "price not loaded yet: button without a made-up price");
+        }
         Console.WriteLine("No store at all (other platforms): no offer, nothing breaks");
         {
             var g = Program.NewGame(new HarnessPlatform { unlock = true, Ads = new FakeAds() }); Program.Run(g, 0.2);

@@ -25,7 +25,7 @@ What follows is the part only you can do.
 3. **File → Build Profiles → Android → Switch Platform.**
 4. On your phone: Settings → About phone → tap *Build number* 7 times; then Developer options → USB debugging on.
    Plug it in.
-5. In Build Profiles, untick "Build App Bundle" for now, then click **Build And Run**. This installs a test `.apk` on the phone.
+5. In Build Profiles, untick "Build App Bundle" and **tick "Development Build"** (so you only see Google's test ads), then click **Build And Run**. This installs a test `.apk` on the phone.
 6. Play the tutorial, a few kitchens, the shop and the daily challenge. Try portrait and landscape, and the back button.
    Tell Claude about anything odd, with a screenshot.
 
@@ -43,7 +43,7 @@ Google signs the app for the store. You sign each upload with your own **upload 
 ## 3. Build the release
 
 1. **Sear Pressure → Release → Next Build Number** before every upload except the very first (build 1).
-2. Build Profiles → Android → tick **Build App Bundle (Google Play)** → **Build**. Save as `SearPressure-1.0.0.aab`.
+2. Build Profiles → Android → **untick "Development Build"**, tick **Build App Bundle (Google Play)** → **Build**. Save as `SearPressure-1.0.0.aab`.
 
 **Or build and sign it in Android Studio:** in Unity, **Sear Pressure → Release → Export Android Studio Project**.
 Pick a folder, then open that folder in **Android Studio** (File → Open) and let Gradle sync.
@@ -83,6 +83,7 @@ so if you use them, don't mix in hand-made builds with higher numbers.
    - Feature graphic: `store/google-play/feature-graphic-1024x500.png`
    - Phone screenshots: all 7 from `store/screenshots/google-play-phone/`
    - Category: Game → Casual. Tags: see `listing.md`. Contact email: b.kingston396@gmail.com
+   - **Website** (Store settings → Store listing contact details): the domain that will serve `app-ads.txt` (see `store/ADMOB.md` step 7).
 
 ## 5. The closed test (new personal accounts only; not needed for your LLC account)
 
@@ -98,8 +99,14 @@ Google requires **at least 12 testers who stay opted in for 14 days in a row** b
 
 ## 6. Go live
 
-After 14 days: **Dashboard → Apply for production access**. Answer the questions about your test.
-Once approved: **Production → Create release** → add the latest `.aab` → roll out (you can start at 20% and increase).
+**Organisation (LLC) account, which is yours:** follow `store/RELEASE-TODAY.md` Part G.
+1. Upload build 1 to **Internal testing**.
+2. Create and activate `remove_ads`, then license-test the purchase.
+3. **Production → Create new release → Add from library** (the same bundle) → **Send changes for review**.
+You can start at 20% and increase.
+
+*Personal accounts only:* after the 14-day closed test, **Dashboard → Apply for production access**, then do the same
+Production steps.
 
 ## Every later update
 

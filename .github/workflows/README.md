@@ -4,8 +4,9 @@
 (**Actions** tab → **Android build** → **Run workflow**). It:
 
 1. **Runs the game tests**: all the kitchen, menu, economy, Delivery Run and online scenarios, headless in .NET (about 3 min).
-2. **Builds with Unity 6000.3.9f1**, on GameCI's Docker image: a Google Play **`.aab`**, plus an **`.apk`** you can
-   install straight on a phone when you run it by hand with "Also build an .apk" ticked. It takes about 20–40 min
+2. **Builds with Unity 6000.3.9f1**, on GameCI's Docker image: a Google Play **`.aab`** (release build, real ads),
+   plus an **`.apk`** you can install straight on a phone when you run it by hand with "Also build an .apk" ticked.
+   The `.apk` is a **Development build, so it shows Google's test ads**; never upload it to Play. It takes about 20–40 min
    the first time and less once Unity's Library folder is cached.
 3. Attaches the files to the run: open the run → **Artifacts** → `SearPressure-android-<number>` (a zip).
 4. Optionally, on a manual run, **uploads the `.aab` to Google Play** as a draft on the internal or closed (alpha) track.

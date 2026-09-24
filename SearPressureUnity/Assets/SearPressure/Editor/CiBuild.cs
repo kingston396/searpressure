@@ -69,7 +69,7 @@ namespace SearPressure.EditorTools
             bool ok = Build(path, path.EndsWith(".aab", StringComparison.OrdinalIgnoreCase));
             // A phone-installable .apk next to the bundle, for testing without the Play Store.
             if (ok && Arg("spAlsoApk") == "true" && path.EndsWith(".aab", StringComparison.OrdinalIgnoreCase))
-                ok = Build(Path.ChangeExtension(path, ".apk"), false);
+                ok = Build(Path.ChangeExtension(path, ".apk"), false, development: true);   // phone-test APK: Google's test ads
             return ok;
         }
 
@@ -98,7 +98,7 @@ namespace SearPressure.EditorTools
             finally { EditorUserBuildSettings.exportAsGoogleAndroidProject = was; }
         }
 
-        static bool Build(string path, bool bundle)
+        static bool Build(string path, bool bundle, bool development = false)
         {
             EditorUserBuildSettings.buildAppBundle = bundle;
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
@@ -107,7 +107,7 @@ namespace SearPressure.EditorTools
                 locationPathName = path,
                 target = BuildTarget.Android,
                 targetGroup = BuildTargetGroup.Android,
-                options = BuildOptions.None,
+                options = development ? BuildOptions.Development : BuildOptions.None,
             });
             var s = report.summary;
             Debug.Log($"Sear Pressure: {(bundle ? "AAB" : "APK")} {s.result}, {s.totalSize / (1024 * 1024.0):0.0} MB, {s.totalErrors} errors, {s.totalTime:mm\\:ss} → {path}");

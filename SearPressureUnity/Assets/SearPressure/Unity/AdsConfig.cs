@@ -1,7 +1,7 @@
 namespace SearPressure.UnityHost
 {
-    // AdMob IDs. Until you paste in your own (AdMob → Apps → Sear Pressure → App settings / Ad units),
-    // these are Google's public TEST IDs: they show "Test Ad" banners and never pay out.
+    // AdMob IDs. The Android ones are Sear Pressure's real app and ad units; Development builds and the editor
+    // swap in Google's public test units automatically. The iOS ones are still Google's test IDs (no iOS release yet).
     // Never tap your own live ads, or AdMob can suspend the account. See store/ADMOB.md.
     public static class AdsConfig
     {
@@ -32,7 +32,7 @@ namespace SearPressure.UnityHost
             || AndroidInterstitial.StartsWith(TestPublisher) || AndroidRewarded.StartsWith(TestPublisher);
 
 #if UNITY_IOS
-        public static string Banner => IosBanner;
+        public static string Banner => IosBanner;          // test IDs until an iOS release is set up
         public static string Interstitial => IosInterstitial;
         public static string Rewarded => IosRewarded;
 #else

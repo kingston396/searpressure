@@ -23,7 +23,9 @@ namespace SearPressure.UnityHost
         TouchScreenKeyboard keyboard;
 #if SEARPRESSURE_ADS
         AdMobAds adMob;
-        float BannerPx => adMob != null && !(store != null && store.Owned) ? adMob.BannerHeightPx : 0;
+        // Space is kept for the banner only while it's allowed on screen (menus/results, no "Remove ads").
+        float BannerPx => adMob != null && game != null && game.BannerAllowed ? adMob.BannerHeightPx : 0;
+        bool adsPending; float adsPendingSince;
 #else
         float BannerPx => 0;   // built without the Google Mobile Ads package
 #endif
@@ -92,13 +94,16 @@ namespace SearPressure.UnityHost
             {
                 adMob = gameObject.AddComponent<AdMobAds>();
                 // Bought "Remove ads" (remembered on the device): no ads, and no ad consent form either.
-                if (store == null || !store.Owned) adMob.Begin();
+                // Otherwise wait (up to 3 s) for Google Play's ownership check first, so a buyer who reinstalled
+                // or moved to a new phone doesn't get the consent form or a banner flash.
+                if (store != null && store.Owned) adMob.Suppress();
+                else { adsPending = true; adsPendingSince = Time.unscaledTime; }
             }
 #endif
 #if SEARPRESSURE_ADS && (UNITY_EDITOR || UNITY_ANDROID)
             if (store != null) store.OwnedChanged += owned =>
             {
-                if (adMob == null) return;
+                if (adMob == null || adsPending) return;           // the start-up check will decide
                 if (owned) adMob.Suppress(); else adMob.Begin();   // bought → ads off now; refunded → ads back
             };
 #endif
@@ -157,6 +162,13 @@ namespace SearPressure.UnityHost
         public IAds Ads => null;
 #endif
         public IStore Store => store;
+#if UNITY_ANDROID && !UNITY_EDITOR
+        bool StoreChecked => store != null && store.Checked;
+#elif UNITY_EDITOR
+        bool StoreChecked => true;
+#else
+        bool StoreChecked => true;
+#endif
         public void OpenKeyboard(string text, int maxLength)
         {
             if (TouchScreenKeyboard.isSupported) keyboard = TouchScreenKeyboard.Open(text, TouchScreenKeyboardType.ASCIICapable, false, false, false, false, "ABCD", maxLength);
@@ -187,6 +199,18 @@ namespace SearPressure.UnityHost
         // ---- the frame ----
         void Update()
         {
+#if SEARPRESSURE_ADS
+            if (adMob != null)
+            {
+                bool owned = store != null && store.Owned;
+                if (adsPending && (owned || store == null || StoreChecked || Time.unscaledTime - adsPendingSince > 3f))
+                {
+                    adsPending = false;
+                    if (owned) adMob.Suppress(); else adMob.Begin();
+                }
+                adMob.SetBannerVisible(game.BannerAllowed);
+            }
+#endif
             ApplyScreen(false);
             ReadInput();
             game.Frame(Time.unscaledDeltaTime);

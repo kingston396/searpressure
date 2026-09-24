@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       apk:
-        description: 'Also build an .apk to install straight on a phone'
+        description: 'Also build an .apk to install straight on a phone (a Development build: shows Google test ads)'
         type: boolean
         default: true
       android_studio:
@@ -53,7 +53,7 @@ jobs:
         run: |
           set -o pipefail
           status=0
-          for t in smoke kitchen kitchen2 screens economy driveall ads net relay; do
+          for t in smoke kitchen kitchen2 screens economy driveall ads store net relay; do
             echo "::group::$t"
             dotnet run --no-build -- "$t" "$RUNNER_TEMP/shots" 2>&1 | tee "$RUNNER_TEMP/$t.log"
             echo "::endgroup::"

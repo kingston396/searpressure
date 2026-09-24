@@ -7,7 +7,8 @@ Everything to paste into Google Play Console and App Store Connect. Character li
 - **Privacy policy:** `store/privacy-policy.html`. It needs a public web address; see "Hosting the privacy policy" at the end.
 - **Version:** 1.0.0 (build 1)
 - **Package name:** `com.kingston.searpressure` (permanent once uploaded)
-- **Step-by-step Google Play guide:** `store/google-play/GUIDE.md`
+- **Website:** the domain that serves `app-ads.txt` (see `ADMOB.md` step 7; free option: `https://kingston396.github.io`)
+- **Release guide:** `store/RELEASE-TODAY.md` (step-by-step Play Console detail: `store/google-play/GUIDE.md`)
 
 ---
 
@@ -50,6 +51,8 @@ Some kitchens are hidden. Some roads lead somewhere unexpected. And somewhere ou
 
 Can you take the heat?
 ```
+(The "Free to play. One optional purchase removes every ad" line is Google Play-only for now: the iPhone version has no
+"Remove ads" purchase yet. Leave that line out if you ever submit to the App Store before it does.)
 
 ---
 
@@ -76,6 +79,7 @@ Run a food truck across America. Two chefs, one kitchen, zero time to spare.
 - Fear, sex, drugs, gambling, crude humour: none. The food critic is grumpy but never swears.
 - Users interact or share content: **No** (no online features in this version).
 - Shares location / personal info: **No**.
+- Purchases of digital goods (in-app purchases): **Yes** (the one-time "Remove ads"). The rating will show "In-App Purchases".
 - Expected rating: Everyone / PEGI 3.
 
 **Target audience:** choose **13 and over**. The game suits every age, but ticking under-13 age groups puts the app under Google's Families policy, which has extra requirements. You can change this later.
@@ -92,11 +96,18 @@ Run a food truck across America. Two chefs, one kitchen, zero time to spare.
 - Progress is saved only on the device and never collected. The Unity engine's anonymous device info falls under Diagnostics above.
 - **Advertising ID declaration** (App content → Advertising ID): **Yes**, used for **Advertising or marketing** and **Analytics**.
 
-**New personal developer accounts:** before production access, Google requires a **closed test with at least 12 testers opted in for 14 days in a row**. Upload build 1 to Closed testing first and invite friends by email or Google Group.
+**New personal developer accounts only:** before production access, Google requires a closed test with at least 12 testers opted in for 14 days in a row. **This doesn't apply to the Ragnarok Talent Partners LLC organisation account**: follow `RELEASE-TODAY.md` Part G (internal testing → production).
 
 ---
 
-## Apple App Store
+## Apple App Store: ⚠️ not ready yet
+
+Before an iPhone release, three things still need building:
+- a StoreKit "Remove ads" purchase with Restore (`GameHost.cs` has no store on iOS);
+- real iOS AdMob app and ad-unit IDs (`AdsConfig.cs` still has Google's test IDs for iOS);
+- Apple's tracking prompt (App Tracking Transparency).
+
+The text below is ready for when they are.
 
 **Subtitle** [30]
 ```

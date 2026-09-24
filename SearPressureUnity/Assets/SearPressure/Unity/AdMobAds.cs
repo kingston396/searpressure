@@ -22,6 +22,15 @@ namespace SearPressure.UnityHost
         public float BannerHeightPx { get; private set; }
 
         bool suppressed;
+        bool bannerWanted = true;   // the game allows a banner right now (menus/results, not during play)
+
+        public void SetBannerVisible(bool on)
+        {
+            if (bannerWanted == on) return;
+            bannerWanted = on;
+            if (banner == null) return;
+            if (on && !fullScreen) banner.Show(); else banner.Hide();
+        }
 
         // "Remove ads" was bought: drop the banner and stop loading full-screen ads.
         public void Suppress()
@@ -42,6 +51,7 @@ namespace SearPressure.UnityHost
             ConsentInformation.Update(request, updateError =>
             {
                 if (updateError != null) { Debug.LogWarning("Sear Pressure ads: consent info failed: " + updateError.Message); if (ConsentInformation.CanRequestAds()) StartAds(); return; }
+                if (suppressed) return;   // bought "Remove ads" meanwhile: no ad consent form
                 ConsentForm.LoadAndShowConsentFormIfRequired(formError =>
                 {
                     if (formError != null) Debug.LogWarning("Sear Pressure ads: consent form failed: " + formError.Message);
@@ -52,7 +62,7 @@ namespace SearPressure.UnityHost
 
         void StartAds()
         {
-            if (started) return;
+            if (started || suppressed) return;   // never start the ads SDK for a "Remove ads" owner
             started = true;
             if (AdsConfig.UsingTestIds) Debug.Log("Sear Pressure ads: using Google's TEST ad IDs (see AdsConfig.cs).");
             MobileAds.Initialize(_ =>
@@ -80,7 +90,7 @@ namespace SearPressure.UnityHost
             var size = AdSize.GetCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(MobileAds.Utils.GetDeviceSafeWidth());
             banner = new BannerView(AdsConfig.Banner, size, AdPosition.Bottom);
             var bv = banner;
-            bv.OnBannerAdLoaded += () => { if (bv != banner) return; BannerHeightPx = bv.GetHeightInPixels(); if (fullScreen) bv.Hide(); };
+            bv.OnBannerAdLoaded += () => { if (bv != banner) return; BannerHeightPx = bv.GetHeightInPixels(); if (fullScreen || !bannerWanted) bv.Hide(); else bv.Show(); };
             bv.OnBannerAdLoadFailed += err =>
             {
                 Debug.LogWarning("Sear Pressure ads: banner failed: " + err.GetMessage());
@@ -158,7 +168,7 @@ namespace SearPressure.UnityHost
 
         // Game sound off and the banner hidden while a full-screen ad is up.
         void BeginFullScreen() { fullScreen = true; AudioListener.pause = true; banner?.Hide(); }
-        void EndFullScreen() { fullScreen = false; AudioListener.pause = false; banner?.Show(); }
+        void EndFullScreen() { fullScreen = false; AudioListener.pause = false; if (bannerWanted) banner?.Show(); }
 
         // ---- consent ----
         public bool PrivacyOptionsRequired =>

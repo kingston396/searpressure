@@ -31,6 +31,12 @@ namespace SearPressure
         bool reviveWaiting;
         double reviveAt; int reviveToken;
 
+        // The bottom banner only shows on menus and results, never while a service or run is being played
+        // (AdMob: no ads next to controls players tap all the time). The host reads this every frame.
+        public bool BannerAllowed =>
+            !adsRemoved && NET.role == null &&
+            (G == null || G.phase == "over") && (D == null || D.phase == "over");
+
         // ---- interstitials: at the natural break after the results card ----
         void countLevelForAds() { if (NET.role == null) adLevels++; }
 

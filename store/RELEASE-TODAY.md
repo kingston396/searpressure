@@ -49,7 +49,7 @@ Already in the project: App ID `ca-app-pub-2822796427144413~6568766943` and the 
 5. In Build Profiles, **untick "Build App Bundle"** and **tick "Development Build"** (so you get test ads), then click **Build And Run** and save it as `test.apk`. It installs and starts on the phone.
 6. **Phone checklist:**
    - [ ] **Sound:** music plays on the title, and effects play when you chop, serve and when a fire starts.
-   - [ ] **Banner:** a "Test Ad" banner sits along the bottom. The kitchen, joystick and buttons are all above it, in portrait and landscape.
+   - [ ] **Banner:** a "Test Ad" banner sits along the bottom of the title screen. It **disappears when a kitchen starts** and comes back on the results card.
    - [ ] **Interstitial:** finish 2 kitchens. Leaving the 2nd results card shows a full-screen test ad; closing it carries on.
    - [ ] **Revive:** let Salad Days run out with 0 coins → **Keep going?** → **Watch an ad** → watch it to the end → +30 seconds.
    - [ ] **Remove ads button:** it shows on the title. In this sideloaded build it says Google Play isn't available. That's expected: purchases only work once the app is on Play (Part G).
@@ -115,6 +115,7 @@ or later in Android Studio's signing wizard (**Create new…**):
    - **Phone screenshots:** the 7 in `screenshots/google-play-phone/`.
    - **Tablet screenshots** (optional): `screenshots/ipad-13/` works for the 10-inch slot.
    - **Category and contact:** Game → Casual; email b.kingston396@gmail.com.
+   - **Website** (Store settings → Store listing contact details): the domain that will serve `app-ads.txt`. See `store/ADMOB.md` step 7; a free option is `https://kingston396.github.io`.
 6. **Countries:** Production → Countries/regions → add the countries you want (or all).
 
 ## Part G: upload, create "Remove ads", test it, go live
@@ -131,7 +132,7 @@ or later in Android Studio's signing wizard (**Create new…**):
    - Save, then **Activate**.
 3. **Test the purchase without paying:** **Settings (the Play Console home page's gear) → License testing** → add your Gmail (and anyone else testing) → Save.
    - On your phone, open the internal-testing opt-in link and install **from the Play Store**.
-   - On the title screen, **Remove ads · $4.99** should show your local price.
+   - On the title screen, **Remove ads · <price>** should show the price in your Play country's currency. If it shows just "Remove ads", the product isn't active yet, or it was created only minutes ago.
    - Tap it and choose the **test card ("always approves")**.
    - The ads disappear and the title says "Ads removed".
    - Uninstall and reinstall, then **Settings → Restore purchase**: ads stay off.
@@ -143,7 +144,7 @@ or later in Android Studio's signing wizard (**Create new…**):
 
 ## Part H: after launch
 
-- **AdMob:** link the app to its Play listing (Part B step 4), and check the numbers the next day.
+- **AdMob:** link the app to its Play listing and publish `app-ads.txt` (Part B step 2 and `store/ADMOB.md` step 7). Check the numbers the next day.
 - **Every update:**
   1. In Unity, run **Sear Pressure → Release → Next Build Number** (and bump the version for players, e.g. 1.0.1).
   2. **Export Android Studio Project**, then **Generate Signed App Bundle** with the **same keystore**.

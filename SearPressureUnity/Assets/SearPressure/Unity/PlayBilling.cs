@@ -25,10 +25,14 @@ namespace SearPressure.UnityHost
         readonly ConcurrentQueue<Action> main = new ConcurrentQueue<Action>();
         AndroidJavaObject activity, client, product;
         string offerToken, price;
-        bool owned, connected;
+        bool owned, connected, connecting;
+        float retryAt; float retryDelay = 2;
         Action<StoreResult> buyDone, restoreDone;
 
         public event Action<bool> OwnedChanged;
+        // True once the start-up ownership check has answered (or failed). The host waits for it (briefly)
+        // before starting ads, so a returning buyer on a new phone never sees an ad or the ad consent form.
+        public bool Checked { get; private set; }
         public bool Owned => owned;
         public string Price => price;
         public bool Ready => connected && product != null;
@@ -49,26 +53,62 @@ namespace SearPressure.UnityHost
                 b.Call<AndroidJavaObject>("enablePendingPurchases", pending).Dispose();
                 b.Call<AndroidJavaObject>("enableAutoServiceReconnection").Dispose();
                 client = b.Call<AndroidJavaObject>("build");
-                client.Call("startConnection", new StateListener(this));
+                Reconnect();
             }
-            catch (Exception e) { Debug.LogWarning("Sear Pressure store: couldn't start Google Play Billing: " + e.Message); }
+            catch (Exception e) { Debug.LogWarning("Sear Pressure store: couldn't start Google Play Billing: " + e.Message); Checked = true; }
         }
 
-        void Update() { while (main.TryDequeue(out var a)) { try { a(); } catch (Exception e) { Debug.LogException(e); } } }
+        void Update()
+        {
+            while (main.TryDequeue(out var a)) { try { a(); } catch (Exception e) { Debug.LogException(e); } }
+            if (retryAt > 0 && Time.unscaledTime > retryAt) { retryAt = 0; Reconnect(); }
+        }
 
         void OnApplicationFocus(bool focus)
         {
+            if (!focus) return;
             // Back from the Play Store or another app: a pending payment may have completed, or a refund landed.
-            if (focus && connected) QueryPurchases(null);
+            if (!connected) { Reconnect(); return; }
+            QueryPurchases(null);
+            if (product == null) QueryProduct();
         }
 
         // ---- set-up ----
+        // (Re)connect when the client is DISCONNECTED (state 0); never while it's already connecting.
+        void Reconnect()
+        {
+            if (client == null || connected || connecting) return;
+            try
+            {
+                if (client.Call<int>("getConnectionState") != 0) return;
+                connecting = true;
+                client.Call("startConnection", new StateListener(this));
+            }
+            catch (Exception e) { connecting = false; Debug.LogWarning("Sear Pressure store: reconnect failed: " + e.Message); }
+        }
+
         void OnSetup(int code)
         {
+            connecting = false;
             connected = code == OK;
-            if (!connected) { Debug.LogWarning("Sear Pressure store: billing setup failed, code " + code); return; }
+            if (!connected)
+            {
+                Debug.LogWarning("Sear Pressure store: billing setup failed, code " + code);
+                Checked = true;
+                FinishRestore(Map(code) == StoreResult.Purchased ? StoreResult.Error : Map(code));
+                // Try again by itself: 2, 4, 8 … up to 60 seconds apart.
+                retryAt = Time.unscaledTime + retryDelay; retryDelay = Mathf.Min(60, retryDelay * 2);
+                return;
+            }
+            retryDelay = 2;
             QueryProduct();
             QueryPurchases(null);
+        }
+
+        void OnDisconnected()
+        {
+            connected = false; connecting = false;
+            retryAt = Time.unscaledTime + 2;
         }
 
         void QueryProduct()
@@ -103,7 +143,8 @@ namespace SearPressure.UnityHost
             if (client == null || !Ready)
             {
                 done?.Invoke(StoreResult.Unavailable);
-                if (client != null && connected && product == null) QueryProduct();
+                if (!connected) Reconnect();
+                else if (product == null) QueryProduct();
                 return;
             }
             buyDone = done;
@@ -221,7 +262,8 @@ namespace SearPressure.UnityHost
         // ---- restoring / checking ----
         public void Restore(Action<StoreResult> done)
         {
-            if (client == null || !connected) { done?.Invoke(StoreResult.Unavailable); return; }
+            if (client == null) { done?.Invoke(StoreResult.Unavailable); return; }
+            if (!connected) { restoreDone = done; Reconnect(); return; }   // answered by OnSetup's query (or its failure)
             QueryPurchases(done);
         }
 
@@ -240,6 +282,7 @@ namespace SearPressure.UnityHost
 
         void OnPurchasesQueried(int code, List<Snap> purchases)
         {
+            Checked = true;
             if (code != OK) { FinishRestore(Map(code) == StoreResult.Purchased ? StoreResult.Error : Map(code)); return; }
             var r = Apply(purchases, true) ?? StoreResult.NotOwned;
             FinishRestore(r == StoreResult.Purchased ? StoreResult.AlreadyOwned : r);
@@ -257,7 +300,7 @@ namespace SearPressure.UnityHost
                 int code = result.Call<int>("getResponseCode");
                 b.main.Enqueue(() => b.OnSetup(code));
             }
-            public void onBillingServiceDisconnected() { b.main.Enqueue(() => b.connected = false); }
+            public void onBillingServiceDisconnected() { b.main.Enqueue(b.OnDisconnected); }
         }
 
         sealed class ProductDetailsListener : AndroidJavaProxy
@@ -334,6 +377,7 @@ namespace SearPressure.UnityHost
         public bool Owned => owned;
         public string Price => "$4.99";
         public bool Ready => true;
+        public bool Checked => true;
         void Awake() { owned = PlayerPrefs.GetInt(StoreConfig.OwnedKey, 0) == 1; }
         public void Begin() { }
         public void Buy(Action<StoreResult> done)
