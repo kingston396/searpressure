@@ -100,7 +100,7 @@ August, so update `TargetApi` in that file when Play Console asks.
 
 - **Android:** File → Build Profiles → Android → Switch Platform. In Player Settings → Publishing
   Settings, create a keystore (keep it and its passwords safe: every update must be signed with it).
-  Then Build, and upload the `.aab` to Play Console.
+  Then **untick Development Build**, Build, and upload the `.aab` to Play Console.
 - **iOS** (needs a Mac with Xcode): Build Profiles → iOS → Build, open the Xcode project, set your team,
   then Product → Archive → Distribute.
 

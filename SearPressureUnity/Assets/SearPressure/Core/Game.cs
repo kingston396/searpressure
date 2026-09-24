@@ -150,6 +150,9 @@ namespace SearPressure
         }
 
         // Draw the whole frame; if a font texture was rebuilt part-way (stale glyphs), draw it again.
+        // Draw the current frame again without advancing anything (the host calls this after a layout change).
+        public void Redraw() => RenderFrame(0);
+
         void RenderFrame(double dt)
         {
             for (int attempt = 0; attempt < 3; attempt++)

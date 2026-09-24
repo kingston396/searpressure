@@ -29,6 +29,7 @@ namespace SearPressure.UnityHost
         float retryAt; float retryDelay = 2;
         float connectingSince, productRetryAt, productRetryDelay = 5;
         Action<StoreResult> waitingBuy; float waitingBuyUntil;   // a tap that arrived before the store was ready
+        float restoreUntil;
         Action<StoreResult> buyDone, restoreDone;
 
         public event Action<bool> OwnedChanged;
@@ -47,30 +48,46 @@ namespace SearPressure.UnityHost
             {
                 using (var up = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
                     activity = up.GetStatic<AndroidJavaObject>("currentActivity");
-                using var ppb = new AndroidJavaClass(Api + "PendingPurchasesParams").CallStatic<AndroidJavaObject>("newBuilder");
-                ppb.Call<AndroidJavaObject>("enableOneTimeProducts").Dispose();
-                using var pending = ppb.Call<AndroidJavaObject>("build");
-                using var b = new AndroidJavaClass(Api + "BillingClient").CallStatic<AndroidJavaObject>("newBuilder", activity);
-                b.Call<AndroidJavaObject>("setListener", new PurchasesUpdated(this)).Dispose();
-                b.Call<AndroidJavaObject>("enablePendingPurchases", pending).Dispose();
-                b.Call<AndroidJavaObject>("enableAutoServiceReconnection").Dispose();
-                client = b.Call<AndroidJavaObject>("build");
+                BuildClient();
                 Reconnect();
             }
             catch (Exception e) { Debug.LogWarning("Sear Pressure store: couldn't start Google Play Billing: " + e.Message); Checked = true; }
+        }
+
+        void BuildClient()
+        {
+            using var ppb = new AndroidJavaClass(Api + "PendingPurchasesParams").CallStatic<AndroidJavaObject>("newBuilder");
+            ppb.Call<AndroidJavaObject>("enableOneTimeProducts").Dispose();
+            using var pending = ppb.Call<AndroidJavaObject>("build");
+            using var b = new AndroidJavaClass(Api + "BillingClient").CallStatic<AndroidJavaObject>("newBuilder", activity);
+            b.Call<AndroidJavaObject>("setListener", new PurchasesUpdated(this)).Dispose();
+            b.Call<AndroidJavaObject>("enablePendingPurchases", pending).Dispose();
+            b.Call<AndroidJavaObject>("enableAutoServiceReconnection").Dispose();
+            client = b.Call<AndroidJavaObject>("build");
+        }
+
+        // A connection stuck in CONNECTING can't be restarted on the same client: close it and build a new one.
+        void RebuildClient()
+        {
+            try { client?.Call("endConnection"); } catch (Exception) { }
+            client?.Dispose(); client = null;
+            connected = false; connecting = false;
+            try { BuildClient(); } catch (Exception e) { Debug.LogWarning("Sear Pressure store: rebuild failed: " + e.Message); }
+            retryAt = Time.unscaledTime + 1;
         }
 
         void Update()
         {
             while (main.TryDequeue(out var a)) { try { a(); } catch (Exception e) { Debug.LogException(e); } }
             float t = Time.unscaledTime;
-            if (connecting && t - connectingSince > 20) { connecting = false; retryAt = t; }   // a setup callback that never came
+            if (connecting && t - connectingSince > 20) RebuildClient();   // a setup callback that never came
+            if (restoreDone != null && !connected && t > restoreUntil) FinishRestore(StoreResult.Unavailable);
             if (retryAt > 0 && t > retryAt) { retryAt = 0; Reconnect(); }
             if (productRetryAt > 0 && t > productRetryAt) { productRetryAt = 0; if (connected && product == null) QueryProduct(); }
             // A tap that came in while connecting: go ahead once ready, or give up after a few seconds.
             if (waitingBuy != null)
             {
-                if (Ready) { var d = waitingBuy; waitingBuy = null; Buy(d); }
+                if (owned || Ready) { var d = waitingBuy; waitingBuy = null; Buy(d); }   // Buy answers AlreadyOwned first
                 else if (t > waitingBuyUntil) { var d = waitingBuy; waitingBuy = null; d(StoreResult.Unavailable); }
             }
         }
@@ -95,7 +112,14 @@ namespace SearPressure.UnityHost
             {
                 int state = client.Call<int>("getConnectionState");
                 if (state == 2) { OnSetup(OK); return; }
-                if (state != 0) { retryAt = Time.unscaledTime + 2; return; }
+                if (state == 1)
+                {
+                    // Connecting on its own (auto-reconnection): check again soon; if it stays stuck, rebuild.
+                    if (connectingSince <= 0) connectingSince = Time.unscaledTime;
+                    if (Time.unscaledTime - connectingSince > 20) { connectingSince = 0; RebuildClient(); return; }
+                    retryAt = Time.unscaledTime + 2; return;
+                }
+                if (state == 3) { RebuildClient(); return; }   // CLOSED
                 connecting = true; connectingSince = Time.unscaledTime;
                 client.Call("startConnection", new StateListener(this));
             }
@@ -109,7 +133,7 @@ namespace SearPressure.UnityHost
 
         void OnSetup(int code)
         {
-            connecting = false;
+            connecting = false; connectingSince = 0;
             connected = code == OK;
             if (!connected)
             {
@@ -146,7 +170,11 @@ namespace SearPressure.UnityHost
                 using var q = qb.Call<AndroidJavaObject>("build");
                 client.Call("queryProductDetailsAsync", q, new ProductDetailsListener(this));
             }
-            catch (Exception e) { Debug.LogWarning("Sear Pressure store: product query failed: " + e.Message); }
+            catch (Exception e)
+            {
+                Debug.LogWarning("Sear Pressure store: product query failed: " + e.Message);
+                productRetryAt = Time.unscaledTime + productRetryDelay; productRetryDelay = Mathf.Min(60, productRetryDelay * 2);
+            }
         }
 
         void OnProduct(AndroidJavaObject details, string fmtPrice, string token)
@@ -218,7 +246,7 @@ namespace SearPressure.UnityHost
             OK => StoreResult.Purchased,
             USER_CANCELED => StoreResult.Cancelled,
             ITEM_ALREADY_OWNED => StoreResult.AlreadyOwned,
-            -1 or 2 or 3 or 12 => StoreResult.Unavailable,   // disconnected, service unavailable, billing unavailable, network
+            -3 or -1 or 2 or 3 or 12 => StoreResult.Unavailable,   // timeout, disconnected, service/billing unavailable, network
             _ => StoreResult.Error,
         };
 
@@ -246,6 +274,7 @@ namespace SearPressure.UnityHost
 
         void OnPurchasesUpdated(int code, List<Snap> purchases)
         {
+            NoteCode(code);
             if (code == OK)
             {
                 var r = Apply(purchases, false);
@@ -295,7 +324,7 @@ namespace SearPressure.UnityHost
         public void Restore(Action<StoreResult> done)
         {
             if (client == null) { done?.Invoke(StoreResult.Unavailable); return; }
-            if (!connected) { restoreDone = done; Reconnect(); return; }   // answered by OnSetup's query (or its failure)
+            if (!connected) { restoreDone = done; restoreUntil = Time.unscaledTime + 8; retryAt = 0; Reconnect(); return; }   // answered by OnSetup's query, its failure, or the 8 s deadline
             QueryPurchases(done);
         }
 
@@ -312,9 +341,13 @@ namespace SearPressure.UnityHost
             catch (Exception e) { Debug.LogWarning("Sear Pressure store: purchase query failed: " + e.Message); FinishRestore(StoreResult.Error); }
         }
 
+        // Any call answering SERVICE_DISCONNECTED (-1) means our "connected" flag is stale.
+        void NoteCode(int code) { if (code == -1 && connected) OnDisconnected(); }
+
         void OnPurchasesQueried(int code, List<Snap> purchases)
         {
             Checked = true;
+            NoteCode(code);
             if (code != OK) { FinishRestore(Map(code) == StoreResult.Purchased ? StoreResult.Error : Map(code)); return; }
             var r = Apply(purchases, true) ?? StoreResult.NotOwned;
             FinishRestore(r == StoreResult.Purchased ? StoreResult.AlreadyOwned : r);

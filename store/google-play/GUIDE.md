@@ -48,7 +48,7 @@ Google signs the app for the store. You sign each upload with your own **upload 
 **Or build and sign it in Android Studio:** in Unity, **Sear Pressure → Release → Export Android Studio Project**.
 Pick a folder, then open that folder in **Android Studio** (File → Open) and let Gradle sync.
 **Build → Generate Signed App Bundle or APK → Android App Bundle**, then choose your upload keystore from step 2 and the **release** variant.
-The `.aab` lands in `launcher/release/`. (Android Studio's **Run ▶** installs a *release* build with **real** ads. Only do that after adding your phone under AdMob → Settings → Test devices, and never tap the ads.)
+The `.aab` lands in `launcher/release/`. (Android Studio's **Run ▶** installs a build with **real** ads, whichever Build Variant is selected, because Unity exported a non-Development player. Only do that after adding your phone under AdMob → Settings → Test devices, which can take up to a day to kick in, and never tap the ads.)
 (GitHub can produce this project too: Actions → Android build → Run workflow → tick "Export an Android Studio project".)
 
 **Or let GitHub build it:** every push to `main` builds a signed `.aab` automatically once the secrets are set up
@@ -101,7 +101,7 @@ Google requires **at least 12 testers who stay opted in for 14 days in a row** b
 
 **Organisation (LLC) account, which is yours:** follow `store/RELEASE-TODAY.md` Part G.
 1. Upload build 1 to **Internal testing**.
-2. Create and activate `remove_ads`, then license-test the purchase. The Play-installed build shows real ads: add your phone under **AdMob → Settings → Test devices** first, and never tap them.
+2. Create and activate `remove_ads`, then license-test the purchase. The Play-installed build shows real ads: add your phone (and other testers') under **AdMob → Settings → Test devices** first. It can take up to a day to kick in, so wait for the "Test mode" label on the banner, and never tap real ads.
 3. **Production → Create new release → Add from library** (the same bundle) → **Send changes for review**.
 You can start at 20% and increase.
 

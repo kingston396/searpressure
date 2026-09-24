@@ -131,7 +131,7 @@ or later in Android Studio's signing wizard (**Create new…**):
    - Purchase option: **Buy**, price **$4.99 USD** (Play fills in other countries).
    - Save, then **Activate**.
 3. **Test the purchase without paying:** **Settings (the Play Console home page's gear) → License testing** → add your Gmail (and anyone else testing) → Save.
-   - ⚠️ This Play-installed build shows your **real** ads. First add your phone under **AdMob → Settings → Test devices** (AdMob shows how to find its ID), so you only get test ads on it. Never tap real ads on your own phone.
+   - ⚠️ This Play-installed build shows your **real** ads. First add your phone (and every other tester's) under **AdMob → Settings → Test devices** (AdMob shows how to find the ID). It can take from 15 minutes up to a day to kick in: until the banner shows a **"Test mode"/"Test Ad"** label, don't touch any ad. Tell any other testers the same, or simply never to tap ads.
    - On your phone, open the internal-testing opt-in link and install **from the Play Store**.
    - On the title screen, **Remove ads · <price>** should show the price in your Play country's currency. If it shows just "Remove ads", the product isn't active yet, or it was created only minutes ago.
    - Tap it and choose the **test card ("always approves")**.

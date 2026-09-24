@@ -24,9 +24,12 @@ namespace SearPressure.UnityHost
         bool suppressed;
         bool bannerWanted = true;   // the game allows a banner right now (menus/results, not during play)
 
+        bool reapply;   // after a full-screen ad the host decides again (the game may have moved on to a new service)
+
         public void SetBannerVisible(bool on)
         {
-            if (bannerWanted == on) return;
+            if (bannerWanted == on && !reapply) return;
+            reapply = false;
             bannerWanted = on;
             if (banner == null) return;
             if (on && !fullScreen) banner.Show(); else banner.Hide();
@@ -170,7 +173,7 @@ namespace SearPressure.UnityHost
 
         // Game sound off and the banner hidden while a full-screen ad is up.
         void BeginFullScreen() { fullScreen = true; AudioListener.pause = true; banner?.Hide(); }
-        void EndFullScreen() { fullScreen = false; AudioListener.pause = false; if (bannerWanted) banner?.Show(); }
+        void EndFullScreen() { fullScreen = false; AudioListener.pause = false; reapply = true; }
 
         // ---- consent ----
         public bool PrivacyOptionsRequired =>

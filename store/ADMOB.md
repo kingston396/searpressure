@@ -68,7 +68,7 @@ Build with **Development Build ticked** (File → Build Profiles), which uses Go
 5. **Interstitial:** finish two services. Leaving the second results card shows a full-screen test ad; closing it continues to where you tapped.
 6. **Sound:** music is silent during full-screen ads and comes back afterwards.
 7. **Offline:** flight mode, then play. There are no banner or revive offers, and nothing gets stuck.
-8. **Remove ads:** see `RELEASE-TODAY.md` Part G. It only works with the app installed from Google Play (internal testing) and your account set as a license tester. That Play build shows **real** ads, so add the phone under **AdMob → Settings → Test devices** before installing it.
+8. **Remove ads:** see `RELEASE-TODAY.md` Part G. It only works with the app installed from Google Play (internal testing) and your account set as a license tester. That Play build shows **real** ads, so add the phone (and other testers') under **AdMob → Settings → Test devices** before installing it. It can take up to a day to kick in: wait for the "Test mode" label before touching any ad.
 9. **Europe check** (optional): in `AdMobAds.Begin()`, temporarily add
    `ConsentDebugSettings = new ConsentDebugSettings { DebugGeography = DebugGeography.EEA, TestDeviceHashedIds = { "<id from logcat>" } }`
    to the `ConsentRequestParameters`. The consent form then shows, and **Settings → Privacy choices** appears.

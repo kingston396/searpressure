@@ -176,10 +176,10 @@ namespace SearPressure.UnityHost
 
         // ---- screen ----
         int lastW, lastH; UnityEngine.Rect lastSafe; float lastBanner;
-        void ApplyScreen(bool force)
+        bool ApplyScreen(bool force)
         {
             float bannerPx = BannerPx;
-            if (!force && Screen.width == lastW && Screen.height == lastH && Screen.safeArea == lastSafe && bannerPx == lastBanner) return;
+            if (!force && Screen.width == lastW && Screen.height == lastH && Screen.safeArea == lastSafe && bannerPx == lastBanner) return false;
             lastW = Screen.width; lastH = Screen.height; lastSafe = Screen.safeArea; lastBanner = bannerPx;
             // Logical pixels like CSS pixels: phones come out around 360-430 wide.
             double d = Screen.dpi > 0 ? Screen.dpi / 160.0 : 1;
@@ -194,6 +194,7 @@ namespace SearPressure.UnityHost
             // The AdMob banner sits along the bottom: keep the game (and its controls) above it.
             sb += bannerPx / d;
             game.Resize(Screen.width / d, Screen.height / d, d, st, sr, sb, sl);
+            return true;
         }
 
         // ---- the frame ----
@@ -208,12 +209,20 @@ namespace SearPressure.UnityHost
                     adsPending = false;
                     if (owned) adMob.Suppress(); else adMob.Begin();
                 }
-                adMob.SetBannerVisible(game.BannerAllowed);
             }
 #endif
             ApplyScreen(false);
             ReadInput();
             game.Frame(Time.unscaledDeltaTime);
+#if SEARPRESSURE_ADS
+            // Banner and its space follow the state the game is in *now* (e.g. the results card that just
+            // opened), and the frame is redrawn at once, so nothing jumps a frame later.
+            if (adMob != null)
+            {
+                adMob.SetBannerVisible(game.BannerAllowed);
+                if (ApplyScreen(false)) game.Redraw();
+            }
+#endif
             audioOut.SetEngine(game.engineLevel);
             if (keyboard != null)
             {
