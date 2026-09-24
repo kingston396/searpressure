@@ -18,7 +18,10 @@
   <PropertyGroup>
     <GmaDir Condition="'$(GmaDir)' == '' And Exists('$(MSBuildThisFileDirectory)../../Library/PackageCache')">$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)../../Library/PackageCache', 'com.google.ads.mobile*')[0])/GoogleMobileAds</GmaDir>
   </PropertyGroup>
-  <ItemGroup>
+  <PropertyGroup Condition="'$(GmaDir)' != ''">
+    <DefineConstants>$(DefineConstants);SEARPRESSURE_ADS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(GmaDir)' != ''">
     <Reference Include="GoogleMobileAds"><HintPath>$(GmaDir)/GoogleMobileAds.dll</HintPath></Reference>
     <Reference Include="GoogleMobileAds.Core"><HintPath>$(GmaDir)/GoogleMobileAds.Core.dll</HintPath></Reference>
     <Reference Include="GoogleMobileAds.Common"><HintPath>$(GmaDir)/GoogleMobileAds.Common.dll</HintPath></Reference>

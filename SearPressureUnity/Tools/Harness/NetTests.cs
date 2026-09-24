@@ -99,7 +99,7 @@ static partial class Tests
         {
             var p = new NetPlatform { relay = url };
             Sprites.Reset();
-            var g = new Game(p, new Canvas { Fonts = Program.Fonts });
+            var g = new Game(p, new Canvas { Fonts = Program.Fonts }) { onlineEnabled = true };
             g.Resize(390, 844, 2, 0, 0, 0, 0);
             g.Frame(1 / 60.0);   // boot to the title screen
             list.Add(g);

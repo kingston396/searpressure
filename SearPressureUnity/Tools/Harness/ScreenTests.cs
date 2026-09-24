@@ -19,7 +19,7 @@ static partial class Tests
         g.show("scr-wardrobe"); Program.Run(g, 0.2); Program.Shot(g, "s_wardrobe.png");
         g.show("scr-settings"); Program.Run(g, 0.2); Program.Shot(g, "s_settings.png");
         g.show("scr-howto"); Program.Run(g, 0.2); Program.Shot(g, "s_howto.png");
-        g.show("scr-online"); Program.Run(g, 0.2); Program.Shot(g, "s_online.png");
+        g.onlineEnabled = true; g.show("scr-online"); Program.Run(g, 0.2); Program.Shot(g, "s_online.png"); g.onlineEnabled = false;
         // Story before the first stop (a fresh save).
         var g2 = Program.NewGame(new HarnessPlatform()); Program.Run(g2, 0.2);
         Tap(g2, "lvl-0"); Program.Run(g2, 0.2); Program.Shot(g2, "s_story.png");

@@ -1,3 +1,7 @@
+// AdMob is switched off: Sear Pressure is a paid app with no ads. To bring ads back, add the Google Mobile
+// Ads package (see store/ADMOB.md), restore Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset,
+// add SEARPRESSURE_ADS to Player Settings → Scripting Define Symbols, and set AdsConfig.Enabled = true.
+#if SEARPRESSURE_ADS
 using System;
 using GoogleMobileAds.Api;
 using GoogleMobileAds.Ump.Api;
@@ -158,3 +162,4 @@ namespace SearPressure.UnityHost
         }
     }
 }
+#endif

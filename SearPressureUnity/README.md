@@ -109,16 +109,13 @@ On tablets the game scales up so the short side is at most about 560 logical pix
 
 Store listing text, screenshots, the feature graphic and the privacy policy are in `../store/`.
 
-## Ads
+## Ads (off)
 
-Google AdMob (package `com.google.ads.mobile` from OpenUPM, set up in `Packages/manifest.json`):
-- a bottom banner (the game sits above it)
-- an interstitial every 2nd finished service
-- a rewarded revive when a service fails
-- Google's consent form
+The game is a paid app ($4.99) with no ads. The AdMob integration is kept but compiled out:
+- `Core/Game.Ads.cs`: revive and interstitial rules, inactive when the platform has no ads.
+- `Unity/AdMobAds.cs`: the wrapper, only compiled with the `SEARPRESSURE_ADS` define.
 
-The game rules are in `Core/Game.Ads.cs`, and the AdMob wrapper is `Unity/AdMobAds.cs`. IDs live in `Unity/AdsConfig.cs`,
-and until you replace them they are Google's test IDs. Setup and the on-phone test list are in `../store/ADMOB.md`.
+To turn ads back on, see `../store/ADMOB.md`.
 
 ## Differences from the web version
 

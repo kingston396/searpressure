@@ -169,6 +169,7 @@ namespace SearPressure
             if (D != null) { renderDrive(dt); return; }
             if (G == null) { drawBackdrop(); return; }
             kitchenDt = paused ? 0 : dt;
+            drawPlayBackdrop();
             drawKitchen();
             drawHUD(dt);
             if (G.lv.judge) drawJudge();

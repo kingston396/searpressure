@@ -22,7 +22,9 @@ static partial class Tests
             case "economy": Economy(); break;
             case "ads": Ads(); break;
             case "fuzz": Fuzz(); break;
+            case "fuzz2": Fuzz2(); break;
             case "geo": GeoProbe(); break;
+            case "look": Look(); break;
             case "geoshots": GeoShots(); break;
             case "storeart": StoreArt(); break;
             case "storeshots": StoreShots(); break;

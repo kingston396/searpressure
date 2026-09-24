@@ -21,7 +21,12 @@ namespace SearPressure.UnityHost
         Camera cam;
         double dpr = 1;
         TouchScreenKeyboard keyboard;
+#if SEARPRESSURE_ADS
         AdMobAds adMob;
+        float BannerPx => adMob != null ? adMob.BannerHeightPx : 0;
+#else
+        float BannerPx => 0;   // no ads in the paid version
+#endif
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void AutoStart()
@@ -40,6 +45,8 @@ namespace SearPressure.UnityHost
             Instance = this;
             DontDestroyOnLoad(gameObject);
             Application.targetFrameRate = 60;
+            useGUILayout = false;   // OnGUI only draws; skip IMGUI's layout pass
+            unlockAll = PlayerPrefs.GetInt("SearPressure.UnlockAll", 0) == 1 || Array.IndexOf(Environment.GetCommandLineArgs(), "-unlockall") >= 0;
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
             Input.multiTouchEnabled = true;
 
@@ -67,20 +74,46 @@ namespace SearPressure.UnityHost
 #if UNITY_ANDROID && !UNITY_EDITOR
             game.onQuit = () => Application.Quit();
 #endif
+#if SEARPRESSURE_ADS
             if (AdsConfig.Enabled) { adMob = gameObject.AddComponent<AdMobAds>(); adMob.Begin(); }
+#endif
             ApplyScreen(true);
         }
 
-        void OnDestroy() { if (Instance == this) Instance = null; }
+        void OnDestroy()
+        {
+            if (Instance != this) return;
+            Instance = null;
+            renderer2D?.Dispose(); fonts?.Dispose();
+        }
         void OnApplicationQuit() => game?.AppQuit();
 
         // ---- IPlatform ----
         public string LoadSave() => PlayerPrefs.GetString(SaveData.Key, "");
         public void WriteSave(string json) { PlayerPrefs.SetString(SaveData.Key, json); PlayerPrefs.Save(); }
         float lastBuzz;
+#if UNITY_ANDROID && !UNITY_EDITOR
+        AndroidJavaObject vibrator;   // (Handheld.Vibrate below also keeps Unity adding the VIBRATE permission)
+#endif
         public void Vibrate(int ms)
         {
-#if UNITY_ANDROID || UNITY_IOS
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (ms < 10 || Time.unscaledTime - lastBuzz < 0.06f) return;
+            lastBuzz = Time.unscaledTime;
+            // A real short buzz of the requested length (Handheld.Vibrate is one long fixed buzz).
+            try
+            {
+                if (vibrator == null)
+                {
+                    using var up = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+                    using var act = up.GetStatic<AndroidJavaObject>("currentActivity");
+                    vibrator = act.Call<AndroidJavaObject>("getSystemService", "vibrator");
+                }
+                using var fx = new AndroidJavaClass("android.os.VibrationEffect").CallStatic<AndroidJavaObject>("createOneShot", (long)ms, -1);
+                vibrator.Call("vibrate", fx);
+            }
+            catch (Exception) { if (ms >= 20) Handheld.Vibrate(); }
+#elif UNITY_IOS && !UNITY_EDITOR
             if (ms >= 20 && Time.unscaledTime - lastBuzz > 0.15f) { lastBuzz = Time.unscaledTime; Handheld.Vibrate(); }
 #endif
         }
@@ -89,10 +122,15 @@ namespace SearPressure.UnityHost
         public DateTime UtcNow => DateTime.UtcNow;
         // Testers: every kitchen open. Toggle it from the Sear Pressure menu in the editor, or
         // launch a build with -unlockall.
-        public bool UnlockAll => PlayerPrefs.GetInt("SearPressure.UnlockAll", 0) == 1 || Environment.CommandLine.Contains("-unlockall");
+        bool unlockAll;   // read once: the game asks many times a frame
+        public bool UnlockAll => unlockAll;
         public bool Calm => false;
         public INetTransport CreateTransport() => NetConfig.Create();
+#if SEARPRESSURE_ADS
         public IAds Ads => adMob;
+#else
+        public IAds Ads => null;
+#endif
         public void OpenKeyboard(string text, int maxLength)
         {
             if (TouchScreenKeyboard.isSupported) keyboard = TouchScreenKeyboard.Open(text, TouchScreenKeyboardType.ASCIICapable, false, false, false, false, "ABCD", maxLength);
@@ -102,7 +140,7 @@ namespace SearPressure.UnityHost
         int lastW, lastH; UnityEngine.Rect lastSafe; float lastBanner;
         void ApplyScreen(bool force)
         {
-            float bannerPx = adMob != null ? adMob.BannerHeightPx : 0;
+            float bannerPx = BannerPx;
             if (!force && Screen.width == lastW && Screen.height == lastH && Screen.safeArea == lastSafe && bannerPx == lastBanner) return;
             lastW = Screen.width; lastH = Screen.height; lastSafe = Screen.safeArea; lastBanner = bannerPx;
             // Logical pixels like CSS pixels: phones come out around 360-430 wide.
@@ -146,8 +184,13 @@ namespace SearPressure.UnityHost
             renderer2D.Draw(canvas, Screen.width, Screen.height);
         }
 
-        void OnApplicationPause(bool pause) { if (pause) { game.Hidden(); game.Blur(); } }
-        void OnApplicationFocus(bool focus) { if (!focus) { game.Hidden(); game.Blur(); } }
+        void OnApplicationPause(bool pause) { if (pause) LostFocus(); }
+        void OnApplicationFocus(bool focus) { if (!focus) LostFocus(); }
+        void LostFocus()
+        {
+            game.Hidden(); game.Blur();
+            downTouches.Clear(); mouseDown = false;   // their "up" events may never arrive
+        }
 
         // ---- input: touches and the mouse become pointers, keys use the browser's key names ----
         readonly HashSet<int> downTouches = new HashSet<int>();

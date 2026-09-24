@@ -329,8 +329,9 @@ namespace SearPressure
             double w = 0;
             foreach (char ch in text)
             {
-                if (Fonts.TryGlyph(face, px, ch, out var g)) w += g.advance;
-                else w += Symbols.IndexOf(ch) >= 0 ? px * 0.9 : px * 0.5;
+                if (Symbols.IndexOf(ch) >= 0) w += px * 0.9;   // always our own shapes, never a system font's glyph
+                else if (Fonts.TryGlyph(face, px, ch, out var g)) w += g.advance;
+                else w += px * 0.5;
             }
             return w;
         }
@@ -365,7 +366,7 @@ namespace SearPressure
             int tex = Fonts != null ? Fonts.TextureId(spec.face) : 0;
             foreach (char ch in text)
             {
-                if (Fonts != null && Fonts.TryGlyph(spec.face, px, ch, out var g))
+                if (Symbols.IndexOf(ch) < 0 && Fonts != null && Fonts.TryGlyph(spec.face, px, ch, out var g))
                 {
                     if (g.x1 > g.x0 && g.y1 > g.y0)
                     {

@@ -53,7 +53,7 @@ namespace SearPressure.EditorTools
                 Debug.LogWarning("Sear Pressure: no upload keystore; signing with the debug key (not accepted by Google Play).");
             }
 
-            if (SearPressure.UnityHost.AdsConfig.UsingTestIds)
+            if (SearPressure.UnityHost.AdsConfig.Enabled && SearPressure.UnityHost.AdsConfig.UsingTestIds)
                 Debug.LogWarning("Sear Pressure: this build uses Google's TEST ad IDs (AdsConfig.cs). Fine for testing; put your real AdMob IDs in before a public release.");
 
             if (Arg("spAndroidStudio") == "true")

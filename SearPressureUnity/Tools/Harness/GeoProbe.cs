@@ -33,3 +33,20 @@ static partial class Tests
         }
     }
 }
+static partial class Tests
+{
+    static void Look()
+    {
+        foreach (var (lv, n) in new[] { (Lvl("Taco Truck"), "taco"), (Lvl("Friday Night Rush"), "friday") })
+        {
+            var k = new K(lv, true, 412, 915, 2.625);
+            Program.Run(k.g, 14);
+            try { k.ChopInto("meat", t => t.type == "griddle" && t.item == null); } catch { }
+            Program.Run(k.g, 1.5);
+            foreach (var c in k.G.chefs) c.idle = 0;
+            Program.Run(k.g, 1 / 60.0);
+            Program.Shot(k.g, "look_" + n + ".png");
+        }
+        var g = Program.NewGame(new HarnessPlatform(), 412, 915, 2.625); Program.Run(g, 0.5); Program.Shot(g, "look_title.png");
+    }
+}

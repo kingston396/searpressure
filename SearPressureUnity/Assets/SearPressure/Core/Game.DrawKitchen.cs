@@ -242,18 +242,34 @@ namespace SearPressure
         }
 
         // Drifting ingredients behind the menus.
-        void drawBackdrop()
+        void drawBackdrop() => drawBackdrop(0.18, 12);
+        void drawBackdrop(double alpha, double speed)
         {
             double s = 72;
             var kinds = new[] { ("tomato", "raw"), ("lettuce", "raw"), ("onion", "raw"), ("bun", "raw"), ("egg", "raw"), ("batter", "cooked"), ("bacon", "cooked"), ("coffee", "brewed"), ("potato", "cooked"), ("shake", "strawberry") };
-            X.globalAlpha = 0.18;
-            double off = (T * 12) % s;
+            X.globalAlpha = alpha;
+            double off = (T * speed) % s;
             for (int y = -1; y < H / s + 1; y++) for (int x = -1; x < W / s + 1; x++)
                 {
                     var k = kinds[Math.Abs((x * 7 + y * 3) % kinds.Length)];
                     drawIng(k.Item1, k.Item2, x * s + off + (y % 2) * s / 2, y * s + off, 3);
                 }
             X.globalAlpha = 1;
+        }
+
+        // Behind a service: the menu wallpaper, much fainter and slower, and a soft vignette so the eye
+        // settles on the truck.
+        void drawPlayBackdrop()
+        {
+            drawBackdrop(0.06, 4);
+            int bands = 8; double e = Math.Min(W, H) * 0.16;
+            for (int i = 0; i < bands; i++)
+            {
+                double d = e * (1 - i / (double)bands), a = 0.035;
+                X.fillStyle = $"rgba(8,10,20,{a})";
+                X.fillRect(0, 0, W, d); X.fillRect(0, H - d, W, d);
+                X.fillRect(0, 0, d, H); X.fillRect(W - d, 0, d, H);
+            }
         }
 
         static readonly HashSet<string> STEEL = new HashSet<string> { "pickup", "stove", "serve", "trash", "griddle", "sink", "hatch", "coffee", "fryer", "blender", "smoker", "oven" };

@@ -8,7 +8,9 @@ namespace SearPressure
     public static class Synth
     {
         public const int Rate = 44100;
-        static readonly Random rnd = new Random(7);
+        // One generator per thread: tunes are built on a background thread while effects play.
+        [ThreadStatic] static Random rndT;
+        static Random rnd => rndT ??= new Random(7);
 
         // tone(freq, dur, type, vol, when, slide): an oscillator with a quick attack and exponential fade.
         static void Tone(float[] buf, double freq, double dur, string type = "sine", double vol = 0.12, double when = 0, double slide = 0)

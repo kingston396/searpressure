@@ -20,6 +20,17 @@ namespace SearPressure.UnityHost
             if (sh == null || fsh == null) Debug.LogError("Sear Pressure: canvas shaders not found (Resources/SearPressure/*.shader).");
             spriteMat = new Material(sh) { hideFlags = HideFlags.HideAndDontSave };
             fontMat = new Material(fsh) { hideFlags = HideFlags.HideAndDontSave };
+            // Fresh textures: upload every atlas page again (matters when the editor skips a domain reload).
+            var d = Sprites.Atlas.Dirty;
+            for (int i = 0; i < d.Count; i++) d[i] = true;
+        }
+
+        public void Dispose()
+        {
+            foreach (var t in pages) if (t != null) Object.Destroy(t);
+            pages.Clear();
+            if (spriteMat != null) Object.Destroy(spriteMat);
+            if (fontMat != null) Object.Destroy(fontMat);
         }
 
         Texture2D Page(int i)

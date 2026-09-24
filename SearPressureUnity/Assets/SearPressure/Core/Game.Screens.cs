@@ -39,7 +39,7 @@ namespace SearPressure
         string onlineCode = "";
         bool onlineButtonsEnabled = true;
         // Online play is offered only when this is on (the host turns it off until a relay is deployed).
-        public bool onlineEnabled = true;
+        public bool onlineEnabled = false;   // the host turns it on once a relay is deployed
 
         // ---- small helpers the web version used for DOM text ----
         public void buildLevelList() { }            // the list is drawn live every frame

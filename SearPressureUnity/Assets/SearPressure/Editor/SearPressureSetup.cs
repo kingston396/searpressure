@@ -40,6 +40,7 @@ namespace SearPressure.EditorTools
                 cam.clearFlags = CameraClearFlags.SolidColor;
                 cam.backgroundColor = new Color32(0x1c, 0x21, 0x33, 255);
                 cam.cullingMask = 0;
+                camGo.AddComponent<AudioListener>();
                 new GameObject("Sear Pressure").AddComponent<SearPressure.UnityHost.GameHost>();
                 EditorSceneManager.SaveScene(scene, ScenePath);
                 Debug.Log("Sear Pressure: created " + ScenePath);

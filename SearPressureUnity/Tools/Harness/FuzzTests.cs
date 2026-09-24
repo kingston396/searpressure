@@ -32,6 +32,35 @@ static partial class Tests
         }
     }
 
+    static bool fuzzSmart;
+
+    // Step next to a random station (as if the player walked there), face it, and use it.
+    static void FuzzInteract(Game g, Random r)
+    {
+        var G = g.G; if (G == null || G.phase != "play") return;
+        var c = G.chefs[G.active];
+        var targets = G.tiles.Where(t => t.type != "floor").ToList();
+        for (int tries = 0; tries < 8; tries++)
+        {
+            var t = targets[r.Next(targets.Count)];
+            var dirs = new[] { (0, 1), (0, -1), (1, 0), (-1, 0) };
+            var (dx, dy) = dirs[r.Next(4)];
+            var f = G.TileAt(t.x + dx, t.y + dy);
+            if (f == null || f.type != "floor") continue;
+            // Only if that floor tile is free of the other chef.
+            if (G.chefs.Any(o => o != c && Math.Abs(o.x - (f.x + 0.5)) < 0.8 && Math.Abs(o.y - (f.y + 0.5)) < 0.8)) continue;
+            c.x = f.x + 0.5; c.y = f.y + 0.5; c.fx = -dx; c.fy = -dy; c.task = null;
+            Program.Run(g, 1 / 60.0);
+            double a = r.NextDouble();
+            if (a < 0.6) { g.KeyDown("Space", false); g.KeyUp("Space"); }
+            else if (a < 0.9) { g.KeyDown("KeyE", false); Program.Run(g, 0.4 + r.NextDouble() * 2); g.KeyUp("KeyE"); }
+            else { g.KeyDown("KeyQ", false); g.KeyUp("KeyQ"); }
+            // Now and then, let cooking run long enough to burn.
+            if (r.NextDouble() < 0.05) Program.Run(g, 6, 1 / 30.0);
+            return;
+        }
+    }
+
     static void CheckKitchen(Game g, string where)
     {
         var G = g.G; if (G == null) return;
@@ -52,7 +81,7 @@ static partial class Tests
     {
         for (double t = 0; t < seconds; t += 0.1)
         {
-            try { FuzzInput(g, r); Program.Run(g, 0.1, 1 / 30.0); }
+            try { if (fuzzSmart && r.NextDouble() < 0.45) FuzzInteract(g, r); else FuzzInput(g, r); Program.Run(g, 0.1, 1 / 30.0); }
             catch (Exception e) { Problem($"{where} at {t:0.0}s: {e.GetType().Name}: {e.Message} @ {e.StackTrace?.Split('\n').FirstOrDefault()?.Trim()}"); return; }
             if (g.screen == "scr-revive") { try { Tap(g, r.NextDouble() < 0.5 ? "btn-revive" : "btn-revive-no"); } catch (Exception e) { Problem($"{where} revive: {e.Message}"); } }
             if (g.screen == "scr-pause") g.resumeGame();
@@ -162,6 +191,51 @@ static partial class Tests
             var back = SaveData.FromJson(g.save.ToJson());
             if (back.wallet != g.save.wallet) Problem("menus: save round trip lost the wallet");
         }
+        Console.WriteLine(fuzzProblems == 0 ? "ALL PASSED" : fuzzProblems + " FAILED");
+    }
+}
+
+static partial class Tests
+{
+    // Wider sweep: random kitchen × random screen × random save, many seeds.
+    static void Fuzz2()
+    {
+        fuzzSmart = true;
+        fuzzProblems = 0; int served = 0, fires = 0, grabs = 0, revives = 0;
+        var sizes = new (double w, double h, double d)[] { (320, 480, 1), (320, 568, 2), (360, 800, 3), (393, 852, 3), (412, 915, 2.625), (768, 1024, 2), (1024, 1366, 2), (568, 320, 2), (844, 390, 3), (1280, 800, 1.5) };
+        var rng = new Random(4242);
+        for (int run = 0; run < 150; run++)
+        {
+            var (w, h, d) = sizes[rng.Next(sizes.Length)];
+            int lv = rng.Next(Data.LEVELS.Count);
+            var r = new Random(run * 31 + 7);
+            var g = Program.NewGame(new HarnessPlatform { unlock = rng.NextDouble() < 0.8 }, w, h, d);
+            string where = $"run {run}: {Data.LEVELS[lv].name} @ {w}x{h}";
+            try
+            {
+                Program.Run(g, 0.2);
+                g.save.lefty = rng.NextDouble() < 0.3; g.save.shake = rng.NextDouble() < 0.5; g.save.muted = rng.NextDouble() < 0.3;
+                g.save.wallet = rng.Next(0, 30000);
+                foreach (var u in Data.UPGRADES) if (rng.NextDouble() < 0.3) g.save.owned[u.id] = true;
+                if (rng.NextDouble() < 0.3) g.Resize(h, w, d, 0, 0, 0, 0);   // rotate before playing
+                g.play(lv); Program.Run(g, 3.7);
+                if (rng.NextDouble() < 0.3) { g.Resize(g.H, g.W, d, 20, 0, 30, 0); Program.Run(g, 0.1); }   // rotate mid-service with notch insets
+                PlayFuzz(g, r, where, 40);
+                served += g.G.served; fires += g.G.fires; grabs += g.G.chefs.Count(c => c.held != null) + g.G.tiles.Count(t => t.item != null && t.type == "counter");
+                if (g.G.phase != "over") { g.G.time = 0.01; Program.Run(g, 0.2); }
+                if (g.screen == "scr-revive") Tap(g, "btn-revive-no");
+                Program.Run(g, 2.4);
+                if (g.screen != "scr-results") Problem($"{where}: no results (screen {g.screen}, phase {g.G?.phase}, time {g.G?.time:0.00}, endT {g.G?.endT:0.00}, shown {g.G?.shown}, paused {g.paused}, fires {g.G?.fires})");
+                // Every menu screen must lay out at this size without throwing.
+                foreach (var sc in new[] { "scr-title", "scr-shop", "scr-wardrobe", "scr-settings", "scr-howto" })
+                { g.show(sc); Program.Run(g, 0.1); for (int k = 0; k < 6; k++) { g.Scroll(300); Program.Run(g, 0.05); } }
+                var js = g.save.ToJson(); var back = SaveData.FromJson(js);
+                if (back.ToJson() != js) Problem($"{where}: save JSON not stable across a round trip");
+            }
+            catch (Exception e) { Problem($"{where}: {e.GetType().Name}: {e.Message} @ {e.StackTrace?.Split('\n').FirstOrDefault()?.Trim()}"); }
+        }
+        Console.WriteLine($"  activity: {served} orders served, {fires} fires, {grabs} things held or set down across 150 runs");
+        Console.WriteLine($"  activity: {served} orders served, {fires} fires, {grabs} things held or set down across 150 runs");
         Console.WriteLine(fuzzProblems == 0 ? "ALL PASSED" : fuzzProblems + " FAILED");
     }
 }

@@ -43,7 +43,7 @@ SECRETS ON THE ROAD
 Some kitchens are hidden. Some roads lead somewhere unexpected. And somewhere out there, a very hard-to-please food critic is waiting.
 
 • Play offline, anywhere
-• Free to play, no in-app purchases
+• No ads, no in-app purchases: pay once, play forever
 • Built-in tutorial: learn to cook in a couple of minutes
 • Portrait or landscape, with left-handed controls
 • Chunky pixel art and a sizzling soundtrack
@@ -62,7 +62,7 @@ Run a food truck across America. Two chefs, one kitchen, zero time to spare.
 
 **Category:** Game › Casual
 **Tags (pick up to 5 in Play Console):** Cooking, Time management, Casual, Pixel art, Offline
-**Contains ads:** Yes (Google AdMob)  **In-app purchases:** No
+**Price:** $4.99, paid (set in Play Console → Monetise → App pricing; needs a payments profile)  **Contains ads:** No  **In-app purchases:** No
 
 **Graphics** (in `store/`)
 | Item | File |
@@ -80,16 +80,10 @@ Run a food truck across America. Two chefs, one kitchen, zero time to spare.
 
 **Target audience:** choose **13 and over**. The game suits every age, but ticking under-13 age groups puts the app under Google's Families policy, which has extra requirements. You can change this later.
 
-**Data safety form** (the game uses Google AdMob; Google's own guide for this form: "Google Mobile Ads SDK: data disclosure")
-- Does your app collect or share any of the required user data types? **Yes.**
-- Is all collected data encrypted in transit? **Yes.**  Can users request deletion? **No** (we hold no data ourselves; point people to the contact email).
-- Declare these, each **collected and shared**, **processed ephemerally: no**, **required** (users can't turn it off), purposes **Advertising or marketing**, **Analytics** and **Fraud prevention, security and compliance**:
-  - **Location → Approximate location** (from the IP address)
-  - **Device or other IDs → Device or other IDs** (advertising ID)
-  - **App activity → Other user-generated content? No**; **App interactions: Yes** (ads viewed and tapped)
-  - **App info and performance → Crash logs** and **Diagnostics**
-- Progress is saved only on the device and never collected. The Unity engine's anonymous device info falls under Diagnostics above.
-- **Advertising ID declaration** (App content → Advertising ID): **Yes**, used for **Advertising or marketing** and **Analytics**.
+**Data safety form**
+- Does your app collect or share any of the required user data types? **No.** Progress is saved only on the device, and the game has no ads, accounts or analytics.
+- The Unity engine may send anonymous device and diagnostics information to Unity. Check Unity's current Google Play data-safety guidance for your Unity version. If it says to declare anything, it will usually be **App info and performance → Diagnostics**: collected, not shared, used for analytics/app functionality, not linked to identity.
+- **Advertising ID** declaration (App content): **No**, the app doesn't use it.
 
 **New personal developer accounts:** before production access, Google requires a **closed test with at least 12 testers opted in for 14 days in a row**. Upload build 1 to Closed testing first and invite friends by email or Google Group.
 
@@ -104,7 +98,7 @@ Food truck cooking frenzy
 
 **Promotional text** [170]
 ```
-Two chefs, one food truck and a road trip across America. Chop, cook and swap chefs to beat the rush, and try a new daily challenge every day. Free to play.
+Two chefs, one food truck and a road trip across America. Chop, cook and swap chefs to beat the rush, and try a new daily challenge every day. No ads, ever.
 ```
 
 **Keywords** [100, comma-separated, no spaces needed]
@@ -115,7 +109,7 @@ cooking,chef,kitchen,food truck,restaurant,burger,time management,diner,pixel,of
 
 **Primary category:** Games › Casual  **Secondary category:** Games › Simulation
 **Age rating questionnaire:** everything "None", except **Cartoon or Fantasy Violence: None** (fires only). Expected rating **4+**.
-**App Privacy ("nutrition label"):** because of AdMob, declare **Data Used to Track You: Device ID**, and **Data Linked/Not Linked to You** for Identifiers (Device ID), Location (Coarse), Usage Data (Advertising Data, Product Interaction) and Diagnostics, with purposes Third-Party Advertising and Analytics. On iOS the game should also show Apple's tracking prompt (App Tracking Transparency) before personalised ads; set its message in Assets → Google Mobile Ads → Settings → "User Tracking Usage Description" when you build for iPhone.
+**App Privacy ("nutrition label"):** **Data Not Collected.** If Unity's guidance for your version lists engine diagnostics, declare **Diagnostics → Crash/Performance data**, not linked to the user, not used for tracking.
 **Export compliance:** the game uses no encryption beyond Apple's own, so answer **No** to "uses non-exempt encryption". To skip the question on every upload, add `ITSAppUsesNonExemptEncryption = NO` to the Xcode project's Info.plist.
 **Support URL:** required. The privacy-policy page's address works, or any page with your contact email.
 

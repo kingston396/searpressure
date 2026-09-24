@@ -9,6 +9,9 @@ namespace SearPressure.UnityHost
         readonly Dictionary<Face, Font> fonts = new Dictionary<Face, Font>();
         readonly Dictionary<(Face, int), (float asc, float desc)> metrics = new Dictionary<(Face, int), (float, float)>();
         bool rebuilt;
+        // Characters a font doesn't have, so we don't ask Unity again every frame (cleared on rebuild).
+        readonly HashSet<(Face, int, char)> missing = new HashSet<(Face, int, char)>();
+        readonly System.Action<Font> onRebuilt;
 
         public UnityFonts()
         {
@@ -18,7 +21,8 @@ namespace SearPressure.UnityHost
             Load(Face.DMMono, "DMMono-Medium");
             Load(Face.NunitoSemiBold, "Nunito-SemiBold");
             Load(Face.NunitoExtraBold, "Nunito-ExtraBold");
-            Font.textureRebuilt += _ => rebuilt = true;
+            onRebuilt = _ => { rebuilt = true; missing.Clear(); };
+            Font.textureRebuilt += onRebuilt;
         }
 
         void Load(Face f, string file)
@@ -27,6 +31,8 @@ namespace SearPressure.UnityHost
             if (font == null) { Debug.LogWarning("Sear Pressure: missing font " + file + ", using the built-in one."); font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); }
             fonts[f] = font;
         }
+
+        public void Dispose() => Font.textureRebuilt -= onRebuilt;
 
         public Font Get(Face f) => fonts[f];
         public Texture TextureOf(int id) => fonts[(Face)(id - 1000)].material.mainTexture;
@@ -37,10 +43,11 @@ namespace SearPressure.UnityHost
         {
             g = default;
             var font = fonts[face];
+            if (missing.Contains((face, px, ch))) return false;
             if (!font.GetCharacterInfo(ch, out var ci, px, FontStyle.Normal))
             {
                 font.RequestCharactersInTexture(ch.ToString(), px, FontStyle.Normal);
-                if (!font.GetCharacterInfo(ch, out ci, px, FontStyle.Normal)) return false;
+                if (!font.GetCharacterInfo(ch, out ci, px, FontStyle.Normal)) { missing.Add((face, px, ch)); return false; }
             }
             if (ch != ' ' && ci.glyphWidth == 0 && ci.advance == 0) return false;
             // Unity's glyph box: x from minX to maxX, y up from the baseline. Ours is y down.
