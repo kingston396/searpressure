@@ -1,0 +1,34 @@
+# Reads a finished build's app bundle with Google's bundletool and prints what Google Play will see
+# (package name, version, signer). Actions tab → Inspect a build → Run workflow → the run number's ID.
+name: Inspect a build
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'ID of the Android build run (from its URL: .../actions/runs/<ID>)'
+        required: true
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          run-id: ${{ inputs.run_id }}
+          pattern: SearPressure-android-*
+          github-token: ${{ github.token }}
+          path: builds
+      - name: What Google Play will see
+        run: |
+          curl -sSL -o bundletool.jar https://github.com/google/bundletool/releases/download/1.18.1/bundletool-all-1.18.1.jar
+          for f in $(find builds -name '*.aab'); do
+            echo "== $f"
+            echo -n "package:      "; java -jar bundletool.jar dump manifest --bundle "$f" --xpath /manifest/@package
+            echo -n "versionCode:  "; java -jar bundletool.jar dump manifest --bundle "$f" --xpath /manifest/@android:versionCode
+            echo -n "versionName:  "; java -jar bundletool.jar dump manifest --bundle "$f" --xpath /manifest/@android:versionName
+            keytool -printcert -jarfile "$f" | grep -E "Owner:|SHA256:" | head -2
+          done
