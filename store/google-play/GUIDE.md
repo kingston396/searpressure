@@ -3,7 +3,7 @@
 > The shortest path, with Android Studio: **`store/RELEASE-TODAY.md`**. This page has more detail on each step.
 
 What's already done in the project:
-- Package name `com.kingstongames.searpressure`
+- Package name `com.kingston.searpressure`
 - Version 1.0.0 (build 1)
 - IL2CPP, ARM64, target API 36, App Bundle builds
 - Icon (including Android adaptive), splash screen
@@ -13,7 +13,7 @@ What's already done in the project:
 
 What follows is the part only you can do.
 
-> ⚠️ **The package name is permanent.** Once the first build is uploaded, `com.kingstongames.searpressure`
+> ⚠️ **The package name is permanent.** Once the first build is uploaded, `com.kingston.searpressure`
 > can never change. If you want a different one, change `AppId` in
 > `SearPressureUnity/Assets/SearPressure/Editor/SearPressureSetup.cs` *before* step 3.
 
@@ -58,7 +58,7 @@ so if you use them, don't mix in hand-made builds with higher numbers.
 ## 4. Google Play Console
 
 1. Sign up at **play.google.com/console** ($25 once, identity verification can take a few days).
-   Use your Kingston Games name as the developer name.
+   Use **Ragnarok Talent Partners LLC** as the developer name (an organisation account in the LLC's name).
 2. **Create app:** name *Sear Pressure*, default language English (US), **Game**, **Paid**. Accept the declarations.
    Then **Monetise → App pricing → Set price → $4.99 (USD)**; Play converts it for other countries. This needs a **payments profile** (Setup → Payments profile), which Google asks you to create first.
 3. Work through **Dashboard → Set up your app**. Every answer is in `store/listing.md`:

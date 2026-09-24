@@ -13,7 +13,8 @@ namespace SearPressure.EditorTools
     {
         const string ScenePath = "Assets/SearPressure/Scenes/Main.unity";
         const string DoneKey = "SearPressure.SetupDone.v1";
-        public const string AppId = "com.kingstongames.searpressure";
+        public const string AppId = "com.kingston.searpressure";
+        public const string CompanyName = "Ragnarok Talent Partners LLC";
 
         static SearPressureSetup()
         {
@@ -56,7 +57,7 @@ namespace SearPressure.EditorTools
             }
 
             PlayerSettings.productName = "Sear Pressure";
-            if (PlayerSettings.companyName == "DefaultCompany") PlayerSettings.companyName = "Kingston Games";
+            if (PlayerSettings.companyName == "DefaultCompany") PlayerSettings.companyName = CompanyName;
             // Pixel art in the web version's exact colours: gamma space, no smoothing.
             PlayerSettings.colorSpace = ColorSpace.Gamma;
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
@@ -68,12 +69,12 @@ namespace SearPressure.EditorTools
             PlayerSettings.SplashScreen.backgroundColor = new Color32(0x1c, 0x21, 0x33, 255);
             // The store package name. It can never change once the app is on Google Play.
             string id = PlayerSettings.GetApplicationIdentifier(BuildTargetGroup.Android);
-            if (string.IsNullOrEmpty(id) || id == "com.Company.ProductName" || id.StartsWith("com.DefaultCompany.") || id == "com.searpressure.game")
+            if (string.IsNullOrEmpty(id) || id == "com.Company.ProductName" || id.StartsWith("com.DefaultCompany.") || id == "com.searpressure.game" || id == "com.kingstongames.searpressure")
             {
                 PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, AppId);
                 PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.iOS, AppId);
             }
-            if (PlayerSettings.companyName == "Sear Pressure") PlayerSettings.companyName = "Kingston Games";
+            if (PlayerSettings.companyName == "Sear Pressure" || PlayerSettings.companyName == "Kingston Games") PlayerSettings.companyName = CompanyName;
             EnsureLegacyInput();
             AssetDatabase.SaveAssets();
             if (verbose) EditorUtility.DisplayDialog("Sear Pressure", "Project set up. Open Assets/SearPressure/Scenes/Main.unity and press Play.", "OK");

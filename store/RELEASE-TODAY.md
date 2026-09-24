@@ -1,6 +1,6 @@
 # Release Sear Pressure today: Unity → Android Studio → Google Play
 
-Sear Pressure 1.0.0 (build 1) · package `com.kingstongames.searpressure` · **Paid $4.99, no ads, no in-app purchases**
+Sear Pressure 1.0.0 (build 1) · package `com.kingston.searpressure` · **Paid $4.99, no ads, no in-app purchases**
 
 ## Your account: an organisation (LLC)
 
