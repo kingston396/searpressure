@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sear Pressure</title>
+<script>
+// …/j/7NN7DW → the invite page (…/j/?c=7NN7DW). Anything else → the home page.
+(function () {
+  var m = /^(.*)\/j\/([^\/?#]+)\/?$/.exec(location.pathname);
+  location.replace(m ? m[1] + '/j/?c=' + encodeURIComponent(m[2]) : location.pathname.replace(/\/searpressure\/.*$/, '/searpressure/'));
+})();
+</script>
+<style>body{margin:0;background:#fff5de;color:#2b2230;font:17px/1.6 system-ui,sans-serif;text-align:center;padding:40px 16px}</style>
+</head>
+<body><p><a href="/searpressure/">Sear Pressure</a></p></body>
+</html>
