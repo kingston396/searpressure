@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Join my Sear Pressure kitchen</title>
+<meta property="og:title" content="Join my Sear Pressure kitchen">
+<meta property="og:description" content="Tap to open Sear Pressure and cook together.">
+<style>
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#1c2133;color:#fff5de;text-align:center;padding:40px 16px}
+  h1{font-size:24px}.code{font-size:40px;letter-spacing:6px;color:#f5d33e;margin:18px 0;min-height:48px}
+  a{display:block;max-width:320px;margin:12px auto;padding:14px;border-radius:12px;font-weight:700;text-decoration:none}
+  .go{background:#e8472f;color:#fff}.get{background:#fff5de;color:#2b1d2a}p{opacity:.8;max-width:30rem;margin:12px auto}
+</style>
+</head>
+<body>
+<h1>Join my Sear Pressure kitchen</h1>
+<div class="code" id="code"></div>
+<a class="go" id="open" href="#">Open Sear Pressure</a>
+<a class="get" id="get" href="#">Get it on Google Play</a>
+<p id="how">Or open the game, tap Play with a friend, then Join, and enter the code.</p>
+<script>
+// Invite links: …/j/?c=7NN7DW (or …/j/7NN7DW, via the 404 page). On Android this opens the game, which
+// joins the room; without the game installed, Chrome follows the fallback to the Play Store.
+(function () {
+  var PACKAGE = 'com.kingston.searpressure';
+  var STORE = 'https://play.google.com/store/apps/details?id=' + PACKAGE;
+  var m = /[?&]c=([^&#]+)/.exec(location.search) || /\/j\/([^\/?#]+)\/?$/.exec(location.pathname);
+  var code = m ? decodeURIComponent(m[1]).toUpperCase() : '';
+  if (!/^[6789BCDFGHJKLMNPQRTW]{6}$/.test(code)) code = '';
+  var app = code ? 'intent://join/' + code + '#Intent;scheme=searpressure;package=' + PACKAGE + ';S.browser_fallback_url=' + encodeURIComponent(STORE) + ';end' : STORE;
+  document.getElementById('code').textContent = code;
+  document.getElementById('open').href = app;
+  document.getElementById('get').href = STORE;
+  if (!code) document.getElementById('how').textContent = 'This invite link is missing its room code. Ask your friend for the code, then open the game, tap Play with a friend, then Join.';
+  if (code) document.getElementById('how').textContent = 'Or open the game, tap Play with a friend, then Join, and enter ' + code + '.';
+  if (code && /Android/i.test(navigator.userAgent)) location.href = app;
+})();
+</script>
+</body>
+</html>
