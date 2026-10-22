@@ -27,11 +27,24 @@
 <main>
   <h1>Sear Pressure</h1>
   <p class="meta">A cooking game by Ragnarok Talent Partners LLC</p>
-  <p>Navy shipmates Hunter and Riley take their friend Reyes's food truck coast to coast to live out his dream. Chop, cook, plate and serve across 35 kitchens from Route 66 to New Orleans to New York, play online co-op or versus with 2–4 friends, take on a new Daily Challenge every day, and earn achievements on Google Play Games.</p>
-  <p><a href="https://play.google.com/store/apps/details?id=com.kingston.searpressure">Get Sear Pressure on Google Play</a></p>
+  <p>Navy shipmates Hunter and Riley take their friend Reyes's food truck coast to coast to live out his dream. Chop, cook, plate and serve across 35 kitchens from Route 66 to New Orleans to New York, play online co-op or versus with 2–4 players, and take on a new Daily Challenge every day. On Android, earn achievements on Google Play Games.</p>
+  <p><a href="https://play.google.com/store/apps/details?id=com.kingston.searpressure">Get Sear Pressure on Google Play</a> (Android)<span id="appstore"></span></p>
+  <script>
+  // The App Store link appears once the iPhone and iPad version is live (looked up by bundle ID).
+  window.spAppStore = function (r) {
+    var url = r && r.results && r.results[0] && r.results[0].trackViewUrl;
+    if (!url) return;
+    var span = document.getElementById('appstore'), a = document.createElement('a');
+    a.href = url; a.textContent = 'Download Sear Pressure on the App Store';
+    span.appendChild(document.createTextNode(' · ')); span.appendChild(a); span.appendChild(document.createTextNode(' (iPhone and iPad)'));
+  };
+  </script>
+  <script src="https://itunes.apple.com/lookup?bundleId=com.kingston.searpressure&amp;callback=spAppStore"></script>
   <hr>
   <p><a href="privacy/">Privacy Policy</a> · <a href="terms/">Terms of Use</a></p>
-  <p>Contact: <a href="mailto:info@ragnaroktalentpartners.com">info@ragnaroktalentpartners.com</a></p>
+  <h2>Support</h2>
+  <p>Questions, a problem with the game or a purchase, or an ad that looked wrong: email <a href="mailto:info@ragnaroktalentpartners.com">info@ragnaroktalentpartners.com</a> and we'll get back to you. Bought "Remove ads" before? On a new phone, open the game and tap <em>Settings → Restore purchase</em>.</p>
+  <p>Ragnarok Talent Partners LLC</p>
 </main>
 </body>
 </html>

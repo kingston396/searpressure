@@ -18,23 +18,44 @@
 <div class="code" id="code"></div>
 <a class="go" id="open" href="#">Open Sear Pressure</a>
 <a class="get" id="get" href="#">Get it on Google Play</a>
+<a class="get" id="getios" href="#" style="display:none">Download on the App Store</a>
 <p id="how">Or open the game, tap Play with a friend, then Join, and enter the code.</p>
 <script>
 // Invite links: …/j/?c=7NN7DW (or …/j/7NN7DW, via the 404 page). On Android this opens the game, which
-// joins the room; without the game installed, Chrome follows the fallback to the Play Store.
+// joins the room; without the game installed, Chrome follows the fallback to the Play Store. On iPhone and
+// iPad, "Open Sear Pressure" opens searpressure://join/CODE, and the App Store button appears once the app's
+// listing is live (looked up by bundle ID).
 (function () {
-  var PACKAGE = 'com.kingston.searpressure';
+  var PACKAGE = 'com.kingston.searpressure', BUNDLE = 'com.kingston.searpressure';
   var STORE = 'https://play.google.com/store/apps/details?id=' + PACKAGE;
   var m = /[?&]c=([^&#]+)/.exec(location.search) || /\/j\/([^\/?#]+)\/?$/.exec(location.pathname);
   var code = m ? decodeURIComponent(m[1]).toUpperCase() : '';
   if (!/^[6789BCDFGHJKLMNPQRTW]{6}$/.test(code)) code = '';
-  var app = code ? 'intent://join/' + code + '#Intent;scheme=searpressure;package=' + PACKAGE + ';S.browser_fallback_url=' + encodeURIComponent(STORE) + ';end' : STORE;
+  var ua = navigator.userAgent;
+  var ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var android = /Android/i.test(ua);
+  var open = document.getElementById('open'), get = document.getElementById('get'), getios = document.getElementById('getios');
   document.getElementById('code').textContent = code;
-  document.getElementById('open').href = app;
-  document.getElementById('get').href = STORE;
-  if (!code) document.getElementById('how').textContent = 'This invite link is missing its room code. Ask your friend for the code, then open the game, tap Play with a friend, then Join.';
-  if (code) document.getElementById('how').textContent = 'Or open the game, tap Play with a friend, then Join, and enter ' + code + '.';
-  if (code && /Android/i.test(navigator.userAgent)) location.href = app;
+  if (ios) {
+    open.href = code ? 'searpressure://join/' + code : 'searpressure://';
+    get.style.display = 'none';
+  } else {
+    open.href = code ? 'intent://join/' + code + '#Intent;scheme=searpressure;package=' + PACKAGE + ';S.browser_fallback_url=' + encodeURIComponent(STORE) + ';end' : STORE;
+    if (!android) open.style.display = 'none';   // a computer: just the stores
+  }
+  get.href = STORE;
+  // The App Store link, once the app is live there.
+  window.spAppStore = function (r) {
+    var url = r && r.results && r.results[0] && r.results[0].trackViewUrl;
+    if (url && !android) { getios.href = url; getios.style.display = 'block'; }
+  };
+  var s = document.createElement('script');
+  s.src = 'https://itunes.apple.com/lookup?bundleId=' + BUNDLE + '&callback=spAppStore';
+  document.body.appendChild(s);
+  var how = document.getElementById('how');
+  if (!code) how.textContent = 'This invite link is missing its room code. Ask your friend for the code, then open the game, tap Play with a friend, then Join.';
+  else how.textContent = 'Or open the game, tap Play with a friend, then Join, and enter ' + code + '.';
+  if (code && android) location.href = open.href;
 })();
 </script>
 </body>
